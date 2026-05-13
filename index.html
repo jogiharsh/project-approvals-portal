@@ -641,16 +641,14 @@
     </div>
   </div>
 
-  <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
   <script>
     const PORTAL_PASSWORD = 'Jogiharsh@1993';
-    const SUPABASE_URL = 'https://hdedxguhmilzlilybxgc.supabase.co';
-    const SUPABASE_ANON_KEY = 'sb_publishable_Fc0aE2unBnK4AQF4xKRHcg_xzGd_7tx';
+    const SUPABASE_URL = 'PASTE_YOUR_SUPABASE_URL_HERE';
+    const SUPABASE_ANON_KEY = 'PASTE_YOUR_SUPABASE_ANON_KEY_HERE';
     const SUPABASE_TABLE = 'app_state';
     const APP_STATE_ID = 'main';
     const LOCAL_FALLBACK_KEY = 'projectApprovalsTracker.v3.localFallback';
 
-    let supabase = null;
     let projects = [];
     let currentProjectId = null;
     let activeTab = 'overview';
@@ -714,13 +712,6 @@
     }
 
     async function initSupabase() {
-      if (!window.supabase?.createClient) {
-        projects = loadLocalFallback();
-        isCloudReady = false;
-        setSyncStatus('Supabase library did not load', 'error');
-        return;
-      }
-
       if (!hasSupabaseConfig()) {
         projects = loadLocalFallback();
         setSyncStatus('Paste Supabase URL and anon key', 'warning');
@@ -728,7 +719,6 @@
       }
 
       try {
-        supabase = window.supabase.createClient(SUPABASE_URL, SUPABASE_ANON_KEY);
         isCloudReady = true;
         setSyncStatus('Connecting to Supabase...', 'warning');
         await loadProjectsFromCloud();
@@ -741,38 +731,54 @@
       }
     }
 
+    function supabaseHeaders(extra = {}) {
+      return {
+        apikey: SUPABASE_ANON_KEY,
+        Authorization: `Bearer ${SUPABASE_ANON_KEY}`,
+        ...extra
+      };
+    }
+
     async function loadProjectsFromCloud() {
-      const { data, error } = await supabase
-        .from(SUPABASE_TABLE)
-        .select('projects')
-        .eq('id', APP_STATE_ID)
-        .maybeSingle();
+      const response = await fetch(
+        `${SUPABASE_URL}/rest/v1/${SUPABASE_TABLE}?id=eq.${encodeURIComponent(APP_STATE_ID)}&select=projects`,
+        {
+          headers: supabaseHeaders()
+        }
+      );
 
-      if (error) throw error;
+      if (!response.ok) {
+        throw new Error(`Supabase load failed: ${response.status}`);
+      }
 
-      projects = Array.isArray(data?.projects) ? data.projects : [];
+      const data = await response.json();
+      projects = Array.isArray(data?.[0]?.projects) ? data[0].projects : [];
       saveLocalFallback();
     }
 
     async function saveAll() {
       saveLocalFallback();
-      if (!isCloudReady || !supabase) return;
+      if (!isCloudReady) return;
 
       setSyncStatus('Saving to cloud...', 'warning');
 
-      const { error } = await supabase
-        .from(SUPABASE_TABLE)
-        .upsert(
+      const response = await fetch(`${SUPABASE_URL}/rest/v1/${SUPABASE_TABLE}`, {
+        method: 'POST',
+        headers: supabaseHeaders({
+          'Content-Type': 'application/json',
+          Prefer: 'resolution=merge-duplicates'
+        }),
+        body: JSON.stringify([
           {
             id: APP_STATE_ID,
             projects,
             updated_at: new Date().toISOString()
-          },
-          { onConflict: 'id' }
-        );
+          }
+        ])
+      });
 
-      if (error) {
-        console.error(error);
+      if (!response.ok) {
+        console.error(await response.text());
         setSyncStatus('Cloud save failed', 'error');
         return;
       }

@@ -664,6 +664,8 @@
         sessionStorage.setItem('paPortalUnlocked', 'yes');
         document.body.classList.remove('locked');
         document.getElementById('authScreen').style.display = 'none';
+        document.querySelector('.app-shell').style.display = 'grid';
+        error.classList.remove('show');
         input.value = '';
       } else {
         error.classList.add('show');
@@ -677,6 +679,8 @@
         document.body.classList.remove('locked');
         const authScreen = document.getElementById('authScreen');
         if (authScreen) authScreen.style.display = 'none';
+        const appShell = document.querySelector('.app-shell');
+        if (appShell) appShell.style.display = 'grid';
       }
     }
 
@@ -710,6 +714,13 @@
     }
 
     async function initSupabase() {
+      if (!window.supabase?.createClient) {
+        projects = loadLocalFallback();
+        isCloudReady = false;
+        setSyncStatus('Supabase library did not load', 'error');
+        return;
+      }
+
       if (!hasSupabaseConfig()) {
         projects = loadLocalFallback();
         setSyncStatus('Paste Supabase URL and anon key', 'warning');

@@ -1,0 +1,972 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Project Approvals - NSW Approval Tracker</title>
+  <style>
+    :root {
+      --bg: #f5f7f8;
+      --card: #ffffff;
+      --text: #1d2930;
+      --muted: #64757d;
+      --border: #dce5e8;
+      --primary: #0f766e;
+      --primary-dark: #115e59;
+      --primary-soft: #e6f4f1;
+      --accent: #0ea5a4;
+      --danger: #b42318;
+      --danger-soft: #fee4e2;
+      --warning: #b54708;
+      --warning-soft: #fff3cd;
+      --success: #027a48;
+      --success-soft: #dcfae6;
+      --shadow: 0 10px 30px rgba(16, 24, 40, 0.08);
+      --radius: 18px;
+    }
+
+    * { box-sizing: border-box; }
+
+    body {
+      margin: 0;
+      font-family: Inter, ui-sans-serif, system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
+      background: var(--bg);
+      color: var(--text);
+    }
+
+    button, input, select, textarea { font: inherit; }
+
+    .app-shell {
+      display: grid;
+      grid-template-columns: 280px 1fr;
+      min-height: 100vh;
+    }
+
+    aside {
+      background: #0b2f32;
+      color: #fff;
+      padding: 24px 18px;
+      position: sticky;
+      top: 0;
+      height: 100vh;
+      overflow-y: auto;
+    }
+
+    .brand {
+      display: flex;
+      gap: 12px;
+      align-items: center;
+      margin-bottom: 28px;
+    }
+
+    .brand-mark {
+      width: 42px;
+      height: 42px;
+      border-radius: 14px;
+      background: linear-gradient(135deg, #2dd4bf, #0f766e);
+      display: grid;
+      place-items: center;
+      font-weight: 900;
+      letter-spacing: -1px;
+      color: #fff;
+    }
+
+    .brand h1 {
+      font-size: 18px;
+      margin: 0;
+      line-height: 1.1;
+    }
+
+    .brand p {
+      margin: 3px 0 0;
+      color: #b8d4d3;
+      font-size: 12px;
+    }
+
+    .nav-btn {
+      width: 100%;
+      border: 0;
+      color: #d8eeee;
+      background: transparent;
+      text-align: left;
+      padding: 12px 13px;
+      border-radius: 12px;
+      margin-bottom: 5px;
+      cursor: pointer;
+      display: flex;
+      align-items: center;
+      gap: 10px;
+    }
+
+    .nav-btn.active, .nav-btn:hover { background: rgba(255,255,255,0.11); color: #fff; }
+
+    .side-note {
+      background: rgba(255,255,255,0.08);
+      border: 1px solid rgba(255,255,255,0.12);
+      padding: 14px;
+      border-radius: 16px;
+      margin-top: 22px;
+      color: #d3ebea;
+      font-size: 13px;
+      line-height: 1.45;
+    }
+
+    main { padding: 28px; min-width: 0; }
+
+    .topbar {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      gap: 18px;
+      margin-bottom: 22px;
+    }
+
+    .topbar h2 { margin: 0; font-size: 28px; letter-spacing: -0.7px; }
+    .topbar p { margin: 5px 0 0; color: var(--muted); }
+
+    .actions { display: flex; gap: 10px; flex-wrap: wrap; }
+
+    .btn {
+      border: 1px solid var(--border);
+      background: #fff;
+      color: var(--text);
+      padding: 10px 14px;
+      border-radius: 12px;
+      cursor: pointer;
+      font-weight: 650;
+      display: inline-flex;
+      align-items: center;
+      justify-content: center;
+      gap: 8px;
+    }
+
+    .btn:hover { border-color: #b7c7cc; }
+    .btn.primary { background: var(--primary); color: #fff; border-color: var(--primary); }
+    .btn.primary:hover { background: var(--primary-dark); }
+    .btn.danger { background: var(--danger-soft); color: var(--danger); border-color: #fecaca; }
+    .btn.small { padding: 7px 10px; border-radius: 10px; font-size: 13px; }
+
+    .grid { display: grid; gap: 16px; }
+    .grid.stats { grid-template-columns: repeat(4, minmax(0,1fr)); margin-bottom: 18px; }
+    .grid.two { grid-template-columns: repeat(2, minmax(0,1fr)); }
+
+    .card {
+      background: var(--card);
+      border: 1px solid var(--border);
+      border-radius: var(--radius);
+      box-shadow: var(--shadow);
+      padding: 18px;
+    }
+
+    .stat-card strong { display: block; font-size: 30px; letter-spacing: -0.8px; }
+    .stat-card span { color: var(--muted); font-size: 13px; }
+
+    .toolbar {
+      display: grid;
+      grid-template-columns: 1fr 180px 180px 180px;
+      gap: 10px;
+      margin-bottom: 14px;
+    }
+
+    .field { position: relative; }
+    .field label {
+      display: block;
+      color: var(--muted);
+      font-size: 12px;
+      font-weight: 700;
+      margin-bottom: 6px;
+    }
+
+    input, select, textarea {
+      width: 100%;
+      border: 1px solid var(--border);
+      border-radius: 12px;
+      padding: 11px 12px;
+      background: #fff;
+      color: var(--text);
+      outline: none;
+    }
+
+    textarea { min-height: 90px; resize: vertical; }
+    input:focus, select:focus, textarea:focus { border-color: var(--accent); box-shadow: 0 0 0 4px rgba(14,165,164,0.11); }
+
+    .suggestions {
+      position: absolute;
+      z-index: 60;
+      top: calc(100% + 6px);
+      left: 0;
+      right: 0;
+      display: none;
+      max-height: 230px;
+      overflow-y: auto;
+      border: 1px solid var(--border);
+      border-radius: 14px;
+      background: #fff;
+      box-shadow: var(--shadow);
+    }
+
+    .suggestions.show { display: block; }
+
+    .suggestion {
+      width: 100%;
+      border: 0;
+      border-bottom: 1px solid var(--border);
+      background: #fff;
+      text-align: left;
+      padding: 11px 12px;
+      color: var(--text);
+      cursor: pointer;
+      border-radius: 0;
+    }
+
+    .suggestion:hover { background: #f3fbfa; }
+    .suggestion:last-child { border-bottom: 0; }
+    .suggestion small {
+      display: block;
+      margin-top: 3px;
+      color: var(--muted);
+      font-size: 12px;
+    }
+
+    .address-status {
+      min-height: 18px;
+      margin-top: 6px;
+      color: var(--muted);
+      font-size: 12px;
+    }
+
+    table { width: 100%; border-collapse: collapse; }
+    th, td { text-align: left; padding: 12px 10px; border-bottom: 1px solid var(--border); vertical-align: top; }
+    th { color: var(--muted); font-size: 12px; text-transform: uppercase; letter-spacing: 0.04em; }
+    tr:hover td { background: #fbfdfd; }
+
+    .pill {
+      display: inline-flex;
+      align-items: center;
+      border-radius: 999px;
+      padding: 5px 9px;
+      font-size: 12px;
+      font-weight: 750;
+      white-space: nowrap;
+    }
+
+    .pill.da { background: #e0f2fe; color: #075985; }
+    .pill.cdc { background: #ecfdf3; color: #027a48; }
+    .pill.cc { background: #fef3c7; color: #92400e; }
+    .pill.oc { background: #f3e8ff; color: #6b21a8; }
+    .pill.basix { background: #e6f4f1; color: #0f766e; }
+    .pill.bic { background: #ffe4e6; color: #9f1239; }
+    .pill.other { background: #edf2f7; color: #344054; }
+
+    .status-new { background: #edf2f7; color: #344054; }
+    .status-pending, .status-rfi { background: var(--warning-soft); color: var(--warning); }
+    .status-approved, .status-received, .status-reviewed { background: var(--success-soft); color: var(--success); }
+    .status-revision { background: var(--danger-soft); color: var(--danger); }
+
+    .project-row { cursor: pointer; }
+    .hidden { display: none !important; }
+
+    .tabs {
+      display: flex;
+      flex-wrap: wrap;
+      gap: 8px;
+      margin: 18px 0;
+    }
+
+    .tab-btn {
+      border: 1px solid var(--border);
+      background: #fff;
+      color: var(--muted);
+      border-radius: 999px;
+      padding: 9px 13px;
+      cursor: pointer;
+      font-weight: 700;
+    }
+
+    .tab-btn.active { background: var(--primary-soft); color: var(--primary-dark); border-color: #99d5ce; }
+
+    .section-title {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      gap: 12px;
+      margin-bottom: 14px;
+    }
+
+    .section-title h3 { margin: 0; font-size: 18px; }
+    .section-title p { margin: 4px 0 0; color: var(--muted); font-size: 13px; }
+
+    .empty {
+      text-align: center;
+      color: var(--muted);
+      padding: 38px 20px;
+      border: 1px dashed var(--border);
+      border-radius: var(--radius);
+      background: #fbfdfd;
+    }
+
+    .template-box {
+      background: #f8fbfb;
+      border: 1px solid var(--border);
+      border-radius: 14px;
+      padding: 14px;
+      white-space: pre-wrap;
+      line-height: 1.45;
+    }
+
+    .modal-backdrop {
+      position: fixed;
+      inset: 0;
+      background: rgba(5, 20, 23, 0.55);
+      display: none;
+      align-items: center;
+      justify-content: center;
+      padding: 20px;
+      z-index: 40;
+    }
+
+    .modal-backdrop.show { display: flex; }
+
+    .modal {
+      width: min(780px, 100%);
+      max-height: 90vh;
+      overflow-y: auto;
+      background: #fff;
+      border-radius: 22px;
+      box-shadow: 0 24px 70px rgba(0,0,0,0.25);
+      padding: 20px;
+    }
+
+    .modal-header {
+      display: flex;
+      align-items: start;
+      justify-content: space-between;
+      gap: 10px;
+      border-bottom: 1px solid var(--border);
+      padding-bottom: 14px;
+      margin-bottom: 16px;
+    }
+
+    .modal-header h3 { margin: 0; font-size: 22px; }
+    .form-grid { display: grid; grid-template-columns: repeat(2, minmax(0,1fr)); gap: 13px; }
+    .full { grid-column: 1 / -1; }
+
+    .print-report { display: none; }
+
+    .file-list, .note-list { display: grid; gap: 10px; }
+    .file-item, .note-card {
+      display: flex;
+      justify-content: space-between;
+      gap: 12px;
+      align-items: flex-start;
+      padding: 12px;
+      border: 1px solid var(--border);
+      border-radius: 14px;
+      background: #fbfdfd;
+    }
+
+    .note-card p { margin: 6px 0 0; white-space: pre-wrap; line-height: 1.45; }
+    .muted { color: var(--muted); }
+    .small-text { font-size: 13px; }
+
+    @media (max-width: 980px) {
+      .app-shell { grid-template-columns: 1fr; }
+      aside { position: relative; height: auto; }
+      .toolbar { grid-template-columns: 1fr 1fr; }
+      .grid.stats, .grid.two { grid-template-columns: 1fr 1fr; }
+    }
+
+    @media (max-width: 640px) {
+      main { padding: 18px; }
+      .topbar { align-items: flex-start; flex-direction: column; }
+      .toolbar, .form-grid, .grid.stats, .grid.two { grid-template-columns: 1fr; }
+      table { font-size: 13px; }
+      th, td { padding: 10px 6px; }
+    }
+
+    @media print {
+      body { background: #fff; }
+      aside, .topbar, .tabs, .no-print, .modal-backdrop, #dashboardView, #projectView { display: none !important; }
+      main { padding: 0; }
+      .app-shell { display: block; }
+      .print-report { display: block; padding: 24px; }
+      .card { box-shadow: none; border: 1px solid #bbb; break-inside: avoid; margin-bottom: 14px; }
+      tr { page-break-inside: avoid; page-break-after: auto; }
+      .print-title { font-size: 26px; margin: 0 0 6px; }
+      .print-subtitle { color: #555; margin: 0 0 20px; }
+    }
+  </style>
+</head>
+<body>
+  <div class="app-shell">
+    <aside>
+      <div class="brand">
+        <div class="brand-mark">PA</div>
+        <div>
+          <h1>Project Approvals</h1>
+          <p>NSW Approval Tracker</p>
+        </div>
+      </div>
+
+      <button class="nav-btn active" onclick="showDashboard()">Dashboard</button>
+      <button class="nav-btn" onclick="openProjectModal()">Add Project</button>
+      <button class="nav-btn" onclick="showChecklistLibrary()">Checklist Library</button>
+      <button class="nav-btn" onclick="showTemplatesOnly()">Templates</button>
+      <button class="nav-btn" onclick="exportData()">Backup Data</button>
+      <button class="nav-btn" onclick="document.getElementById('importFile').click()">Restore Data</button>
+      <input id="importFile" type="file" accept="application/json" class="hidden" onchange="importData(event)" />
+
+      <div class="side-note">
+        <strong>Local storage version</strong><br />
+        All data is saved in this browser only. Later this can be upgraded to Firebase, Supabase, or another database.
+      </div>
+    </aside>
+
+    <main>
+      <div class="topbar no-print">
+        <div>
+          <h2 id="pageTitle">Dashboard</h2>
+          <p id="pageSubtitle">Track DA, CDC, CC, OC, BASIX and BIC jobs in one place.</p>
+        </div>
+        <div class="actions">
+          <button class="btn" onclick="seedDemoData()">Load Demo</button>
+          <button class="btn primary" onclick="openProjectModal()">New Project</button>
+        </div>
+      </div>
+
+      <section id="dashboardView">
+        <div class="grid stats">
+          <div class="card stat-card"><span>Total Projects</span><strong id="statTotal">0</strong></div>
+          <div class="card stat-card"><span>Missing Documents</span><strong id="statMissing">0</strong></div>
+          <div class="card stat-card"><span>Urgent / Due Soon</span><strong id="statUrgent">0</strong></div>
+          <div class="card stat-card"><span>RFI / Council Requests</span><strong id="statRfi">0</strong></div>
+        </div>
+
+        <div class="card">
+          <div class="section-title">
+            <div>
+              <h3>Active Jobs</h3>
+              <p>Click a row to open the project file.</p>
+            </div>
+          </div>
+          <div class="toolbar">
+            <input id="searchInput" placeholder="Search address, client, council or status..." oninput="renderDashboard()" />
+            <select id="typeFilter" onchange="renderDashboard()">
+              <option value="">All approval types</option>
+              <option>DA</option><option>CDC</option><option>CC</option><option>OC</option><option>BASIX</option><option>BIC</option><option>Other</option>
+            </select>
+            <select id="statusFilter" onchange="renderDashboard()">
+              <option value="">All statuses</option>
+              <option>New enquiry</option><option>Documents pending</option><option>Submitted</option><option>RFI</option><option>Certifier review</option><option>Approved</option><option>Final docs</option>
+            </select>
+            <select id="priorityFilter" onchange="renderDashboard()">
+              <option value="">All priorities</option>
+              <option value="urgent">Urgent / due soon</option>
+              <option value="missing">Missing documents</option>
+              <option value="client">Waiting on client</option>
+              <option value="consultant">Waiting on consultant</option>
+              <option value="council">Waiting on council/certifier</option>
+            </select>
+          </div>
+          <div id="projectTableWrap"></div>
+        </div>
+      </section>
+
+      <section id="projectView" class="hidden">
+        <div class="card no-print">
+          <div class="section-title">
+            <div>
+              <h3 id="projectHeading">Project File</h3>
+              <p id="projectMeta"></p>
+            </div>
+            <div class="actions">
+              <button class="btn" onclick="showDashboard()">Back</button>
+              <button class="btn" onclick="openProjectModal(currentProjectId)">Edit</button>
+              <button class="btn primary" onclick="printProjectReport()">Export PDF</button>
+              <button class="btn danger" onclick="deleteCurrentProject()">Delete</button>
+            </div>
+          </div>
+        </div>
+
+        <div class="tabs no-print">
+          <button class="tab-btn active" data-tab="overview" onclick="switchTab('overview')">Overview</button>
+          <button class="tab-btn" data-tab="documents" onclick="switchTab('documents')">Documents</button>
+          <button class="tab-btn" data-tab="consultants" onclick="switchTab('consultants')">Consultants</button>
+          <button class="tab-btn" data-tab="councilNotes" onclick="switchTab('councilNotes')">Council / Certifier Notes</button>
+          <button class="tab-btn" data-tab="dates" onclick="switchTab('dates')">Important Dates</button>
+          <button class="tab-btn" data-tab="templates" onclick="switchTab('templates')">Templates</button>
+          <button class="tab-btn" data-tab="files" onclick="switchTab('files')">Files / Photos</button>
+          <button class="tab-btn" data-tab="projectNotes" onclick="switchTab('projectNotes')">Notes</button>
+        </div>
+
+        <div id="projectTabContent"></div>
+      </section>
+
+      <section id="libraryView" class="hidden"></section>
+      <section id="templatesView" class="hidden"></section>
+      <section id="printReport" class="print-report"></section>
+    </main>
+  </div>
+
+  <div id="projectModal" class="modal-backdrop">
+    <div class="modal">
+      <div class="modal-header">
+        <div>
+          <h3 id="modalTitle">Add Project</h3>
+          <p class="muted small-text">Create the basic project file first. The checklist will auto-load from the approval type.</p>
+        </div>
+        <button class="btn small" onclick="closeProjectModal()">Close</button>
+      </div>
+
+      <form id="projectForm" onsubmit="saveProject(event)">
+        <input type="hidden" id="projectId" />
+        <div class="form-grid">
+          <div class="field"><label>Client name</label><input id="clientName" required placeholder="John Smith" /></div>
+          <div class="field"><label>Client phone</label><input id="clientPhone" placeholder="0400 000 000" /></div>
+          <div class="field"><label>Client email</label><input id="clientEmail" type="email" placeholder="client@email.com" /></div>
+          <div class="field"><label>Council</label><select id="council" required></select></div>
+          <div class="field full">
+            <label>Site address</label>
+            <input id="siteAddress" required autocomplete="off" placeholder="Start typing the street, suburb or postcode..." oninput="showAddressSuggestions(this.value)" onfocus="showAddressSuggestions(this.value)" />
+            <div id="addressSuggestions" class="suggestions"></div>
+            <div id="addressLookupStatus" class="address-status"></div>
+          </div>
+          <div class="field"><label>Lot / DP</label><input id="lotDp" placeholder="Lot 1 DP 123456" /></div>
+          <div class="field"><label>Project type</label><input id="projectType" placeholder="Alteration/addition, new dwelling, commercial fitout" /></div>
+          <div class="field"><label>Approval type</label><select id="approvalType" required><option>DA</option><option>CDC</option><option>CC</option><option>OC</option><option>BASIX</option><option>BIC</option><option>Other</option></select></div>
+          <div class="field"><label>Job status</label><select id="jobStatus"><option>New enquiry</option><option>Documents pending</option><option>Submitted</option><option>RFI</option><option>Certifier review</option><option>Approved</option><option>Final docs</option></select></div>
+          <div class="field"><label>Due date</label><input id="dueDate" type="date" /></div>
+          <div class="field"><label>Submission date</label><input id="submissionDate" type="date" /></div>
+          <div class="field"><label>Approval date</label><input id="approvalDate" type="date" /></div>
+          <div class="field"><label>Assigned staff</label><input id="assignedStaff" placeholder="Harsh" /></div>
+          <div class="field full"><label>Project notes</label><textarea id="projectNotes" placeholder="Main scope, client instructions, risk items..."></textarea></div>
+        </div>
+        <div class="actions" style="justify-content:flex-end;margin-top:18px;">
+          <button type="button" class="btn" onclick="closeProjectModal()">Cancel</button>
+          <button class="btn primary" type="submit">Save Project</button>
+        </div>
+      </form>
+    </div>
+  </div>
+
+  <script>
+    const STORAGE_KEY = 'projectApprovalsTracker.v2';
+    let projects = loadProjects();
+    let currentProjectId = null;
+    let activeTab = 'overview';
+
+    const nswCouncils = [
+      'Albury City Council','Armidale Regional Council','Ballina Shire Council','Balranald Shire Council','Bathurst Regional Council','Bayside Council','Bega Valley Shire Council','Bellingen Shire Council','Berrigan Shire Council','Blacktown City Council','Bland Shire Council','Blayney Shire Council','Blue Mountains City Council','Bogan Shire Council','Bourke Shire Council','Brewarrina Shire Council','Broken Hill City Council','Burwood Council','Byron Shire Council','Cabonne Council','Camden Council','Campbelltown City Council','Canada Bay Council','Canterbury-Bankstown Council','Carrathool Shire Council','Central Coast Council','Central Darling Shire Council','Cessnock City Council','Clarence Valley Council','Cobar Shire Council','Coffs Harbour City Council','Coolamon Shire Council','Coonamble Shire Council','Cootamundra-Gundagai Regional Council','Cowra Shire Council','Cumberland City Council','Dubbo Regional Council','Dungog Shire Council','Edward River Council','Eurobodalla Shire Council','Fairfield City Council','Federation Council','Forbes Shire Council','Georges River Council','Gilgandra Shire Council','Glen Innes Severn Council','Goulburn Mulwaree Council','Greater Hume Council','Griffith City Council','Gunnedah Shire Council','Gwydir Shire Council','Hawkesbury City Council','Hay Shire Council','Hilltops Council','Hornsby Shire Council','Hunters Hill Council','Inner West Council','Inverell Shire Council','Junee Shire Council','Kempsey Shire Council','Kiama Municipal Council','Ku-ring-gai Council','Kyogle Council','Lachlan Shire Council','Lake Macquarie City Council','Lane Cove Council','Leeton Shire Council','Lismore City Council','Lithgow City Council','Liverpool City Council','Liverpool Plains Shire Council','Lockhart Shire Council','Maitland City Council','Mid-Coast Council','Mid-Western Regional Council','Moree Plains Shire Council','Mosman Council','Murray River Council','Murrumbidgee Council','Muswellbrook Shire Council','Nambucca Valley Council','Narrabri Shire Council','Narrandera Shire Council','Narromine Shire Council','Newcastle City Council','North Sydney Council','Northern Beaches Council','Oberon Council','Orange City Council','Parkes Shire Council','Parramatta City Council','Penrith City Council','Port Macquarie-Hastings Council','Port Stephens Council','Queanbeyan-Palerang Regional Council','Randwick City Council','Richmond Valley Council','Ryde City Council','Shellharbour City Council','Shoalhaven City Council','Singleton Council','Snowy Monaro Regional Council','Snowy Valleys Council','Strathfield Council','Sutherland Shire Council','Sydney City Council','Tamworth Regional Council','Temora Shire Council','Tenterfield Shire Council','The Hills Shire Council','Tweed Shire Council','Upper Hunter Shire Council','Upper Lachlan Shire Council','Uralla Shire Council','Wagga Wagga City Council','Walcha Council','Walgett Shire Council','Warren Shire Council','Warrumbungle Shire Council','Waverley Council','Weddin Shire Council','Wentworth Shire Council','Willoughby City Council','Wingecarribee Shire Council','Wollondilly Shire Council','Wollongong City Council','Woollahra Municipal Council','Yass Valley Council','Other'
+    ];
+
+    const ADDRESS_API_URL = 'https://geocode.arcgis.com/arcgis/rest/services/World/GeocodeServer/suggest';
+    const NSW_SEARCH_EXTENT = '140.9993,-37.5051,153.6387,-28.1570';
+    let addressLookupTimer = null;
+    let addressLookupController = null;
+
+    const fallbackAddressSuggestions = [
+      '1 George Street, Sydney NSW 2000','10 Pitt Street, Sydney NSW 2000','25 Smith Street, Blacktown NSW 2148','3 Lake Avenue, Penrith NSW 2750','7 King Road, Camden NSW 2570','12 Railway Parade, Parramatta NSW 2150','18 Victoria Road, Ryde NSW 2112','22 Church Street, Wollongong NSW 2500','31 Pacific Highway, St Leonards NSW 2065','45 High Street, Maitland NSW 2320','58 Crown Street, Wollongong NSW 2500','63 Macquarie Street, Liverpool NSW 2170','71 Main Road, Cardiff NSW 2285','84 Elizabeth Street, Sydney NSW 2000','96 Oxford Street, Paddington NSW 2021','110 The Horsley Drive, Fairfield NSW 2165','125 Princes Highway, Kogarah NSW 2217','142 Windsor Road, Baulkham Hills NSW 2153','160 Great Western Highway, Parramatta NSW 2150','188 Military Road, Neutral Bay NSW 2089','Blacktown NSW 2148','Parramatta NSW 2150','Penrith NSW 2750','Liverpool NSW 2170','Campbelltown NSW 2560','Bankstown NSW 2200','Chatswood NSW 2067','Ryde NSW 2112','Hornsby NSW 2077','Sutherland NSW 2232','Wollongong NSW 2500','Newcastle NSW 2300','Gosford NSW 2250','Maitland NSW 2320','Coffs Harbour NSW 2450','Dubbo NSW 2830','Wagga Wagga NSW 2650','Albury NSW 2640','Orange NSW 2800','Bathurst NSW 2795'
+    ];
+
+    const checklistLibrary = {
+      DA: ['Owner consent','Site survey','Architectural drawings','Site plan','Floor plans','Elevations','Sections','Shadow diagrams','Statement of Environmental Effects','Cost estimate report','BASIX certificate, if applicable','Stormwater plan','Landscape plan, if required','Waste management plan','Heritage report, if required','Bushfire report, if required','Flood report, if required','Traffic/parking report, if required','Council DA checklist','NSW Planning Portal submission record'],
+      CDC: ['Design plans','Certificate of title','Site plan','Building specifications','Structural plans','BASIX certificate, if residential and applicable','Survey plan','Stormwater plan','Engineering details','Long service levy, if applicable','Home Building Compensation Fund certificate, if applicable','Principal certifier details','Neighbour notification records, if required'],
+      CC: ['Development consent','Approved DA plans','Construction drawings','Structural engineering plans','Stormwater engineering plans','Hydraulic plans, if required','Fire safety schedule, if required','NCC/BCA compliance notes','Specifications','BASIX commitments shown on plans','Long service levy receipt, if applicable','Builder details','Principal certifier appointment','Conditions of consent compliance checklist'],
+      OC: ['Development consent or CDC','Construction Certificate','Final inspection record','Fire safety certificate','Compliance certificates','Waterproofing certificate','Termite certificate','Structural certificate','Glazing certificate','Smoke alarm certificate','BASIX completion evidence','Plumbing/drainage approvals','Stormwater completion certificate','Survey/as-built plan, if required','Occupation Certificate application form','Fee receipt'],
+      BASIX: ['Project type','Dwelling type','Site address','Floor area','Roof area','Window details','Insulation details','Hot water system','Cooling/heating system','Rainwater tank size','Fixtures and fittings','Landscaping area','NatHERS certificate, if used','Final BASIX certificate upload'],
+      BIC: ['BIC application form','Site survey','Existing building plans','Unauthorised works description','Photos of existing works','Structural certificate, if required','Fire safety information, if required','Council inspection notes','Owner consent','Fee receipt','Response to council RFI'],
+      Other: ['Client instructions','Council request letter/email','Site photos','Relevant plans','Consultant advice','Next action record']
+    };
+
+    const docStatuses = ['Not required','Required','Requested','Received','Reviewed','Needs revision','Uploaded to portal','Approved'];
+    const taskStatuses = ['Pending','In progress','Waiting','Received','Completed'];
+
+    function uid() { return 'id-' + Date.now() + '-' + Math.random().toString(16).slice(2); }
+    function saveAll() { localStorage.setItem(STORAGE_KEY, JSON.stringify(projects)); }
+    function loadProjects() { try { return JSON.parse(localStorage.getItem(STORAGE_KEY) || '[]'); } catch { return []; } }
+    function todayISO() { return new Date().toISOString().slice(0,10); }
+    function esc(value='') { return String(value).replace(/[&<>"]/g, m => ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;'}[m])); }
+
+    function makeDocs(type) {
+      return (checklistLibrary[type] || checklistLibrary.Other).map(name => ({ id: uid(), name, required: 'Yes', status: 'Required', responsible: suggestedResponsible(name), dueDate: '', notes: '', uploadedFile: '' }));
+    }
+
+    function suggestedResponsible(name) {
+      const n = name.toLowerCase();
+      if (n.includes('owner')) return 'Client';
+      if (n.includes('architect') || n.includes('plan') || n.includes('drawing') || n.includes('elevation') || n.includes('section')) return 'Architect';
+      if (n.includes('stormwater') || n.includes('structural') || n.includes('engineering')) return 'Engineer';
+      if (n.includes('basix') || n.includes('nathers')) return 'BASIX assessor';
+      if (n.includes('survey')) return 'Surveyor';
+      if (n.includes('certifier')) return 'Certifier';
+      if (n.includes('council') || n.includes('portal')) return 'Admin';
+      return 'Client/Consultant';
+    }
+
+    function missingDocs(project) { return (project.documents || []).filter(d => d.required !== 'No' && !['Received','Reviewed','Uploaded to portal','Approved','Not required'].includes(d.status)); }
+    function isDueSoon(date) { if (!date) return false; const diff = (new Date(date) - new Date(todayISO())) / 86400000; return diff <= 7; }
+    function approvalClass(type) { return (type || 'Other').toLowerCase(); }
+    function statusClass(status='') { const s = status.toLowerCase(); if (s.includes('rfi')) return 'status-rfi'; if (s.includes('pending')) return 'status-pending'; if (s.includes('approved')) return 'status-approved'; if (s.includes('revision')) return 'status-revision'; return 'status-new'; }
+
+    function populateCouncils() {
+      const select = document.getElementById('council');
+      select.innerHTML = '<option value="">Select council</option>' + nswCouncils.map(c => `<option>${esc(c)}</option>`).join('');
+    }
+
+    function showAddressSuggestions(value) {
+      const box = document.getElementById('addressSuggestions');
+      const q = value.trim().toLowerCase();
+      if (!q) {
+        box.innerHTML = fallbackAddressSuggestions.slice(0, 8).map(addressButton).join('');
+        box.classList.add('show');
+        setAddressLookupStatus('');
+        return;
+      }
+
+      const localMatches = fallbackAddressSuggestions.filter(a => a.toLowerCase().includes(q)).slice(0, 5);
+      box.innerHTML = [
+        `<button type="button" class="suggestion" data-address="${esc(value)}">Use typed address: ${esc(value)}</button>`,
+        ...localMatches.map(addressButton)
+      ].join('');
+      box.classList.add('show');
+      setAddressLookupStatus(q.length < 3 ? 'Type at least 3 characters to search live addresses.' : 'Searching address finder...');
+
+      clearTimeout(addressLookupTimer);
+      if (q.length < 3) return;
+      addressLookupTimer = setTimeout(() => fetchAddressSuggestions(value), 300);
+    }
+
+    async function fetchAddressSuggestions(value) {
+      if (addressLookupController) addressLookupController.abort();
+      addressLookupController = new AbortController();
+      const params = new URLSearchParams({
+        f: 'json',
+        text: value,
+        maxSuggestions: '8',
+        countryCode: 'AUS',
+        searchExtent: NSW_SEARCH_EXTENT
+      });
+
+      try {
+        const response = await fetch(`${ADDRESS_API_URL}?${params.toString()}`, { signal: addressLookupController.signal });
+        if (!response.ok) throw new Error('Address finder request failed');
+        const data = await response.json();
+        const liveResults = (data.suggestions || [])
+          .map(item => ({ text: item.text || '', source: 'Address finder API' }))
+          .filter(item => item.text && /NSW|New South Wales|Australia/i.test(item.text))
+          .slice(0, 8);
+
+        if (!liveResults.length) {
+          setAddressLookupStatus('No live matches found. You can still use the typed address.');
+          return;
+        }
+
+        const box = document.getElementById('addressSuggestions');
+        box.innerHTML = [
+          `<button type="button" class="suggestion" data-address="${esc(value)}">Use typed address: ${esc(value)}</button>`,
+          ...liveResults.map(addressButton)
+        ].join('');
+        box.classList.add('show');
+        setAddressLookupStatus('Live address results loaded.');
+      } catch (error) {
+        if (error.name === 'AbortError') return;
+        setAddressLookupStatus('Address finder API is unavailable. Showing local fallback suggestions.');
+      }
+    }
+
+    function addressButton(address) {
+      const item = typeof address === 'string' ? { text: address, source: '' } : address;
+      return `<button type="button" class="suggestion" data-address="${esc(item.text)}">${esc(item.text)}${item.source ? `<small>${esc(item.source)}</small>` : ''}</button>`;
+    }
+
+    function selectAddress(address) {
+      document.getElementById('siteAddress').value = address;
+      hideAddressSuggestions();
+    }
+
+    function hideAddressSuggestions() {
+      document.getElementById('addressSuggestions').classList.remove('show');
+    }
+
+    function setAddressLookupStatus(message) {
+      document.getElementById('addressLookupStatus').textContent = message;
+    }
+
+    document.addEventListener('click', event => {
+      const addressOption = event.target.closest('[data-address]');
+      if (addressOption) {
+        selectAddress(addressOption.dataset.address);
+        return;
+      }
+      if (!event.target.closest('#addressSuggestions') && event.target.id !== 'siteAddress') hideAddressSuggestions();
+    });
+
+    function showOnly(sectionId) {
+      ['dashboardView','projectView','libraryView','templatesView'].forEach(id => document.getElementById(id).classList.add('hidden'));
+      document.getElementById(sectionId).classList.remove('hidden');
+      document.querySelectorAll('.nav-btn').forEach(btn => btn.classList.remove('active'));
+    }
+
+    function showDashboard() {
+      currentProjectId = null;
+      showOnly('dashboardView');
+      document.querySelectorAll('.nav-btn')[0].classList.add('active');
+      document.getElementById('pageTitle').textContent = 'Dashboard';
+      document.getElementById('pageSubtitle').textContent = 'Track DA, CDC, CC, OC, BASIX and BIC jobs in one place.';
+      renderDashboard();
+    }
+
+    function renderDashboard() {
+      const total = projects.length;
+      const missing = projects.reduce((sum,p) => sum + missingDocs(p).length, 0);
+      const urgent = projects.filter(p => isDueSoon(p.dueDate) || (p.documents || []).some(d => isDueSoon(d.dueDate))).length;
+      const rfi = projects.filter(p => String(p.status).toLowerCase().includes('rfi') || p.notesList?.some(n => /rfi|request/i.test(n.note))).length;
+      document.getElementById('statTotal').textContent = total;
+      document.getElementById('statMissing').textContent = missing;
+      document.getElementById('statUrgent').textContent = urgent;
+      document.getElementById('statRfi').textContent = rfi;
+
+      const q = document.getElementById('searchInput')?.value?.toLowerCase() || '';
+      const type = document.getElementById('typeFilter')?.value || '';
+      const status = document.getElementById('statusFilter')?.value || '';
+      const priority = document.getElementById('priorityFilter')?.value || '';
+      const rows = projects.filter(p => {
+        const hay = [p.clientName,p.siteAddress,p.council,p.status,p.projectType,p.approvalType].join(' ').toLowerCase();
+        if (q && !hay.includes(q)) return false;
+        if (type && p.approvalType !== type) return false;
+        if (status && p.status !== status) return false;
+        if (priority === 'urgent' && !(isDueSoon(p.dueDate) || (p.documents || []).some(d => isDueSoon(d.dueDate)))) return false;
+        if (priority === 'missing' && missingDocs(p).length === 0) return false;
+        if (priority === 'client' && !missingDocs(p).some(d => /client|owner/i.test(d.responsible))) return false;
+        if (priority === 'consultant' && !missingDocs(p).some(d => /engineer|architect|surveyor|assessor|consultant/i.test(d.responsible))) return false;
+        if (priority === 'council' && !/council|certifier|rfi|submitted/i.test(p.status)) return false;
+        return true;
+      });
+
+      const wrap = document.getElementById('projectTableWrap');
+      if (!rows.length) {
+        wrap.innerHTML = `<div class="empty">No projects found. Click <strong>New Project</strong> to create your first approval job.</div>`;
+        return;
+      }
+
+      wrap.innerHTML = `<div style="overflow:auto;"><table><thead><tr><th>Project</th><th>Type</th><th>Council</th><th>Status</th><th>Missing Docs</th><th>Due</th><th>Next Action</th></tr></thead><tbody>${rows.map(p => `<tr class="project-row" onclick="openProject('${p.id}')"><td><strong>${esc(p.siteAddress)}</strong><br><span class="muted small-text">${esc(p.clientName)}</span></td><td><span class="pill ${approvalClass(p.approvalType)}">${esc(p.approvalType)}</span></td><td>${esc(p.council)}</td><td><span class="pill ${statusClass(p.status)}">${esc(p.status)}</span></td><td>${missingDocs(p).length}</td><td>${p.dueDate ? esc(p.dueDate) : '-'}</td><td>${esc(nextAction(p))}</td></tr>`).join('')}</tbody></table></div>`;
+    }
+
+    function nextAction(project) {
+      const missing = missingDocs(project);
+      if (String(project.status).toLowerCase().includes('rfi')) return 'Respond to RFI / chase requested info';
+      if (missing.length) return 'Chase ' + missing[0].responsible + ' for ' + missing[0].name;
+      if (project.status === 'Submitted') return 'Monitor council/certifier response';
+      if (project.status === 'Approved') return 'Close out and save approval documents';
+      return 'Review project file';
+    }
+
+    function openProject(projectId) {
+      currentProjectId = projectId;
+      activeTab = 'overview';
+      const p = getCurrentProject();
+      showOnly('projectView');
+      document.getElementById('pageTitle').textContent = 'Project File';
+      document.getElementById('pageSubtitle').textContent = p.siteAddress;
+      document.getElementById('projectHeading').textContent = p.siteAddress;
+      document.getElementById('projectMeta').innerHTML = `${esc(p.clientName)} &middot; ${esc(p.council)} &middot; <span class="pill ${approvalClass(p.approvalType)}">${esc(p.approvalType)}</span> &middot; <span class="pill ${statusClass(p.status)}">${esc(p.status)}</span>`;
+      document.querySelectorAll('.tab-btn').forEach(btn => btn.classList.toggle('active', btn.dataset.tab === activeTab));
+      renderProjectTab();
+    }
+
+    function getCurrentProject() { return projects.find(p => p.id === currentProjectId); }
+
+    function switchTab(tab) {
+      activeTab = tab;
+      document.querySelectorAll('.tab-btn').forEach(btn => btn.classList.toggle('active', btn.dataset.tab === tab));
+      renderProjectTab();
+    }
+
+    function renderProjectTab() {
+      const p = getCurrentProject();
+      if (!p) return;
+      p.documents ||= [];
+      p.consultants ||= [];
+      p.notesList ||= [];
+      p.files ||= [];
+      p.projectNotesList ||= [];
+      const el = document.getElementById('projectTabContent');
+      if (activeTab === 'overview') el.innerHTML = overviewHtml(p);
+      if (activeTab === 'documents') el.innerHTML = documentsHtml(p);
+      if (activeTab === 'consultants') el.innerHTML = consultantsHtml(p);
+      if (activeTab === 'councilNotes') el.innerHTML = councilNotesHtml(p);
+      if (activeTab === 'dates') el.innerHTML = datesHtml(p);
+      if (activeTab === 'templates') el.innerHTML = templatesHtml(p);
+      if (activeTab === 'files') el.innerHTML = filesHtml(p);
+      if (activeTab === 'projectNotes') el.innerHTML = projectNotesHtml(p);
+    }
+
+    function overviewHtml(p) {
+      const received = p.documents.filter(d => ['Received','Reviewed','Uploaded to portal','Approved'].includes(d.status)).length;
+      const missing = missingDocs(p).length;
+      return `<div class="grid two"><div class="card"><div class="section-title"><div><h3>Project Details</h3><p>Main job information.</p></div></div><table><tbody><tr><th>Client</th><td>${esc(p.clientName)}<br><span class="muted">${esc(p.clientPhone)} ${esc(p.clientEmail)}</span></td></tr><tr><th>Address</th><td>${esc(p.siteAddress)}</td></tr><tr><th>Council</th><td>${esc(p.council)}</td></tr><tr><th>Lot/DP</th><td>${esc(p.lotDp || '-')}</td></tr><tr><th>Project Type</th><td>${esc(p.projectType || '-')}</td></tr><tr><th>Approval</th><td>${esc(p.approvalType)}</td></tr><tr><th>Status</th><td>${esc(p.status)}</td></tr><tr><th>Assigned</th><td>${esc(p.assignedStaff || '-')}</td></tr></tbody></table></div><div class="card"><div class="section-title"><div><h3>Current Snapshot</h3><p>Quick action view.</p></div></div><div class="grid two"><div class="stat-card"><span>Received / ready</span><strong>${received}</strong></div><div class="stat-card"><span>Missing / pending</span><strong>${missing}</strong></div></div><p><strong>Next action:</strong> ${esc(nextAction(p))}</p><p><strong>Project notes:</strong><br>${esc(p.projectNotes || 'No notes added yet.')}</p></div></div>`;
+    }
+
+    function documentsHtml(p) {
+      return `<div class="card"><div class="section-title"><div><h3>Document Checklist</h3><p>Track what is required, received, reviewed and uploaded.</p></div><button class="btn small primary" onclick="addDocumentPrompt()">Add Item</button></div><div style="overflow:auto;"><table><thead><tr><th>Document</th><th>Required</th><th>Status</th><th>Responsible</th><th>Due</th><th>Notes</th><th></th></tr></thead><tbody>${p.documents.map(d => `<tr><td><input value="${esc(d.name)}" onchange="updateDoc('${d.id}','name',this.value)"></td><td><select onchange="updateDoc('${d.id}','required',this.value)"><option ${d.required==='Yes'?'selected':''}>Yes</option><option ${d.required==='No'?'selected':''}>No</option><option ${d.required==='Usually'?'selected':''}>Usually</option><option ${d.required==='If applicable'?'selected':''}>If applicable</option></select></td><td><select onchange="updateDoc('${d.id}','status',this.value)">${docStatuses.map(s => `<option ${d.status===s?'selected':''}>${s}</option>`).join('')}</select></td><td><input value="${esc(d.responsible)}" onchange="updateDoc('${d.id}','responsible',this.value)"></td><td><input type="date" value="${esc(d.dueDate)}" onchange="updateDoc('${d.id}','dueDate',this.value)"></td><td><input value="${esc(d.notes)}" onchange="updateDoc('${d.id}','notes',this.value)"></td><td><button class="btn small danger" onclick="removeDoc('${d.id}')">Remove</button></td></tr>`).join('')}</tbody></table></div></div>`;
+    }
+
+    function consultantsHtml(p) {
+      return `<div class="card"><div class="section-title"><div><h3>Consultant Tracker</h3><p>Track tasks and generate reminder messages.</p></div><button class="btn small primary" onclick="addConsultant()">Add Task</button></div>${p.consultants.length ? `<div style="overflow:auto;"><table><thead><tr><th>Consultant</th><th>Contact</th><th>Task</th><th>Due</th><th>Status</th><th>Reminder</th><th></th></tr></thead><tbody>${p.consultants.map(c => `<tr><td><input value="${esc(c.name)}" onchange="updateConsultant('${c.id}','name',this.value)"></td><td><input value="${esc(c.contact)}" onchange="updateConsultant('${c.id}','contact',this.value)"></td><td><input value="${esc(c.task)}" onchange="updateConsultant('${c.id}','task',this.value)"></td><td><input type="date" value="${esc(c.dueDate)}" onchange="updateConsultant('${c.id}','dueDate',this.value)"></td><td><select onchange="updateConsultant('${c.id}','status',this.value)">${taskStatuses.map(s => `<option ${c.status===s?'selected':''}>${s}</option>`).join('')}</select></td><td><button class="btn small" onclick="copyReminder('${c.id}')">Copy</button></td><td><button class="btn small danger" onclick="removeConsultant('${c.id}')">Remove</button></td></tr>`).join('')}</tbody></table></div>` : `<div class="empty">No consultant tasks added yet.</div>`}</div>`;
+    }
+
+    function councilNotesHtml(p) {
+      return `<div class="card"><div class="section-title"><div><h3>Council / Certifier Notes</h3><p>Record calls, RFIs, conditions and next actions.</p></div><button class="btn small primary" onclick="addCouncilNote()">Add Note</button></div>${p.notesList.length ? `<div style="overflow:auto;"><table><thead><tr><th>Date</th><th>Contact</th><th>Note</th><th>Next Action</th><th></th></tr></thead><tbody>${p.notesList.map(n => `<tr><td><input type="date" value="${esc(n.date)}" onchange="updateCouncilNote('${n.id}','date',this.value)"></td><td><input value="${esc(n.contact)}" onchange="updateCouncilNote('${n.id}','contact',this.value)"></td><td><textarea onchange="updateCouncilNote('${n.id}','note',this.value)">${esc(n.note)}</textarea></td><td><input value="${esc(n.nextAction)}" onchange="updateCouncilNote('${n.id}','nextAction',this.value)"></td><td><button class="btn small danger" onclick="removeCouncilNote('${n.id}')">Remove</button></td></tr>`).join('')}</tbody></table></div>` : `<div class="empty">No council or certifier notes yet.</div>`}</div>`;
+    }
+
+    function projectNotesHtml(p) {
+      return `<div class="card"><div class="section-title"><div><h3>Notes</h3><p>Create multiple internal notes for this project.</p></div><button class="btn small primary" onclick="addProjectNote()">Add Note</button></div>${p.projectNotesList.length ? `<div class="note-list">${p.projectNotesList.map(n => `<div class="note-card"><div style="flex:1;"><div class="grid two"><div class="field"><label>Title</label><input value="${esc(n.title)}" onchange="updateProjectNote('${n.id}','title',this.value)"></div><div class="field"><label>Date</label><input type="date" value="${esc(n.date)}" onchange="updateProjectNote('${n.id}','date',this.value)"></div></div><div class="field" style="margin-top:10px;"><label>Note</label><textarea onchange="updateProjectNote('${n.id}','body',this.value)">${esc(n.body)}</textarea></div></div><button class="btn small danger" onclick="removeProjectNote('${n.id}')">Remove</button></div>`).join('')}</div>` : `<div class="empty">No project notes yet. Add as many notes as you need.</div>`}</div>`;
+    }
+
+    function datesHtml(p) {
+      return `<div class="card"><div class="section-title"><div><h3>Important Dates</h3><p>Keep lodgement, RFI and approval dates visible.</p></div></div><div class="form-grid"><div class="field"><label>Due date</label><input type="date" value="${esc(p.dueDate)}" onchange="updateProjectField('dueDate',this.value)"></div><div class="field"><label>Submission / lodgement date</label><input type="date" value="${esc(p.submissionDate)}" onchange="updateProjectField('submissionDate',this.value)"></div><div class="field"><label>Approval / determination date</label><input type="date" value="${esc(p.approvalDate)}" onchange="updateProjectField('approvalDate',this.value)"></div><div class="field"><label>Status</label><select onchange="updateProjectField('status',this.value)">${['New enquiry','Documents pending','Submitted','RFI','Certifier review','Approved','Final docs'].map(s => `<option ${p.status===s?'selected':''}>${s}</option>`).join('')}</select></div></div></div>`;
+    }
+
+    function templatesHtml(p) {
+      const missingList = missingDocs(p).map(d => '- ' + d.name + ' - ' + d.responsible).join('\n') || '- No missing documents currently listed.';
+      const templates = [
+        { title: 'Chase Client', text: `Hi ${p.clientName || '[Client]'},\n\nJust following up on the missing documents for ${p.siteAddress}.\n\nCould you please provide the below so we can continue preparing the ${p.approvalType} package?\n\n${missingList}\n\nThanks.` },
+        { title: 'Weekly Project Update', text: `Hi ${p.clientName || '[Client]'},\n\nProject update for ${p.siteAddress}:\n\nCurrent status: ${p.status}\nApproval pathway: ${p.approvalType}\nMissing documents: ${missingDocs(p).length}\nNext action: ${nextAction(p)}\n\nThanks.` }
+      ];
+      return `<div class="grid two">${templates.map((t,i) => `<div class="card"><div class="section-title"><div><h3>${esc(t.title)}</h3><p>Ready to copy and send.</p></div><button class="btn small" onclick="copyText('template-${i}')">Copy</button></div><div id="template-${i}" class="template-box">${esc(t.text)}</div></div>`).join('')}</div>`;
+    }
+
+    function filesHtml(p) {
+      return `<div class="card"><div class="section-title"><div><h3>Files / Photos</h3><p>Local browser storage. Use for small reference files only.</p></div><input type="file" id="fileUpload" multiple onchange="addFiles(event)" /></div><div class="file-list">${p.files.length ? p.files.map(f => `<div class="file-item"><div><strong>${esc(f.name)}</strong><br><span class="muted small-text">${esc(f.type || 'file')} &middot; ${Math.round((f.size || 0)/1024)} KB</span></div><div class="actions"><a class="btn small" href="${f.data}" download="${esc(f.name)}">Download</a><button class="btn small danger" onclick="removeFile('${f.id}')">Remove</button></div></div>`).join('') : `<div class="empty">No files uploaded yet. For production, use Firebase Storage or Supabase Storage.</div>`}</div></div>`;
+    }
+
+    function openProjectModal(id='') {
+      document.getElementById('projectForm').reset();
+      populateCouncils();
+      document.getElementById('projectId').value = id || '';
+      document.getElementById('modalTitle').textContent = id ? 'Edit Project' : 'Add Project';
+      if (id) {
+        const p = projects.find(x => x.id === id);
+        ['clientName','clientPhone','clientEmail','siteAddress','council','lotDp','projectType','approvalType','jobStatus','dueDate','submissionDate','approvalDate','assignedStaff','projectNotes'].forEach(key => {
+          const map = { jobStatus: 'status' };
+          const el = document.getElementById(key);
+          if (key === 'council' && p.council && !nswCouncils.includes(p.council)) el.insertAdjacentHTML('beforeend', `<option>${esc(p.council)}</option>`);
+          el.value = p[map[key] || key] || '';
+        });
+      }
+      document.getElementById('projectModal').classList.add('show');
+    }
+
+    function closeProjectModal() { document.getElementById('projectModal').classList.remove('show'); }
+
+    function saveProject(event) {
+      event.preventDefault();
+      const id = document.getElementById('projectId').value;
+      const data = {
+        clientName: clientName.value, clientPhone: clientPhone.value, clientEmail: clientEmail.value, siteAddress: siteAddress.value,
+        council: council.value, lotDp: lotDp.value, projectType: projectType.value, approvalType: approvalType.value,
+        status: jobStatus.value, dueDate: dueDate.value, submissionDate: submissionDate.value, approvalDate: approvalDate.value,
+        assignedStaff: assignedStaff.value, projectNotes: projectNotes.value
+      };
+      if (id) {
+        const p = projects.find(x => x.id === id);
+        const typeChanged = p.approvalType !== data.approvalType;
+        Object.assign(p, data);
+        p.projectNotesList ||= [];
+        if (typeChanged && confirm('Approval type changed. Replace the current checklist with the new preset checklist?')) p.documents = makeDocs(data.approvalType);
+      } else {
+        projects.unshift({ id: uid(), ...data, createdAt: todayISO(), documents: makeDocs(data.approvalType), consultants: [], notesList: [], projectNotesList: [], files: [] });
+      }
+      saveAll(); closeProjectModal();
+      id ? openProject(id) : showDashboard();
+    }
+
+    function updateProjectField(field,value) { const p=getCurrentProject(); p[field]=value; saveAll(); openProject(p.id); switchTab(activeTab); }
+    function updateDoc(id, field, value) { const p=getCurrentProject(); const d=p.documents.find(x=>x.id===id); d[field]=value; saveAll(); renderProjectTab(); }
+    function removeDoc(id) { const p=getCurrentProject(); p.documents=p.documents.filter(d=>d.id!==id); saveAll(); renderProjectTab(); }
+    function addDocumentPrompt() { const name=prompt('Document name'); if(!name) return; const p=getCurrentProject(); p.documents.push({ id: uid(), name, required:'Yes', status:'Required', responsible:'Client/Consultant', dueDate:'', notes:'', uploadedFile:'' }); saveAll(); renderProjectTab(); }
+
+    function addConsultant() { const p=getCurrentProject(); p.consultants ||= []; p.consultants.push({ id: uid(), name:'', contact:'', task:'', dueDate:'', status:'Pending' }); saveAll(); renderProjectTab(); }
+    function updateConsultant(id, field, value) { const p=getCurrentProject(); const c=p.consultants.find(x=>x.id===id); c[field]=value; saveAll(); }
+    function removeConsultant(id) { const p=getCurrentProject(); p.consultants=p.consultants.filter(c=>c.id!==id); saveAll(); renderProjectTab(); }
+    function copyReminder(id) { const p=getCurrentProject(); const c=p.consultants.find(x=>x.id===id); const msg=`Hi ${c.name || '[Name]'}, just following up on the ${c.task || '[document/task]'} for ${p.siteAddress}. Could you please confirm when this will be ready, as we need it for the approval submission?`; navigator.clipboard.writeText(msg); alert('Reminder copied.'); }
+
+    function addCouncilNote() { const p=getCurrentProject(); p.notesList ||= []; p.notesList.push({ id: uid(), date: todayISO(), contact:'', note:'', nextAction:'' }); saveAll(); renderProjectTab(); }
+    function updateCouncilNote(id, field, value) { const p=getCurrentProject(); const n=p.notesList.find(x=>x.id===id); n[field]=value; saveAll(); }
+    function removeCouncilNote(id) { const p=getCurrentProject(); p.notesList=p.notesList.filter(n=>n.id!==id); saveAll(); renderProjectTab(); }
+
+    function addProjectNote() { const p=getCurrentProject(); p.projectNotesList ||= []; p.projectNotesList.unshift({ id: uid(), date: todayISO(), title:'', body:'' }); saveAll(); renderProjectTab(); }
+    function updateProjectNote(id, field, value) { const p=getCurrentProject(); const n=p.projectNotesList.find(x=>x.id===id); n[field]=value; saveAll(); }
+    function removeProjectNote(id) { const p=getCurrentProject(); p.projectNotesList=p.projectNotesList.filter(n=>n.id!==id); saveAll(); renderProjectTab(); }
+
+    function addFiles(event) {
+      const p = getCurrentProject(); p.files ||= [];
+      [...event.target.files].forEach(file => {
+        const reader = new FileReader();
+        reader.onload = e => { p.files.push({ id: uid(), name: file.name, type: file.type, size: file.size, data: e.target.result }); saveAll(); renderProjectTab(); };
+        reader.readAsDataURL(file);
+      });
+    }
+    function removeFile(id) { const p=getCurrentProject(); p.files=p.files.filter(f=>f.id!==id); saveAll(); renderProjectTab(); }
+
+    function copyText(id) { navigator.clipboard.writeText(document.getElementById(id).textContent); alert('Copied.'); }
+
+    function showChecklistLibrary() {
+      showOnly('libraryView');
+      document.querySelectorAll('.nav-btn')[2].classList.add('active');
+      document.getElementById('pageTitle').textContent = 'Checklist Library';
+      document.getElementById('pageSubtitle').textContent = 'Preset approval checklists used when creating a project.';
+      document.getElementById('libraryView').innerHTML = `<div class="grid two">${Object.entries(checklistLibrary).map(([type,items]) => `<div class="card"><div class="section-title"><div><h3>${type}</h3><p>${items.length} checklist items</p></div><span class="pill ${approvalClass(type)}">${type}</span></div><ul>${items.map(i => `<li>${esc(i)}</li>`).join('')}</ul></div>`).join('')}</div>`;
+    }
+
+    function showTemplatesOnly() {
+      showOnly('templatesView');
+      document.querySelectorAll('.nav-btn')[3].classList.add('active');
+      document.getElementById('pageTitle').textContent = 'Message Templates';
+      document.getElementById('pageSubtitle').textContent = 'General chasing and update messages.';
+      const fake = { clientName:'[Client]', siteAddress:'[Project address]', approvalType:'[DA/CDC/CC/OC]', status:'[Status]', documents:[] };
+      document.getElementById('templatesView').innerHTML = templatesHtml(fake);
+    }
+
+    function printProjectReport() {
+      const p = getCurrentProject();
+      const completed = p.documents.filter(d => ['Received','Reviewed','Uploaded to portal','Approved'].includes(d.status));
+      const missing = missingDocs(p);
+      document.getElementById('printReport').innerHTML = `<h1 class="print-title">Project Approval Status Report</h1><p class="print-subtitle">Generated ${new Date().toLocaleDateString()} &middot; Project Approvals</p><div class="card"><h3>Project Details</h3><table><tbody><tr><th>Client</th><td>${esc(p.clientName)}</td></tr><tr><th>Site Address</th><td>${esc(p.siteAddress)}</td></tr><tr><th>Council</th><td>${esc(p.council)}</td></tr><tr><th>Approval Pathway</th><td>${esc(p.approvalType)}</td></tr><tr><th>Current Status</th><td>${esc(p.status)}</td></tr><tr><th>Next Step</th><td>${esc(nextAction(p))}</td></tr></tbody></table></div><div class="card"><h3>Completed Documents</h3>${reportList(completed, 'No completed documents yet.')}</div><div class="card"><h3>Missing Documents</h3>${reportList(missing, 'No missing documents currently listed.')}</div><div class="card"><h3>Consultant Tasks</h3>${reportConsultants(p)}</div><div class="card"><h3>Council / Certifier Notes</h3>${reportNotes(p)}</div><div class="card"><h3>Project Notes</h3>${reportProjectNotes(p)}</div>`;
+      window.print();
+    }
+
+    function reportList(items, empty) { return items.length ? `<table><thead><tr><th>Document</th><th>Status</th><th>Responsible</th><th>Due</th></tr></thead><tbody>${items.map(d => `<tr><td>${esc(d.name)}</td><td>${esc(d.status)}</td><td>${esc(d.responsible)}</td><td>${esc(d.dueDate || '-')}</td></tr>`).join('')}</tbody></table>` : `<p>${empty}</p>`; }
+    function reportConsultants(p) { return p.consultants?.length ? `<table><thead><tr><th>Consultant</th><th>Task</th><th>Due</th><th>Status</th></tr></thead><tbody>${p.consultants.map(c => `<tr><td>${esc(c.name)}</td><td>${esc(c.task)}</td><td>${esc(c.dueDate || '-')}</td><td>${esc(c.status)}</td></tr>`).join('')}</tbody></table>` : '<p>No consultant tasks added.</p>'; }
+    function reportNotes(p) { return p.notesList?.length ? `<table><thead><tr><th>Date</th><th>Contact</th><th>Note</th><th>Next Action</th></tr></thead><tbody>${p.notesList.map(n => `<tr><td>${esc(n.date)}</td><td>${esc(n.contact)}</td><td>${esc(n.note)}</td><td>${esc(n.nextAction)}</td></tr>`).join('')}</tbody></table>` : '<p>No council notes added.</p>'; }
+    function reportProjectNotes(p) { return p.projectNotesList?.length ? `<table><thead><tr><th>Date</th><th>Title</th><th>Note</th></tr></thead><tbody>${p.projectNotesList.map(n => `<tr><td>${esc(n.date)}</td><td>${esc(n.title || '-')}</td><td>${esc(n.body)}</td></tr>`).join('')}</tbody></table>` : '<p>No project notes added.</p>'; }
+
+    function deleteCurrentProject() { if (!confirm('Delete this project?')) return; projects = projects.filter(p => p.id !== currentProjectId); saveAll(); showDashboard(); }
+
+    function seedDemoData() {
+      if (projects.length && !confirm('This will add demo projects. Continue?')) return;
+      const demo = [
+        { clientName:'John Smith', clientPhone:'', clientEmail:'', siteAddress:'25 Smith Street, Blacktown NSW 2148', council:'Blacktown City Council', lotDp:'', projectType:'Secondary dwelling', approvalType:'CDC', status:'Documents pending', dueDate:'', submissionDate:'', approvalDate:'', assignedStaff:'Harsh', projectNotes:'Prepare CDC package and chase missing engineering items.' },
+        { clientName:'Rachael Lee', clientPhone:'', clientEmail:'', siteAddress:'7 King Road, Camden NSW 2570', council:'Camden Council', lotDp:'', projectType:'Mezzanine kitchenette approval', approvalType:'BIC', status:'RFI', dueDate:'', submissionDate:'', approvalDate:'', assignedStaff:'Harsh', projectNotes:'Council requested additional information after inspection.' },
+        { clientName:'Aakash Patel', clientPhone:'', clientEmail:'', siteAddress:'3 Lake Avenue, Penrith NSW 2750', council:'Penrith City Council', lotDp:'', projectType:'Alterations/additions', approvalType:'DA', status:'Documents pending', dueDate:'', submissionDate:'', approvalDate:'', assignedStaff:'Harsh', projectNotes:'Waiting on owner consent and stormwater concept.' }
+      ].map(d => ({ id: uid(), createdAt: todayISO(), ...d, documents: makeDocs(d.approvalType), consultants: [], notesList: [], projectNotesList: [], files: [] }));
+      projects = [...demo, ...projects]; saveAll(); renderDashboard();
+    }
+
+    function exportData() {
+      const blob = new Blob([JSON.stringify(projects, null, 2)], { type: 'application/json' });
+      const a = document.createElement('a'); a.href = URL.createObjectURL(blob); a.download = 'project-approvals-backup.json'; a.click(); URL.revokeObjectURL(a.href);
+    }
+
+    function importData(event) {
+      const file = event.target.files[0]; if (!file) return;
+      const reader = new FileReader();
+      reader.onload = e => { try { const data = JSON.parse(e.target.result); if (!Array.isArray(data)) throw new Error('Invalid file'); projects = data; saveAll(); showDashboard(); alert('Data restored.'); } catch { alert('Could not import this file.'); } };
+      reader.readAsText(file);
+    }
+
+    populateCouncils();
+    showDashboard();
+  </script>
+</body>
+</html>

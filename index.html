@@ -111,6 +111,29 @@
       line-height: 1.45;
     }
 
+    .sync-status {
+      display: inline-flex;
+      align-items: center;
+      gap: 8px;
+      margin-top: 10px;
+      padding: 6px 10px;
+      border-radius: 999px;
+      background: rgba(255,255,255,0.1);
+      color: #dff6f2;
+      font-size: 12px;
+      font-weight: 700;
+    }
+
+    .sync-status.error {
+      background: rgba(180, 35, 24, 0.22);
+      color: #ffe3e0;
+    }
+
+    .sync-status.warning {
+      background: rgba(181, 71, 8, 0.22);
+      color: #ffe9c5;
+    }
+
     main { padding: 28px; min-width: 0; }
 
     .topbar {
@@ -369,7 +392,6 @@
     .muted { color: var(--muted); }
     .small-text { font-size: 13px; }
 
-
     .auth-screen {
       position: fixed;
       inset: 0;
@@ -486,8 +508,9 @@
       <input id="importFile" type="file" accept="application/json" class="hidden" onchange="importData(event)" />
 
       <div class="side-note">
-        <strong>Local storage version</strong><br />
-        All data is saved in this browser only. Later this can be upgraded to Firebase, Supabase, or another database.
+        <strong>Supabase cloud version</strong><br />
+        Project data saves online so you can access it from another browser later. Files/photos still stay browser-based in this version.
+        <div id="syncStatus" class="sync-status warning">Waiting for Supabase setup</div>
       </div>
     </aside>
 
@@ -618,9 +641,20 @@
     </div>
   </div>
 
+  <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
   <script>
-
     const PORTAL_PASSWORD = 'Jogiharsh@1993';
+    const SUPABASE_URL = https://hdedxguhmilzlilybxgc.supabase.co;
+    const SUPABASE_ANON_KEY = sb_publishable_Fc0aE2unBnK4AQF4xKRHcg_xzGd_7tx;
+    const SUPABASE_TABLE = 'app_state';
+    const APP_STATE_ID = 'main';
+    const LOCAL_FALLBACK_KEY = 'projectApprovalsTracker.v3.localFallback';
+
+    let supabase = null;
+    let projects = [];
+    let currentProjectId = null;
+    let activeTab = 'overview';
+    let isCloudReady = false;
 
     function unlockPortal(event) {
       event.preventDefault();
@@ -646,12 +680,103 @@
       }
     }
 
-    checkPortalAuth();
+    function setSyncStatus(message, tone='warning') {
+      const el = document.getElementById('syncStatus');
+      if (!el) return;
+      el.textContent = message;
+      el.className = `sync-status${tone === 'warning' ? ' warning' : tone === 'error' ? ' error' : ''}`;
+    }
 
-    const STORAGE_KEY = 'projectApprovalsTracker.v2';
-    let projects = loadProjects();
-    let currentProjectId = null;
-    let activeTab = 'overview';
+    function uid() { return 'id-' + Date.now() + '-' + Math.random().toString(16).slice(2); }
+    function todayISO() { return new Date().toISOString().slice(0,10); }
+    function esc(value='') { return String(value).replace(/[&<>"]/g, m => ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;'}[m])); }
+
+    function loadLocalFallback() {
+      try {
+        return JSON.parse(localStorage.getItem(LOCAL_FALLBACK_KEY) || '[]');
+      } catch {
+        return [];
+      }
+    }
+
+    function saveLocalFallback() {
+      localStorage.setItem(LOCAL_FALLBACK_KEY, JSON.stringify(projects));
+    }
+
+    function hasSupabaseConfig() {
+      return SUPABASE_URL && SUPABASE_ANON_KEY &&
+        !SUPABASE_URL.includes('PASTE_YOUR_') &&
+        !SUPABASE_ANON_KEY.includes('PASTE_YOUR_');
+    }
+
+    async function initSupabase() {
+      if (!hasSupabaseConfig()) {
+        projects = loadLocalFallback();
+        setSyncStatus('Paste Supabase URL and anon key', 'warning');
+        return;
+      }
+
+      try {
+        supabase = window.supabase.createClient(SUPABASE_URL, SUPABASE_ANON_KEY);
+        isCloudReady = true;
+        setSyncStatus('Connecting to Supabase...', 'warning');
+        await loadProjectsFromCloud();
+        setSyncStatus('Cloud sync ready', 'success');
+      } catch (error) {
+        console.error(error);
+        projects = loadLocalFallback();
+        isCloudReady = false;
+        setSyncStatus('Supabase connection failed', 'error');
+      }
+    }
+
+    async function loadProjectsFromCloud() {
+      const { data, error } = await supabase
+        .from(SUPABASE_TABLE)
+        .select('projects')
+        .eq('id', APP_STATE_ID)
+        .maybeSingle();
+
+      if (error) throw error;
+
+      projects = Array.isArray(data?.projects) ? data.projects : [];
+      saveLocalFallback();
+    }
+
+    async function saveAll() {
+      saveLocalFallback();
+      if (!isCloudReady || !supabase) return;
+
+      setSyncStatus('Saving to cloud...', 'warning');
+
+      const { error } = await supabase
+        .from(SUPABASE_TABLE)
+        .upsert(
+          {
+            id: APP_STATE_ID,
+            projects,
+            updated_at: new Date().toISOString()
+          },
+          { onConflict: 'id' }
+        );
+
+      if (error) {
+        console.error(error);
+        setSyncStatus('Cloud save failed', 'error');
+        return;
+      }
+
+      setSyncStatus('All changes saved', 'success');
+    }
+
+    function queueSave() {
+      saveAll().catch(error => {
+        console.error(error);
+        setSyncStatus('Cloud save failed', 'error');
+      });
+    }
+
+    checkPortalAuth();
 
     const nswCouncils = [
       'Albury City Council','Armidale Regional Council','Ballina Shire Council','Balranald Shire Council','Bathurst Regional Council','Bayside Council','Bega Valley Shire Council','Bellingen Shire Council','Berrigan Shire Council','Blacktown City Council','Bland Shire Council','Blayney Shire Council','Blue Mountains City Council','Bogan Shire Council','Bourke Shire Council','Brewarrina Shire Council','Broken Hill City Council','Burwood Council','Byron Shire Council','Cabonne Council','Camden Council','Campbelltown City Council','Canada Bay Council','Canterbury-Bankstown Council','Carrathool Shire Council','Central Coast Council','Central Darling Shire Council','Cessnock City Council','Clarence Valley Council','Cobar Shire Council','Coffs Harbour City Council','Coolamon Shire Council','Coonamble Shire Council','Cootamundra-Gundagai Regional Council','Cowra Shire Council','Cumberland City Council','Dubbo Regional Council','Dungog Shire Council','Edward River Council','Eurobodalla Shire Council','Fairfield City Council','Federation Council','Forbes Shire Council','Georges River Council','Gilgandra Shire Council','Glen Innes Severn Council','Goulburn Mulwaree Council','Greater Hume Council','Griffith City Council','Gunnedah Shire Council','Gwydir Shire Council','Hawkesbury City Council','Hay Shire Council','Hilltops Council','Hornsby Shire Council','Hunters Hill Council','Inner West Council','Inverell Shire Council','Junee Shire Council','Kempsey Shire Council','Kiama Municipal Council','Ku-ring-gai Council','Kyogle Council','Lachlan Shire Council','Lake Macquarie City Council','Lane Cove Council','Leeton Shire Council','Lismore City Council','Lithgow City Council','Liverpool City Council','Liverpool Plains Shire Council','Lockhart Shire Council','Maitland City Council','Mid-Coast Council','Mid-Western Regional Council','Moree Plains Shire Council','Mosman Council','Murray River Council','Murrumbidgee Council','Muswellbrook Shire Council','Nambucca Valley Council','Narrabri Shire Council','Narrandera Shire Council','Narromine Shire Council','Newcastle City Council','North Sydney Council','Northern Beaches Council','Oberon Council','Orange City Council','Parkes Shire Council','Parramatta City Council','Penrith City Council','Port Macquarie-Hastings Council','Port Stephens Council','Queanbeyan-Palerang Regional Council','Randwick City Council','Richmond Valley Council','Ryde City Council','Shellharbour City Council','Shoalhaven City Council','Singleton Council','Snowy Monaro Regional Council','Snowy Valleys Council','Strathfield Council','Sutherland Shire Council','Sydney City Council','Tamworth Regional Council','Temora Shire Council','Tenterfield Shire Council','The Hills Shire Council','Tweed Shire Council','Upper Hunter Shire Council','Upper Lachlan Shire Council','Uralla Shire Council','Wagga Wagga City Council','Walcha Council','Walgett Shire Council','Warren Shire Council','Warrumbungle Shire Council','Waverley Council','Weddin Shire Council','Wentworth Shire Council','Willoughby City Council','Wingecarribee Shire Council','Wollondilly Shire Council','Wollongong City Council','Woollahra Municipal Council','Yass Valley Council','Other'
@@ -678,12 +803,6 @@
 
     const docStatuses = ['Not required','Required','Requested','Received','Reviewed','Needs revision','Uploaded to portal','Approved'];
     const taskStatuses = ['Pending','In progress','Waiting','Received','Completed'];
-
-    function uid() { return 'id-' + Date.now() + '-' + Math.random().toString(16).slice(2); }
-    function saveAll() { localStorage.setItem(STORAGE_KEY, JSON.stringify(projects)); }
-    function loadProjects() { try { return JSON.parse(localStorage.getItem(STORAGE_KEY) || '[]'); } catch { return []; } }
-    function todayISO() { return new Date().toISOString().slice(0,10); }
-    function esc(value='') { return String(value).replace(/[&<>"]/g, m => ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;'}[m])); }
 
     function makeDocs(type) {
       return (checklistLibrary[type] || checklistLibrary.Other).map(name => ({ id: uid(), name, required: 'Yes', status: 'Required', responsible: suggestedResponsible(name), dueDate: '', notes: '', uploadedFile: '' }));
@@ -935,7 +1054,7 @@
     }
 
     function filesHtml(p) {
-      return `<div class="card"><div class="section-title"><div><h3>Files / Photos</h3><p>Local browser storage. Use for small reference files only.</p></div><input type="file" id="fileUpload" multiple onchange="addFiles(event)" /></div><div class="file-list">${p.files.length ? p.files.map(f => `<div class="file-item"><div><strong>${esc(f.name)}</strong><br><span class="muted small-text">${esc(f.type || 'file')} &middot; ${Math.round((f.size || 0)/1024)} KB</span></div><div class="actions"><a class="btn small" href="${f.data}" download="${esc(f.name)}">Download</a><button class="btn small danger" onclick="removeFile('${f.id}')">Remove</button></div></div>`).join('') : `<div class="empty">No files uploaded yet. For production, use Firebase Storage or Supabase Storage.</div>`}</div></div>`;
+      return `<div class="card"><div class="section-title"><div><h3>Files / Photos</h3><p>Still browser-based in this version. Project records now save to Supabase.</p></div><input type="file" id="fileUpload" multiple onchange="addFiles(event)" /></div><div class="file-list">${p.files.length ? p.files.map(f => `<div class="file-item"><div><strong>${esc(f.name)}</strong><br><span class="muted small-text">${esc(f.type || 'file')} &middot; ${Math.round((f.size || 0)/1024)} KB</span></div><div class="actions"><a class="btn small" href="${f.data}" download="${esc(f.name)}">Download</a><button class="btn small danger" onclick="removeFile('${f.id}')">Remove</button></div></div>`).join('') : `<div class="empty">No files uploaded yet. For production, move these into Supabase Storage as a later step.</div>`}</div></div>`;
     }
 
     function openProjectModal(id='') {
@@ -975,37 +1094,38 @@
       } else {
         projects.unshift({ id: uid(), ...data, createdAt: todayISO(), documents: makeDocs(data.approvalType), consultants: [], notesList: [], projectNotesList: [], files: [] });
       }
-      saveAll(); closeProjectModal();
+      queueSave();
+      closeProjectModal();
       id ? openProject(id) : showDashboard();
     }
 
-    function updateProjectField(field,value) { const p=getCurrentProject(); p[field]=value; saveAll(); openProject(p.id); switchTab(activeTab); }
-    function updateDoc(id, field, value) { const p=getCurrentProject(); const d=p.documents.find(x=>x.id===id); d[field]=value; saveAll(); renderProjectTab(); }
-    function removeDoc(id) { const p=getCurrentProject(); p.documents=p.documents.filter(d=>d.id!==id); saveAll(); renderProjectTab(); }
-    function addDocumentPrompt() { const name=prompt('Document name'); if(!name) return; const p=getCurrentProject(); p.documents.push({ id: uid(), name, required:'Yes', status:'Required', responsible:'Client/Consultant', dueDate:'', notes:'', uploadedFile:'' }); saveAll(); renderProjectTab(); }
+    function updateProjectField(field,value) { const p=getCurrentProject(); p[field]=value; queueSave(); openProject(p.id); switchTab(activeTab); }
+    function updateDoc(id, field, value) { const p=getCurrentProject(); const d=p.documents.find(x=>x.id===id); d[field]=value; queueSave(); renderProjectTab(); }
+    function removeDoc(id) { const p=getCurrentProject(); p.documents=p.documents.filter(d=>d.id!==id); queueSave(); renderProjectTab(); }
+    function addDocumentPrompt() { const name=prompt('Document name'); if(!name) return; const p=getCurrentProject(); p.documents.push({ id: uid(), name, required:'Yes', status:'Required', responsible:'Client/Consultant', dueDate:'', notes:'', uploadedFile:'' }); queueSave(); renderProjectTab(); }
 
-    function addConsultant() { const p=getCurrentProject(); p.consultants ||= []; p.consultants.push({ id: uid(), name:'', contact:'', task:'', dueDate:'', status:'Pending' }); saveAll(); renderProjectTab(); }
-    function updateConsultant(id, field, value) { const p=getCurrentProject(); const c=p.consultants.find(x=>x.id===id); c[field]=value; saveAll(); }
-    function removeConsultant(id) { const p=getCurrentProject(); p.consultants=p.consultants.filter(c=>c.id!==id); saveAll(); renderProjectTab(); }
+    function addConsultant() { const p=getCurrentProject(); p.consultants ||= []; p.consultants.push({ id: uid(), name:'', contact:'', task:'', dueDate:'', status:'Pending' }); queueSave(); renderProjectTab(); }
+    function updateConsultant(id, field, value) { const p=getCurrentProject(); const c=p.consultants.find(x=>x.id===id); c[field]=value; queueSave(); }
+    function removeConsultant(id) { const p=getCurrentProject(); p.consultants=p.consultants.filter(c=>c.id!==id); queueSave(); renderProjectTab(); }
     function copyReminder(id) { const p=getCurrentProject(); const c=p.consultants.find(x=>x.id===id); const msg=`Hi ${c.name || '[Name]'}, just following up on the ${c.task || '[document/task]'} for ${p.siteAddress}. Could you please confirm when this will be ready, as we need it for the approval submission?`; navigator.clipboard.writeText(msg); alert('Reminder copied.'); }
 
-    function addCouncilNote() { const p=getCurrentProject(); p.notesList ||= []; p.notesList.push({ id: uid(), date: todayISO(), contact:'', note:'', nextAction:'' }); saveAll(); renderProjectTab(); }
-    function updateCouncilNote(id, field, value) { const p=getCurrentProject(); const n=p.notesList.find(x=>x.id===id); n[field]=value; saveAll(); }
-    function removeCouncilNote(id) { const p=getCurrentProject(); p.notesList=p.notesList.filter(n=>n.id!==id); saveAll(); renderProjectTab(); }
+    function addCouncilNote() { const p=getCurrentProject(); p.notesList ||= []; p.notesList.push({ id: uid(), date: todayISO(), contact:'', note:'', nextAction:'' }); queueSave(); renderProjectTab(); }
+    function updateCouncilNote(id, field, value) { const p=getCurrentProject(); const n=p.notesList.find(x=>x.id===id); n[field]=value; queueSave(); }
+    function removeCouncilNote(id) { const p=getCurrentProject(); p.notesList=p.notesList.filter(n=>n.id!==id); queueSave(); renderProjectTab(); }
 
-    function addProjectNote() { const p=getCurrentProject(); p.projectNotesList ||= []; p.projectNotesList.unshift({ id: uid(), date: todayISO(), title:'', body:'' }); saveAll(); renderProjectTab(); }
-    function updateProjectNote(id, field, value) { const p=getCurrentProject(); const n=p.projectNotesList.find(x=>x.id===id); n[field]=value; saveAll(); }
-    function removeProjectNote(id) { const p=getCurrentProject(); p.projectNotesList=p.projectNotesList.filter(n=>n.id!==id); saveAll(); renderProjectTab(); }
+    function addProjectNote() { const p=getCurrentProject(); p.projectNotesList ||= []; p.projectNotesList.unshift({ id: uid(), date: todayISO(), title:'', body:'' }); queueSave(); renderProjectTab(); }
+    function updateProjectNote(id, field, value) { const p=getCurrentProject(); const n=p.projectNotesList.find(x=>x.id===id); n[field]=value; queueSave(); }
+    function removeProjectNote(id) { const p=getCurrentProject(); p.projectNotesList=p.projectNotesList.filter(n=>n.id!==id); queueSave(); renderProjectTab(); }
 
     function addFiles(event) {
       const p = getCurrentProject(); p.files ||= [];
       [...event.target.files].forEach(file => {
         const reader = new FileReader();
-        reader.onload = e => { p.files.push({ id: uid(), name: file.name, type: file.type, size: file.size, data: e.target.result }); saveAll(); renderProjectTab(); };
+        reader.onload = e => { p.files.push({ id: uid(), name: file.name, type: file.type, size: file.size, data: e.target.result }); queueSave(); renderProjectTab(); };
         reader.readAsDataURL(file);
       });
     }
-    function removeFile(id) { const p=getCurrentProject(); p.files=p.files.filter(f=>f.id!==id); saveAll(); renderProjectTab(); }
+    function removeFile(id) { const p=getCurrentProject(); p.files=p.files.filter(f=>f.id!==id); queueSave(); renderProjectTab(); }
 
     function copyText(id) { navigator.clipboard.writeText(document.getElementById(id).textContent); alert('Copied.'); }
 
@@ -1039,7 +1159,12 @@
     function reportNotes(p) { return p.notesList?.length ? `<table><thead><tr><th>Date</th><th>Contact</th><th>Note</th><th>Next Action</th></tr></thead><tbody>${p.notesList.map(n => `<tr><td>${esc(n.date)}</td><td>${esc(n.contact)}</td><td>${esc(n.note)}</td><td>${esc(n.nextAction)}</td></tr>`).join('')}</tbody></table>` : '<p>No council notes added.</p>'; }
     function reportProjectNotes(p) { return p.projectNotesList?.length ? `<table><thead><tr><th>Date</th><th>Title</th><th>Note</th></tr></thead><tbody>${p.projectNotesList.map(n => `<tr><td>${esc(n.date)}</td><td>${esc(n.title || '-')}</td><td>${esc(n.body)}</td></tr>`).join('')}</tbody></table>` : '<p>No project notes added.</p>'; }
 
-    function deleteCurrentProject() { if (!confirm('Delete this project?')) return; projects = projects.filter(p => p.id !== currentProjectId); saveAll(); showDashboard(); }
+    function deleteCurrentProject() {
+      if (!confirm('Delete this project?')) return;
+      projects = projects.filter(p => p.id !== currentProjectId);
+      queueSave();
+      showDashboard();
+    }
 
     function seedDemoData() {
       if (projects.length && !confirm('This will add demo projects. Continue?')) return;
@@ -1048,23 +1173,46 @@
         { clientName:'Rachael Lee', clientPhone:'', clientEmail:'', siteAddress:'7 King Road, Camden NSW 2570', council:'Camden Council', lotDp:'', projectType:'Mezzanine kitchenette approval', approvalType:'BIC', status:'RFI', dueDate:'', submissionDate:'', approvalDate:'', assignedStaff:'Harsh', projectNotes:'Council requested additional information after inspection.' },
         { clientName:'Aakash Patel', clientPhone:'', clientEmail:'', siteAddress:'3 Lake Avenue, Penrith NSW 2750', council:'Penrith City Council', lotDp:'', projectType:'Alterations/additions', approvalType:'DA', status:'Documents pending', dueDate:'', submissionDate:'', approvalDate:'', assignedStaff:'Harsh', projectNotes:'Waiting on owner consent and stormwater concept.' }
       ].map(d => ({ id: uid(), createdAt: todayISO(), ...d, documents: makeDocs(d.approvalType), consultants: [], notesList: [], projectNotesList: [], files: [] }));
-      projects = [...demo, ...projects]; saveAll(); renderDashboard();
+      projects = [...demo, ...projects];
+      queueSave();
+      renderDashboard();
     }
 
     function exportData() {
       const blob = new Blob([JSON.stringify(projects, null, 2)], { type: 'application/json' });
-      const a = document.createElement('a'); a.href = URL.createObjectURL(blob); a.download = 'project-approvals-backup.json'; a.click(); URL.revokeObjectURL(a.href);
+      const a = document.createElement('a');
+      a.href = URL.createObjectURL(blob);
+      a.download = 'project-approvals-backup.json';
+      a.click();
+      URL.revokeObjectURL(a.href);
     }
 
     function importData(event) {
-      const file = event.target.files[0]; if (!file) return;
+      const file = event.target.files[0];
+      if (!file) return;
       const reader = new FileReader();
-      reader.onload = e => { try { const data = JSON.parse(e.target.result); if (!Array.isArray(data)) throw new Error('Invalid file'); projects = data; saveAll(); showDashboard(); alert('Data restored.'); } catch { alert('Could not import this file.'); } };
+      reader.onload = e => {
+        try {
+          const data = JSON.parse(e.target.result);
+          if (!Array.isArray(data)) throw new Error('Invalid file');
+          projects = data;
+          queueSave();
+          showDashboard();
+          alert('Data restored.');
+        } catch {
+          alert('Could not import this file.');
+        }
+      };
       reader.readAsText(file);
     }
 
-    populateCouncils();
-    showDashboard();
+    async function bootstrap() {
+      populateCouncils();
+      await initSupabase();
+      showDashboard();
+    }
+
+    bootstrap();
   </script>
 </body>
 </html>

@@ -337,6 +337,202 @@
       line-height: 1.45;
     }
 
+    .invoice-shell {
+      display: grid;
+      gap: 18px;
+    }
+
+    .invoice-preview {
+      background: #fff;
+      border: 1px solid var(--border);
+      border-radius: 24px;
+      box-shadow: var(--shadow);
+      padding: 12px;
+    }
+
+    .invoice-sheet {
+      border: 1px solid #ececec;
+      background: #fff;
+      min-height: 1120px;
+    }
+
+    .invoice-body {
+      display: grid;
+      grid-template-rows: auto auto auto auto 1fr;
+      min-height: 1120px;
+      padding: 28px 32px 24px;
+      gap: 20px;
+    }
+
+    .invoice-sheet.compact .invoice-body {
+      min-height: auto;
+      padding: 20px 24px 18px;
+      gap: 14px;
+    }
+
+    .invoice-head {
+      display: grid;
+      grid-template-columns: minmax(0, 1fr) 96px;
+      gap: 18px;
+      align-items: start;
+    }
+
+    .invoice-logo-wrap {
+      width: 96px;
+      height: 96px;
+      justify-self: end;
+      display: grid;
+      place-items: center;
+      background: #fff;
+      border: 1px solid #d8dce3;
+      border-radius: 18px;
+      padding: 8px;
+    }
+
+    .invoice-company h2 {
+      margin: 0 0 10px;
+      color: #11284c;
+      font-size: 24px;
+      letter-spacing: -0.03em;
+    }
+
+    .invoice-company p,
+    .invoice-party p,
+    .invoice-payment p {
+      margin: 0;
+      line-height: 1.7;
+      white-space: pre-line;
+    }
+
+    .invoice-logo {
+      width: 100%;
+      height: 100%;
+      object-fit: contain;
+      background: #fff;
+    }
+
+    .invoice-divider {
+      height: 1px;
+      background: #bfd4ef;
+    }
+
+    .invoice-parties {
+      display: grid;
+      grid-template-columns: minmax(0, 1fr) minmax(0, 1fr) 220px;
+      gap: 18px;
+      align-items: start;
+    }
+
+    .invoice-party h4,
+    .invoice-dates h4 {
+      margin: 0 0 8px;
+      color: #1154a3;
+      font-size: 12px;
+      text-transform: uppercase;
+      letter-spacing: 0.06em;
+    }
+
+    .invoice-dates {
+      display: grid;
+      gap: 8px;
+    }
+
+    .invoice-date-row {
+      display: grid;
+      grid-template-columns: 1fr auto;
+      gap: 10px;
+      font-size: 13px;
+    }
+
+    .invoice-table {
+      width: 100%;
+      border-collapse: collapse;
+      font-size: 13px;
+    }
+
+    .invoice-table th,
+    .invoice-table td {
+      border: 1px solid #d8dce3;
+      padding: 12px;
+      vertical-align: top;
+      background: #fff;
+    }
+
+    .invoice-sheet.compact .invoice-table th,
+    .invoice-sheet.compact .invoice-table td {
+      padding: 9px 10px;
+      font-size: 12px;
+    }
+
+    .invoice-table th {
+      border-color: #1154a3;
+      color: #11284c;
+      background: #f5f9ff;
+      font-size: 12px;
+      font-weight: 800;
+      letter-spacing: 0.04em;
+      text-transform: uppercase;
+      text-align: left;
+    }
+
+    .invoice-table td:last-child,
+    .invoice-table th:last-child {
+      text-align: right;
+      white-space: nowrap;
+      width: 120px;
+    }
+
+    .invoice-line-title {
+      font-weight: 700;
+      margin-bottom: 6px;
+    }
+
+    .invoice-bottom {
+      display: grid;
+      grid-template-columns: minmax(0, 1fr) 280px;
+      gap: 18px;
+      align-items: end;
+      margin-top: auto;
+    }
+
+    .invoice-payment p {
+      font-size: 14px;
+    }
+
+    .invoice-sheet.compact .invoice-payment p,
+    .invoice-sheet.compact .invoice-total-row {
+      font-size: 13px;
+    }
+
+    .invoice-sheet.compact .invoice-total-row.grand {
+      font-size: 19px;
+    }
+
+    .invoice-service-picker {
+      display: grid;
+      gap: 8px;
+    }
+
+    .invoice-totals {
+      margin-left: auto;
+      width: 100%;
+      display: grid;
+      gap: 8px;
+    }
+
+    .invoice-total-row {
+      display: grid;
+      grid-template-columns: 1fr auto;
+      gap: 12px;
+      font-size: 15px;
+    }
+
+    .invoice-total-row.grand {
+      font-size: 22px;
+      font-weight: 800;
+      color: #11284c;
+    }
+
     .modal-backdrop {
       position: fixed;
       inset: 0;
@@ -444,6 +640,7 @@
       aside { position: relative; height: auto; }
       .toolbar { grid-template-columns: 1fr 1fr; }
       .grid.stats, .grid.two { grid-template-columns: 1fr 1fr; }
+      .invoice-parties, .invoice-bottom { grid-template-columns: 1fr; }
     }
 
     @media (max-width: 640px) {
@@ -461,6 +658,17 @@
       .app-shell { display: block; }
       .print-report { display: block; padding: 24px; }
       .card { box-shadow: none; border: 1px solid #bbb; break-inside: avoid; margin-bottom: 14px; }
+      .invoice-preview { box-shadow: none !important; border: 0 !important; padding: 0 !important; }
+      .invoice-sheet { border: 0 !important; min-height: auto !important; }
+      .invoice-body { min-height: auto !important; padding: 16px 18px 12px !important; gap: 12px !important; }
+      .invoice-table th, .invoice-table td { padding: 8px 9px !important; font-size: 12px !important; }
+      .invoice-company h2 { font-size: 20px !important; margin-bottom: 6px !important; }
+      .invoice-company p, .invoice-party p, .invoice-payment p, .invoice-date-row { font-size: 12px !important; line-height: 1.45 !important; }
+      .invoice-logo-wrap { width: 72px !important; height: 72px !important; padding: 6px !important; background: #fff !important; border-color: #d8dce3 !important; }
+      .invoice-logo { width: 100% !important; height: 100% !important; background: #fff !important; }
+      .invoice-bottom { gap: 12px !important; }
+      .invoice-total-row { font-size: 13px !important; }
+      .invoice-total-row.grand { font-size: 18px !important; }
       tr { page-break-inside: avoid; page-break-after: auto; }
       .print-title { font-size: 26px; margin: 0 0 6px; }
       .print-subtitle { color: #555; margin: 0 0 20px; }
@@ -587,6 +795,7 @@
           <button class="tab-btn" data-tab="councilNotes" onclick="switchTab('councilNotes')">Council / Certifier Notes</button>
           <button class="tab-btn" data-tab="dates" onclick="switchTab('dates')">Important Dates</button>
           <button class="tab-btn" data-tab="templates" onclick="switchTab('templates')">Templates</button>
+          <button class="tab-btn" data-tab="invoice" onclick="switchTab('invoice')">Invoice</button>
           <button class="tab-btn" data-tab="files" onclick="switchTab('files')">Files / Photos</button>
           <button class="tab-btn" data-tab="projectNotes" onclick="switchTab('projectNotes')">Notes</button>
         </div>
@@ -643,11 +852,31 @@
 
   <script>
     const PORTAL_PASSWORD = 'Jogiharsh@1993';
-    const SUPABASE_URL = 'https://hdedxguhmilzlilybxgc.supabase.co';
-    const SUPABASE_ANON_KEY = 'sb_publishable_Fc0aE2unBnK4AQF4xKRHcg_xzGd_7tx';
+    const SUPABASE_URL = 'PASTE_YOUR_SUPABASE_URL_HERE';
+    const SUPABASE_ANON_KEY = 'PASTE_YOUR_SUPABASE_ANON_KEY_HERE';
     const SUPABASE_TABLE = 'app_state';
     const APP_STATE_ID = 'main';
     const LOCAL_FALLBACK_KEY = 'projectApprovalsTracker.v3.localFallback';
+    const INVOICE_LOGO_SRC = './project-approvals-logo.png';
+    const BUSINESS_PROFILE = {
+      name: 'Project Approvals',
+      abn: 'ABN 16 696 716 980',
+      email: 'info@projectapprovals.com.au',
+      phone: '0414633507',
+      address: 'Quakershill NSW 2763',
+      paymentTerms: 'Payment due within 7 days of invoice date.',
+      bankDetails: 'PayID: info@projectapprovals.com.au\n\nBank: Your Business Bank\nAccount Name: Project Approvals\nBSB: 000-000\nAccount No: 00000000'
+    };
+    const INVOICE_SERVICE_OPTIONS = [
+      'CDC consulting service',
+      'DA application support',
+      'CC approval support',
+      'OC approval support',
+      'BASIX coordination',
+      'Council lodgement support',
+      'Site inspection consulting',
+      'General approval consulting'
+    ];
 
     let projects = [];
     let currentProjectId = null;
@@ -692,6 +921,43 @@
     function uid() { return 'id-' + Date.now() + '-' + Math.random().toString(16).slice(2); }
     function todayISO() { return new Date().toISOString().slice(0,10); }
     function esc(value='') { return String(value).replace(/[&<>"]/g, m => ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;'}[m])); }
+    function formatCurrency(amount) { return new Intl.NumberFormat('en-AU', { style: 'currency', currency: 'AUD' }).format(Number(amount || 0)); }
+    function nextInvoiceNumber() { return 'PA-' + new Date().toISOString().slice(0,10).replace(/-/g, '') + '-' + String(projects.length + 1).padStart(3, '0'); }
+    function looksCustomService(name='') { return !!name && !INVOICE_SERVICE_OPTIONS.includes(name); }
+    function addDays(dateString, days) {
+      const date = dateString ? new Date(dateString) : new Date();
+      date.setDate(date.getDate() + days);
+      return date.toISOString().slice(0, 10);
+    }
+    function defaultInvoice(project) {
+      return {
+        invoiceNumber: nextInvoiceNumber(),
+        issueDate: todayISO(),
+        dueDate: addDays(todayISO(), 7),
+        lineItems: [
+          {
+            id: uid(),
+            serviceName: `${project?.approvalType || 'Approval'} consulting service`,
+            price: '',
+            useCustomService: looksCustomService(`${project?.approvalType || 'Approval'} consulting service`)
+          }
+        ],
+        notes: BUSINESS_PROFILE.bankDetails
+      };
+    }
+
+    function invoiceServiceEditor(item) {
+      const useCustom = item.useCustomService || looksCustomService(item.serviceName);
+      const selectedValue = useCustom ? '__custom__' : (item.serviceName || '');
+      return `<div class="invoice-service-picker">
+        <select onchange="updateInvoiceServiceChoice('${item.id}',this.value)">
+          <option value="">Select service</option>
+          ${INVOICE_SERVICE_OPTIONS.map(service => `<option value="${esc(service)}" ${selectedValue===service?'selected':''}>${esc(service)}</option>`).join('')}
+          <option value="__custom__" ${selectedValue==='__custom__'?'selected':''}>Enter new service</option>
+        </select>
+        ${useCustom ? `<input value="${esc(item.serviceName || '')}" onchange="updateInvoiceLine('${item.id}','serviceName',this.value)" placeholder="Enter new service name" />` : ''}
+      </div>`;
+    }
 
     function loadLocalFallback() {
       try {
@@ -1024,6 +1290,7 @@
       p.notesList ||= [];
       p.files ||= [];
       p.projectNotesList ||= [];
+      p.invoice ||= defaultInvoice(p);
       const el = document.getElementById('projectTabContent');
       if (activeTab === 'overview') el.innerHTML = overviewHtml(p);
       if (activeTab === 'documents') el.innerHTML = documentsHtml(p);
@@ -1031,6 +1298,7 @@
       if (activeTab === 'councilNotes') el.innerHTML = councilNotesHtml(p);
       if (activeTab === 'dates') el.innerHTML = datesHtml(p);
       if (activeTab === 'templates') el.innerHTML = templatesHtml(p);
+      if (activeTab === 'invoice') el.innerHTML = invoiceHtml(p);
       if (activeTab === 'files') el.innerHTML = filesHtml(p);
       if (activeTab === 'projectNotes') el.innerHTML = projectNotesHtml(p);
     }
@@ -1074,6 +1342,96 @@
       return `<div class="card"><div class="section-title"><div><h3>Files / Photos</h3><p>Still browser-based in this version. Project records now save to Supabase.</p></div><input type="file" id="fileUpload" multiple onchange="addFiles(event)" /></div><div class="file-list">${p.files.length ? p.files.map(f => `<div class="file-item"><div><strong>${esc(f.name)}</strong><br><span class="muted small-text">${esc(f.type || 'file')} &middot; ${Math.round((f.size || 0)/1024)} KB</span></div><div class="actions"><a class="btn small" href="${f.data}" download="${esc(f.name)}">Download</a><button class="btn small danger" onclick="removeFile('${f.id}')">Remove</button></div></div>`).join('') : `<div class="empty">No files uploaded yet. For production, move these into Supabase Storage as a later step.</div>`}</div></div>`;
     }
 
+    function invoiceHtml(p) {
+      const invoice = p.invoice || defaultInvoice(p);
+      invoice.lineItems ||= defaultInvoice(p).lineItems;
+      const total = invoice.lineItems.reduce((sum, item) => sum + Number(item.price || 0), 0);
+      const clientBlock = [p.clientName, p.clientEmail, p.clientPhone].filter(Boolean).join('\n');
+      const projectBlock = [p.siteAddress, p.council].filter(Boolean).join('\n');
+      const compactClass = invoice.lineItems.length <= 10 ? 'compact' : '';
+      return `<div class="invoice-shell">
+        <div class="card">
+          <div class="section-title">
+            <div>
+              <h3>Invoice Builder</h3>
+              <p>Enter the service name and price. The invoice preview is formatted for your project workflow and ready to print.</p>
+            </div>
+            <div class="actions">
+              <button class="btn" onclick="resetInvoiceDefaults()">Reset Defaults</button>
+              <button class="btn primary" onclick="printInvoice()">Print Invoice</button>
+            </div>
+          </div>
+          <div class="form-grid">
+            <div class="field"><label>Invoice number</label><input value="${esc(invoice.invoiceNumber)}" onchange="updateInvoiceField('invoiceNumber',this.value)" /></div>
+            <div class="field"><label>Issue date</label><input type="date" value="${esc(invoice.issueDate)}" onchange="updateInvoiceField('issueDate',this.value)" /></div>
+            <div class="field"><label>Due date</label><input type="date" value="${esc(invoice.dueDate)}" onchange="updateInvoiceField('dueDate',this.value)" /></div>
+            <div class="field full"><label>Payment details</label><textarea onchange="updateInvoiceField('notes',this.value)">${esc(invoice.notes)}</textarea></div>
+          </div>
+          <div class="section-title" style="margin-top:18px;">
+            <div>
+              <h3>Invoice Services</h3>
+              <p>Add one or more services to the same invoice.</p>
+            </div>
+            <button class="btn small primary" onclick="addInvoiceLine()">Add Service</button>
+          </div>
+          <div style="overflow:auto;">
+            <table>
+              <thead><tr><th>Service</th><th>Price</th><th></th></tr></thead>
+              <tbody>${invoice.lineItems.map(item => `<tr><td>${invoiceServiceEditor(item)}</td><td><input type="number" min="0" step="0.01" value="${esc(item.price)}" onchange="updateInvoiceLine('${item.id}','price',this.value)" placeholder="0.00" /></td><td><button class="btn small danger" onclick="removeInvoiceLine('${item.id}')">Remove</button></td></tr>`).join('')}</tbody>
+            </table>
+          </div>
+        </div>
+
+        <div class="invoice-preview">
+          <div class="invoice-sheet ${compactClass}">
+            <div class="invoice-body">
+              <div class="invoice-head">
+                <div class="invoice-company">
+                  <h2>${esc(BUSINESS_PROFILE.name)}</h2>
+                  <p>${esc(BUSINESS_PROFILE.address)}\n${esc(BUSINESS_PROFILE.email)}\n${esc(BUSINESS_PROFILE.phone)}\n${esc(BUSINESS_PROFILE.abn)}</p>
+                </div>
+                <div class="invoice-logo-wrap"><img class="invoice-logo" src="${INVOICE_LOGO_SRC}" alt="Project Approvals logo" /></div>
+              </div>
+              <div class="invoice-divider"></div>
+              <div class="invoice-parties">
+                <div class="invoice-party">
+                  <h4>Bill To</h4>
+                  <p>${esc(clientBlock || 'Client details will appear here.')}</p>
+                </div>
+                <div class="invoice-party">
+                  <h4>Project</h4>
+                  <p>${esc(projectBlock || 'Project details will appear here.')}</p>
+                </div>
+                <div class="invoice-dates">
+                  <h4>Invoice Details</h4>
+                  <div class="invoice-date-row"><span>Invoice No</span><strong>${esc(invoice.invoiceNumber || '-')}</strong></div>
+                  <div class="invoice-date-row"><span>Invoice Date</span><strong>${esc(invoice.issueDate || '-')}</strong></div>
+                  <div class="invoice-date-row"><span>Due Date</span><strong>${esc(invoice.dueDate || '-')}</strong></div>
+                </div>
+              </div>
+              <div style="overflow:auto;">
+                <table class="invoice-table">
+                  <thead>
+                    <tr><th>Description</th><th>Amount</th></tr>
+                  </thead>
+                  <tbody>${invoice.lineItems.map(item => `<tr><td><div class="invoice-line-title">${esc(item.serviceName || '-')}</div></td><td>${formatCurrency(item.price || 0)}</td></tr>`).join('')}</tbody>
+                </table>
+              </div>
+              <div class="invoice-bottom">
+                <div class="invoice-payment">
+                  <p>${esc(invoice.notes || BUSINESS_PROFILE.bankDetails)}</p>
+                </div>
+                <div class="invoice-totals">
+                  <div class="invoice-total-row"><span>Subtotal</span><strong>${formatCurrency(total)}</strong></div>
+                  <div class="invoice-total-row grand"><span>Total</span><strong>${formatCurrency(total)}</strong></div>
+                </div>
+              </div>
+            </div>
+          </div>
+        </div>
+      </div>`;
+    }
+
     function openProjectModal(id='') {
       document.getElementById('projectForm').reset();
       populateCouncils();
@@ -1107,9 +1465,12 @@
         const typeChanged = p.approvalType !== data.approvalType;
         Object.assign(p, data);
         p.projectNotesList ||= [];
+        p.invoice ||= defaultInvoice(p);
         if (typeChanged && confirm('Approval type changed. Replace the current checklist with the new preset checklist?')) p.documents = makeDocs(data.approvalType);
       } else {
-        projects.unshift({ id: uid(), ...data, createdAt: todayISO(), documents: makeDocs(data.approvalType), consultants: [], notesList: [], projectNotesList: [], files: [] });
+        const newProject = { id: uid(), ...data, createdAt: todayISO(), documents: makeDocs(data.approvalType), consultants: [], notesList: [], projectNotesList: [], files: [] };
+        newProject.invoice = defaultInvoice(newProject);
+        projects.unshift(newProject);
       }
       queueSave();
       closeProjectModal();
@@ -1133,6 +1494,23 @@
     function addProjectNote() { const p=getCurrentProject(); p.projectNotesList ||= []; p.projectNotesList.unshift({ id: uid(), date: todayISO(), title:'', body:'' }); queueSave(); renderProjectTab(); }
     function updateProjectNote(id, field, value) { const p=getCurrentProject(); const n=p.projectNotesList.find(x=>x.id===id); n[field]=value; queueSave(); }
     function removeProjectNote(id) { const p=getCurrentProject(); p.projectNotesList=p.projectNotesList.filter(n=>n.id!==id); queueSave(); renderProjectTab(); }
+
+    function updateInvoiceField(field, value) { const p=getCurrentProject(); p.invoice ||= defaultInvoice(p); p.invoice[field]=value; queueSave(); renderProjectTab(); }
+    function normalizeInvoiceLines(p) {
+      p.invoice ||= defaultInvoice(p);
+      p.invoice.lineItems ||= defaultInvoice(p).lineItems;
+      p.invoice.lineItems.forEach(item => {
+        item.serviceName ||= '';
+        item.price ||= '';
+        item.useCustomService = item.useCustomService ?? looksCustomService(item.serviceName);
+        delete item.serviceDescription;
+      });
+    }
+    function updateInvoiceLine(id, field, value) { const p=getCurrentProject(); normalizeInvoiceLines(p); const item=p.invoice.lineItems.find(x=>x.id===id); if (!item) return; item[field]=value; if (field === 'serviceName') item.useCustomService = looksCustomService(value); queueSave(); renderProjectTab(); }
+    function updateInvoiceServiceChoice(id, value) { const p=getCurrentProject(); normalizeInvoiceLines(p); const item=p.invoice.lineItems.find(x=>x.id===id); if (!item) return; if (value === '__custom__') { item.useCustomService = true; item.serviceName = item.serviceName && !looksCustomService(item.serviceName) ? '' : item.serviceName; } else { item.useCustomService = false; item.serviceName = value; } queueSave(); renderProjectTab(); }
+    function addInvoiceLine() { const p=getCurrentProject(); normalizeInvoiceLines(p); p.invoice.lineItems.push({ id: uid(), serviceName:'', price:'', useCustomService:false }); queueSave(); renderProjectTab(); }
+    function removeInvoiceLine(id) { const p=getCurrentProject(); normalizeInvoiceLines(p); p.invoice.lineItems = (p.invoice.lineItems || []).filter(item => item.id !== id); if (!p.invoice.lineItems.length) p.invoice.lineItems.push({ id: uid(), serviceName:'', price:'', useCustomService:false }); queueSave(); renderProjectTab(); }
+    function resetInvoiceDefaults() { const p=getCurrentProject(); p.invoice = defaultInvoice(p); queueSave(); renderProjectTab(); }
 
     function addFiles(event) {
       const p = getCurrentProject(); p.files ||= [];
@@ -1171,6 +1549,56 @@
       window.print();
     }
 
+    function printInvoice() {
+      const p = getCurrentProject();
+      p.invoice ||= defaultInvoice(p);
+      const invoice = p.invoice;
+      normalizeInvoiceLines(p);
+      const total = invoice.lineItems.reduce((sum, item) => sum + Number(item.price || 0), 0);
+      const clientBlock = [p.clientName, p.clientEmail, p.clientPhone].filter(Boolean).join('<br>');
+      const projectBlock = [p.siteAddress, p.council].filter(Boolean).join('<br>');
+      const compactClass = invoice.lineItems.length <= 10 ? 'compact' : '';
+      document.getElementById('printReport').innerHTML = `
+        <div class="invoice-preview" style="box-shadow:none;border-color:#ddd;padding:12px;">
+          <div class="invoice-sheet ${compactClass}">
+            <div class="invoice-body">
+              <div class="invoice-head">
+                <div class="invoice-company">
+                  <h2>${esc(BUSINESS_PROFILE.name)}</h2>
+                  <p>${esc(BUSINESS_PROFILE.address)}<br>${esc(BUSINESS_PROFILE.email)}<br>${esc(BUSINESS_PROFILE.phone)}<br>${esc(BUSINESS_PROFILE.abn)}</p>
+                </div>
+                <div class="invoice-logo-wrap"><img class="invoice-logo" src="${INVOICE_LOGO_SRC}" alt="Project Approvals logo" /></div>
+              </div>
+              <div class="invoice-divider"></div>
+              <div class="invoice-parties">
+                <div class="invoice-party"><h4>Bill To</h4><p>${clientBlock || 'Client details will appear here.'}</p></div>
+                <div class="invoice-party"><h4>Project</h4><p>${projectBlock || 'Project details will appear here.'}</p></div>
+                <div class="invoice-dates">
+                  <h4>Invoice Details</h4>
+                  <div class="invoice-date-row"><span>Invoice No</span><strong>${esc(invoice.invoiceNumber || '-')}</strong></div>
+                  <div class="invoice-date-row"><span>Invoice Date</span><strong>${esc(invoice.issueDate || '-')}</strong></div>
+                  <div class="invoice-date-row"><span>Due Date</span><strong>${esc(invoice.dueDate || '-')}</strong></div>
+                </div>
+              </div>
+              <div style="overflow:auto;">
+                <table class="invoice-table">
+                  <thead><tr><th>Description</th><th>Amount</th></tr></thead>
+                  <tbody>${invoice.lineItems.map(item => `<tr><td><div class="invoice-line-title">${esc(item.serviceName || '-')}</div></td><td>${formatCurrency(item.price || 0)}</td></tr>`).join('')}</tbody>
+                </table>
+              </div>
+              <div class="invoice-bottom">
+                <div class="invoice-payment"><p>${esc(invoice.notes || BUSINESS_PROFILE.bankDetails)}</p></div>
+                <div class="invoice-totals">
+                  <div class="invoice-total-row"><span>Subtotal</span><strong>${formatCurrency(total)}</strong></div>
+                  <div class="invoice-total-row grand"><span>Total</span><strong>${formatCurrency(total)}</strong></div>
+                </div>
+              </div>
+            </div>
+          </div>
+        </div>`;
+      window.print();
+    }
+
     function reportList(items, empty) { return items.length ? `<table><thead><tr><th>Document</th><th>Status</th><th>Responsible</th><th>Due</th></tr></thead><tbody>${items.map(d => `<tr><td>${esc(d.name)}</td><td>${esc(d.status)}</td><td>${esc(d.responsible)}</td><td>${esc(d.dueDate || '-')}</td></tr>`).join('')}</tbody></table>` : `<p>${empty}</p>`; }
     function reportConsultants(p) { return p.consultants?.length ? `<table><thead><tr><th>Consultant</th><th>Task</th><th>Due</th><th>Status</th></tr></thead><tbody>${p.consultants.map(c => `<tr><td>${esc(c.name)}</td><td>${esc(c.task)}</td><td>${esc(c.dueDate || '-')}</td><td>${esc(c.status)}</td></tr>`).join('')}</tbody></table>` : '<p>No consultant tasks added.</p>'; }
     function reportNotes(p) { return p.notesList?.length ? `<table><thead><tr><th>Date</th><th>Contact</th><th>Note</th><th>Next Action</th></tr></thead><tbody>${p.notesList.map(n => `<tr><td>${esc(n.date)}</td><td>${esc(n.contact)}</td><td>${esc(n.note)}</td><td>${esc(n.nextAction)}</td></tr>`).join('')}</tbody></table>` : '<p>No council notes added.</p>'; }
@@ -1189,7 +1617,11 @@
         { clientName:'John Smith', clientPhone:'', clientEmail:'', siteAddress:'25 Smith Street, Blacktown NSW 2148', council:'Blacktown City Council', lotDp:'', projectType:'Secondary dwelling', approvalType:'CDC', status:'Documents pending', dueDate:'', submissionDate:'', approvalDate:'', assignedStaff:'Harsh', projectNotes:'Prepare CDC package and chase missing engineering items.' },
         { clientName:'Rachael Lee', clientPhone:'', clientEmail:'', siteAddress:'7 King Road, Camden NSW 2570', council:'Camden Council', lotDp:'', projectType:'Mezzanine kitchenette approval', approvalType:'BIC', status:'RFI', dueDate:'', submissionDate:'', approvalDate:'', assignedStaff:'Harsh', projectNotes:'Council requested additional information after inspection.' },
         { clientName:'Aakash Patel', clientPhone:'', clientEmail:'', siteAddress:'3 Lake Avenue, Penrith NSW 2750', council:'Penrith City Council', lotDp:'', projectType:'Alterations/additions', approvalType:'DA', status:'Documents pending', dueDate:'', submissionDate:'', approvalDate:'', assignedStaff:'Harsh', projectNotes:'Waiting on owner consent and stormwater concept.' }
-      ].map(d => ({ id: uid(), createdAt: todayISO(), ...d, documents: makeDocs(d.approvalType), consultants: [], notesList: [], projectNotesList: [], files: [] }));
+      ].map(d => {
+        const project = { id: uid(), createdAt: todayISO(), ...d, documents: makeDocs(d.approvalType), consultants: [], notesList: [], projectNotesList: [], files: [] };
+        project.invoice = defaultInvoice(project);
+        return project;
+      });
       projects = [...demo, ...projects];
       queueSave();
       renderDashboard();

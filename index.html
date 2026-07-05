@@ -1342,10 +1342,13 @@
       return `<div class="card"><div class="section-title"><div><h3>Files / Photos</h3><p>Still browser-based in this version. Project records now save to Supabase.</p></div><input type="file" id="fileUpload" multiple onchange="addFiles(event)" /></div><div class="file-list">${p.files.length ? p.files.map(f => `<div class="file-item"><div><strong>${esc(f.name)}</strong><br><span class="muted small-text">${esc(f.type || 'file')} &middot; ${Math.round((f.size || 0)/1024)} KB</span></div><div class="actions"><a class="btn small" href="${f.data}" download="${esc(f.name)}">Download</a><button class="btn small danger" onclick="removeFile('${f.id}')">Remove</button></div></div>`).join('') : `<div class="empty">No files uploaded yet. For production, move these into Supabase Storage as a later step.</div>`}</div></div>`;
     }
 
+    // ============ INVOICE WITH GST =============
     function invoiceHtml(p) {
       const invoice = p.invoice || defaultInvoice(p);
       invoice.lineItems ||= defaultInvoice(p).lineItems;
-      const total = invoice.lineItems.reduce((sum, item) => sum + Number(item.price || 0), 0);
+      const subtotal = invoice.lineItems.reduce((sum, item) => sum + Number(item.price || 0), 0);
+      const gstAmount = subtotal * 0.1;
+      const total = subtotal + gstAmount;
       const clientBlock = [p.clientName, p.clientEmail, p.clientPhone].filter(Boolean).join('\n');
       const projectBlock = [p.siteAddress, p.council].filter(Boolean).join('\n');
       const compactClass = invoice.lineItems.length <= 10 ? 'compact' : '';
@@ -1354,7 +1357,7 @@
           <div class="section-title">
             <div>
               <h3>Invoice Builder</h3>
-              <p>Enter the service name and price. The invoice preview is formatted for your project workflow and ready to print.</p>
+              <p>Enter the service name and price. GST (10%) is added automatically.</p>
             </div>
             <div class="actions">
               <button class="btn" onclick="resetInvoiceDefaults()">Reset Defaults</button>
@@ -1414,7 +1417,11 @@
                   <thead>
                     <tr><th>Description</th><th>Amount</th></tr>
                   </thead>
-                  <tbody>${invoice.lineItems.map(item => `<tr><td><div class="invoice-line-title">${esc(item.serviceName || '-')}</div></td><td>${formatCurrency(item.price || 0)}</td></tr>`).join('')}</tbody>
+                  <tbody>
+                    ${invoice.lineItems.map(item => `<tr><td><div class="invoice-line-title">${esc(item.serviceName || '-')}</div></td><td>${formatCurrency(item.price || 0)}</td></tr>`).join('')}
+                    <!-- GST Line -->
+                    <tr><td><strong>GST (10%)</strong></td><td>${formatCurrency(gstAmount)}</td></tr>
+                  </tbody>
                 </table>
               </div>
               <div class="invoice-bottom">
@@ -1422,7 +1429,8 @@
                   <p>${esc(invoice.notes || BUSINESS_PROFILE.bankDetails)}</p>
                 </div>
                 <div class="invoice-totals">
-                  <div class="invoice-total-row"><span>Subtotal</span><strong>${formatCurrency(total)}</strong></div>
+                  <div class="invoice-total-row"><span>Subtotal</span><strong>${formatCurrency(subtotal)}</strong></div>
+                  <div class="invoice-total-row"><span>GST (10%)</span><strong>${formatCurrency(gstAmount)}</strong></div>
                   <div class="invoice-total-row grand"><span>Total</span><strong>${formatCurrency(total)}</strong></div>
                 </div>
               </div>
@@ -1431,6 +1439,8 @@
         </div>
       </div>`;
     }
+
+    // ============ END INVOICE WITH GST =============
 
     function openProjectModal(id='') {
       document.getElementById('projectForm').reset();
@@ -1468,7 +1478,7 @@
         p.invoice ||= defaultInvoice(p);
         if (typeChanged && confirm('Approval type changed. Replace the current checklist with the new preset checklist?')) p.documents = makeDocs(data.approvalType);
       } else {
-        const newProject = { id: uid(), ...data, createdAt: todayISO(), documents: makeDocs(data.approvalType), consultants: [], notesList: [], projectNotesList: [], files: [] };
+        const newProject = { id: uid(), createdAt: todayISO(), ...data, documents: makeDocs(data.approvalType), consultants: [], notesList: [], projectNotesList: [], files: [] };
         newProject.invoice = defaultInvoice(newProject);
         projects.unshift(newProject);
       }
@@ -1549,12 +1559,15 @@
       window.print();
     }
 
+    // ============ PRINT INVOICE WITH GST =============
     function printInvoice() {
       const p = getCurrentProject();
       p.invoice ||= defaultInvoice(p);
       const invoice = p.invoice;
       normalizeInvoiceLines(p);
-      const total = invoice.lineItems.reduce((sum, item) => sum + Number(item.price || 0), 0);
+      const subtotal = invoice.lineItems.reduce((sum, item) => sum + Number(item.price || 0), 0);
+      const gstAmount = subtotal * 0.1;
+      const total = subtotal + gstAmount;
       const clientBlock = [p.clientName, p.clientEmail, p.clientPhone].filter(Boolean).join('<br>');
       const projectBlock = [p.siteAddress, p.council].filter(Boolean).join('<br>');
       const compactClass = invoice.lineItems.length <= 10 ? 'compact' : '';
@@ -1583,13 +1596,17 @@
               <div style="overflow:auto;">
                 <table class="invoice-table">
                   <thead><tr><th>Description</th><th>Amount</th></tr></thead>
-                  <tbody>${invoice.lineItems.map(item => `<tr><td><div class="invoice-line-title">${esc(item.serviceName || '-')}</div></td><td>${formatCurrency(item.price || 0)}</td></tr>`).join('')}</tbody>
+                  <tbody>
+                    ${invoice.lineItems.map(item => `<tr><td><div class="invoice-line-title">${esc(item.serviceName || '-')}</div></td><td>${formatCurrency(item.price || 0)}</td></tr>`).join('')}
+                    <tr><td><strong>GST (10%)</strong></td><td>${formatCurrency(gstAmount)}</td></tr>
+                  </tbody>
                 </table>
               </div>
               <div class="invoice-bottom">
                 <div class="invoice-payment"><p>${esc(invoice.notes || BUSINESS_PROFILE.bankDetails)}</p></div>
                 <div class="invoice-totals">
-                  <div class="invoice-total-row"><span>Subtotal</span><strong>${formatCurrency(total)}</strong></div>
+                  <div class="invoice-total-row"><span>Subtotal</span><strong>${formatCurrency(subtotal)}</strong></div>
+                  <div class="invoice-total-row"><span>GST (10%)</span><strong>${formatCurrency(gstAmount)}</strong></div>
                   <div class="invoice-total-row grand"><span>Total</span><strong>${formatCurrency(total)}</strong></div>
                 </div>
               </div>
@@ -1598,6 +1615,7 @@
         </div>`;
       window.print();
     }
+    // ============ END PRINT INVOICE WITH GST =============
 
     function reportList(items, empty) { return items.length ? `<table><thead><tr><th>Document</th><th>Status</th><th>Responsible</th><th>Due</th></tr></thead><tbody>${items.map(d => `<tr><td>${esc(d.name)}</td><td>${esc(d.status)}</td><td>${esc(d.responsible)}</td><td>${esc(d.dueDate || '-')}</td></tr>`).join('')}</tbody></table>` : `<p>${empty}</p>`; }
     function reportConsultants(p) { return p.consultants?.length ? `<table><thead><tr><th>Consultant</th><th>Task</th><th>Due</th><th>Status</th></tr></thead><tbody>${p.consultants.map(c => `<tr><td>${esc(c.name)}</td><td>${esc(c.task)}</td><td>${esc(c.dueDate || '-')}</td><td>${esc(c.status)}</td></tr>`).join('')}</tbody></table>` : '<p>No consultant tasks added.</p>'; }

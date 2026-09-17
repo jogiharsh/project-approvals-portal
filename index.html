@@ -164,6 +164,15 @@
 
     .file-list { display: grid; gap: 12px; }
     .file-item { background: var(--bg); padding: 16px; border-radius: var(--radius); border: 1px solid var(--border); display: flex; justify-content: space-between; align-items: center; }
+
+    @media print {
+      body { background: #fff; color: #000; }
+      .top-nav, .tabs, .no-print, .modal-backdrop, #dashboardView, #projectView, .actions { display: none !important; }
+      .app-wrapper { display: block; }
+      main.content-container { padding: 0; max-width: none; }
+      .print-report { display: block; }
+      .invoice-preview { box-shadow: none; border: none; padding: 0; }
+    }
   </style>
 </head>
 <body class="locked">
@@ -182,7 +191,7 @@
   </div>
 
   <div class="app-wrapper">
-    <header class="top-nav">
+    <header class="top-nav no-print">
       <div class="nav-container">
         <div class="brand">
           <div class="brand-mark">PA</div>
@@ -206,12 +215,13 @@
     <main class="content-container">
       <!-- DASHBOARD VIEW -->
       <section id="dashboardView">
-        <div class="topbar">
+        <div class="topbar no-print">
           <div>
             <h2 id="pageTitle">Dashboard</h2>
             <p id="pageSubtitle">Track DA, CDC, CC, OC, BASIX and BIC jobs.</p>
           </div>
           <div class="actions">
+            <!-- Export to CSV Feature -->
             <button class="btn" onclick="exportToCSV()">⤓ Export CSV</button>
             <button class="btn primary" onclick="openProjectModal()">+ New Project</button>
           </div>
@@ -242,7 +252,7 @@
 
       <!-- PROJECT FILE VIEW -->
       <section id="projectView" class="hidden">
-        <div class="card" style="margin-bottom: 0; padding-bottom: 0; border-bottom: none; border-radius: var(--radius) var(--radius) 0 0;">
+        <div class="card no-print" style="margin-bottom: 0; padding-bottom: 0; border-bottom: none; border-radius: var(--radius) var(--radius) 0 0;">
           <div class="section-title">
             <div>
               <h3 id="projectHeading">Project File</h3>
@@ -250,6 +260,7 @@
             </div>
             <div class="actions">
               <button class="btn" onclick="showDashboard()">Back</button>
+              <!-- One-click Email Generator -->
               <button class="btn outline-primary" onclick="generateEmailChase()">✉ Chase Missing Docs</button>
               <button class="btn" onclick="openProjectModal(currentProjectId)">Edit Details</button>
               <button class="btn danger" onclick="deleteCurrentProject()">Delete</button>
@@ -258,11 +269,12 @@
         </div>
 
         <!-- Tabs -->
-        <div class="tabs" style="background: var(--card); padding: 0 24px; margin-top: 0; border-radius: 0 0 var(--radius) var(--radius); border-left: 1px solid var(--border); border-right: 1px solid var(--border); border-bottom: 1px solid var(--border); margin-bottom: 24px;">
+        <div class="tabs no-print" style="background: var(--card); padding: 0 24px; margin-top: 0; border-radius: 0 0 var(--radius) var(--radius); border-left: 1px solid var(--border); border-right: 1px solid var(--border); border-bottom: 1px solid var(--border); margin-bottom: 24px;">
           <button class="tab-btn active" data-tab="overview" onclick="switchTab('overview')">Overview</button>
           <button class="tab-btn" data-tab="documents" onclick="switchTab('documents')">Documents</button>
           <button class="tab-btn" data-tab="councilNotes" onclick="switchTab('councilNotes')">Council Notes</button>
           <button class="tab-btn" data-tab="invoice" onclick="switchTab('invoice')">Invoice</button>
+          <!-- Local Image Caching Tab -->
           <button class="tab-btn" data-tab="files" onclick="switchTab('files')">Files</button>
           <button class="tab-btn" data-tab="projectNotes" onclick="switchTab('projectNotes')">Internal Notes</button>
         </div>
@@ -272,6 +284,8 @@
 
       <!-- CHECKLIST LIBRARY VIEW -->
       <section id="libraryView" class="hidden"></section>
+      
+      <section id="printReport" class="print-report"></section>
     </main>
   </div>
 
@@ -310,12 +324,12 @@
 
   <script>
     // Note: The variables PORTAL_PASSWORD, SUPABASE_URL, and SUPABASE_ANON_KEY 
-    // are now securely loaded from your config.js file!
+    // are securely loaded from your config.js file!
 
     const SUPABASE_TABLE = 'app_state'; 
     const APP_STATE_ID = 'main';
-    const LOCAL_FALLBACK_KEY = 'projectApprovalsTracker.v8.localFallback';
-    const LIBRARY_FALLBACK_KEY = 'projectApprovalsTracker.v8.library';
+    const LOCAL_FALLBACK_KEY = 'projectApprovalsTracker.v9.localFallback';
+    const LIBRARY_FALLBACK_KEY = 'projectApprovalsTracker.v9.library';
     
     const BUSINESS_PROFILE = { name: 'Project Approvals', abn: 'ABN 16 696 716 980', email: 'info@projectapprovals.com.au', phone: '0414633507', address: 'Quakershill NSW 2763', bankDetails: 'PayID: info@projectapprovals.com.au\nBank: NAB\nAccount Name: Project Approvals\nBSB: 082-356\nAccount No: 308014097' };
     const INVOICE_SERVICE_OPTIONS = ['CDC consulting service','DA application support','CC approval support','OC approval support','BASIX coordination','Council lodgement support','Site inspection consulting','General approval consulting'];
@@ -393,16 +407,28 @@
         isCloudReady = true; setSyncStatus('Connecting...', 'warning');
         await loadProjectsFromCloud();
         setSyncStatus('Cloud Synced', 'success');
-      } catch (error) { projects = loadLocalFallback(); isCloudReady = false; setSyncStatus('Sync Failed - Check RLS or Network', 'error'); }
+      } catch (error) { 
+        projects = loadLocalFallback(); isCloudReady = false; 
+        setSyncStatus('Sync Failed - Check Console', 'error'); 
+      }
     }
 
     function supabaseHeaders(extra = {}) { return { apikey: SUPABASE_ANON_KEY, Authorization: `Bearer ${SUPABASE_ANON_KEY}`, ...extra }; }
 
     async function loadProjectsFromCloud() {
-      const response = await fetch(`${SUPABASE_URL}/rest/v1/${SUPABASE_TABLE}?id=eq.${encodeURIComponent(APP_STATE_ID)}&select=projects,checklistLibrary`, { headers: supabaseHeaders() });
-      if (!response.ok) throw new Error(`Load failed`);
+      // Changed select=projects,checklistLibrary to select=* to completely avoid PostgREST Case Sensitivity bugs
+      const response = await fetch(`${SUPABASE_URL}/rest/v1/${SUPABASE_TABLE}?id=eq.${encodeURIComponent(APP_STATE_ID)}&select=*`, { headers: supabaseHeaders() });
+      if (!response.ok) {
+         const err = await response.text();
+         console.error("Supabase Load Error:", err);
+         throw new Error(`Load failed: ${err}`);
+      }
       const data = await response.json();
-      if (data && data.length > 0) { projects = Array.isArray(data[0].projects) ? data[0].projects : []; if (data[0].checklistLibrary) checklistLibrary = data[0].checklistLibrary; }
+      if (data && data.length > 0) { 
+        projects = Array.isArray(data[0].projects) ? data[0].projects : []; 
+        if (data[0].checklistLibrary) checklistLibrary = data[0].checklistLibrary; 
+        else if (data[0].checklistlibrary) checklistLibrary = data[0].checklistlibrary; 
+      }
       saveLocalFallback();
     }
 
@@ -410,12 +436,30 @@
       saveLocalFallback();
       if (!isCloudReady) return;
       setSyncStatus('Saving...', 'warning');
-      const response = await fetch(`${SUPABASE_URL}/rest/v1/${SUPABASE_TABLE}`, { method: 'POST', headers: supabaseHeaders({ 'Content-Type': 'application/json', Prefer: 'resolution=merge-duplicates' }), body: JSON.stringify([{ id: APP_STATE_ID, projects, checklistLibrary, updated_at: new Date().toISOString() }]) });
-      if (!response.ok) { setSyncStatus('Save failed', 'error'); return; }
+      
+      const payload = {
+        id: APP_STATE_ID, 
+        projects, 
+        checklistLibrary, 
+        updated_at: new Date().toISOString()
+      };
+      
+      const response = await fetch(`${SUPABASE_URL}/rest/v1/${SUPABASE_TABLE}`, { 
+        method: 'POST', 
+        headers: supabaseHeaders({ 'Content-Type': 'application/json', Prefer: 'resolution=merge-duplicates' }), 
+        body: JSON.stringify([payload]) 
+      });
+      
+      if (!response.ok) { 
+        const err = await response.text();
+        console.error("Supabase Save Error:", err);
+        setSyncStatus('Save failed (See Console)', 'error'); 
+        return; 
+      }
       setSyncStatus('Cloud Synced', 'success');
     }
 
-    function queueSave() { saveAll().catch(e => setSyncStatus('Save failed', 'error')); }
+    function queueSave() { saveAll().catch(e => { console.error(e); setSyncStatus('Save failed', 'error'); }); }
     checkPortalAuth();
 
     const nswCouncils = ['Albury City Council','Blacktown City Council','Camden Council','Campbelltown City Council','Fairfield City Council','Liverpool City Council','Parramatta City Council','Penrith City Council','Sydney City Council','The Hills Shire Council','Other'];
@@ -508,7 +552,8 @@
             </table>
           </div>
           
-          <div class="invoice-preview">
+          <!-- Visual Preview for the screen ONLY -->
+          <div class="invoice-preview" id="invoicePDFTarget">
             <div class="invoice-header"><div><h2>${esc(BUSINESS_PROFILE.name)}</h2><p>${esc(BUSINESS_PROFILE.address)}<br>${esc(BUSINESS_PROFILE.abn)}</p></div></div>
             <div class="invoice-meta"><div><h4>Bill To</h4><p>${esc(p.clientName)}<br>${esc(p.clientEmail)}</p></div><div><h4>Project</h4><p>${esc(p.siteAddress)}<br>${esc(p.council)}</p></div><div><h4>Details</h4><div class="invoice-meta-row"><span>Invoice No:</span> <strong>${esc(inv.invoiceNumber)}</strong></div><div class="invoice-meta-row"><span>Issue Date:</span> <strong>${esc(inv.issueDate)}</strong></div><div class="invoice-meta-row"><span>Due Date:</span> <strong>${esc(inv.dueDate)}</strong></div></div></div>
             <table class="invoice-table-rendered"><thead><tr><th>Description</th><th>Amount</th></tr></thead><tbody>${inv.lineItems.map(item => `<tr><td><strong>${esc(item.serviceName)}</strong></td><td>${formatCurrency(item.price)}</td></tr>`).join('')}</tbody></table>
@@ -526,7 +571,6 @@
       const gst = subtotal * 0.1;
       const total = subtotal + gst;
 
-      // 1. Create a perfectly sized off-screen container for rendering
       const offscreenDiv = document.createElement('div');
       
       // Strict width constraint ensuring it matches the A4 aspect ratio before screenshot
@@ -562,7 +606,6 @@
         </div>
       `;
 
-      // 2. Append to body so html2pdf can access it
       document.body.appendChild(offscreenDiv);
 
       const filename = `${invoice.invoiceNumber}_${p.clientName.replace(/\s+/g, '_')}.pdf`;
@@ -574,10 +617,7 @@
         jsPDF:        { unit: 'mm', format: 'a4', orientation: 'portrait' }
       };
 
-      // 3. Generate PDF and immediately remove the hidden container
-      html2pdf().set(opt).from(offscreenDiv).save().then(() => {
-        document.body.removeChild(offscreenDiv);
-      });
+      html2pdf().set(opt).from(offscreenDiv).save().then(() => { document.body.removeChild(offscreenDiv); });
     }
 
     /* LOCAL IMAGE CACHING (INDEXEDDB FILES TAB) */

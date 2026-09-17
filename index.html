@@ -5,8 +5,10 @@
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
   <title>Project Approvals - NSW Tracker</title>
   
-  <script src="https://cdnjs.cloudflare.com/ajax/libs/html2pdf.js/0.10.1/html2pdf.bundle.min.js"></script>
+  <!-- OFFICIAL SUPABASE SDK -->
   <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+  
+  <!-- Load private config file -->
   <script src="config.js"></script>
 
   <style>
@@ -48,6 +50,7 @@
     .topbar p { margin: 4px 0 0; color: var(--muted); font-size: 14px; }
     .actions { display: flex; gap: 8px; flex-wrap: wrap; }
 
+    /* Buttons */
     .btn { background: #fff; border: 1px solid var(--border); color: var(--text); padding: 8px 16px; border-radius: var(--radius); font-size: 14px; font-weight: 500; cursor: pointer; transition: all 0.2s; display: inline-flex; align-items: center; gap: 6px; }
     .btn:hover { background: var(--bg); border-color: #cbd5e1; }
     .btn.primary { background: var(--primary); border-color: var(--primary); color: #fff; }
@@ -58,6 +61,7 @@
     .btn.outline-primary { color: var(--primary); border-color: var(--primary-soft); }
     .btn.outline-primary:hover { background: var(--primary-soft); }
 
+    /* Grids & Cards */
     .grid { display: grid; gap: 20px; }
     .grid.stats { grid-template-columns: repeat(4, 1fr); margin-bottom: 24px; }
     .grid.two { grid-template-columns: repeat(2, 1fr); }
@@ -88,6 +92,7 @@
     .project-card-footer { margin-top: auto; padding-top: 12px; border-top: 1px solid var(--border); display: flex; justify-content: space-between; align-items: center; }
     .next-action-text { font-size: 12px; color: var(--primary); font-weight: 600; background: var(--primary-soft); padding: 4px 8px; border-radius: 4px; display: inline-block; margin-top: 8px;}
 
+    /* Forms */
     .field { display: flex; flex-direction: column; position: relative; }
     .field label { font-size: 12px; font-weight: 600; color: var(--text); margin-bottom: 6px; text-transform: uppercase; }
     input, select, textarea { width: 100%; border: 1px solid var(--border); background: #fff; padding: 8px 12px; border-radius: var(--radius); font-size: 14px; outline: none; transition: border-color 0.2s; }
@@ -100,11 +105,13 @@
     .suggestion:hover { background: var(--bg); }
     .address-status { font-size: 11px; color: var(--muted); margin-top: 4px; min-height: 16px; }
 
+    /* Tables */
     table { width: 100%; border-collapse: collapse; font-size: 14px; }
     th, td { text-align: left; padding: 12px 16px; border-bottom: 1px solid var(--border); }
     th { background: #fdfdfd; color: var(--muted); font-size: 12px; font-weight: 600; text-transform: uppercase; }
     tr:hover td { background: var(--bg); }
 
+    /* Pills */
     .pill { display: inline-block; padding: 4px 10px; border-radius: 99px; font-size: 11px; font-weight: 600; text-transform: uppercase; letter-spacing: 0.5px; }
     .status-active { background: #e0e7ff; color: #4338ca; }
     .status-hold { background: #fffbeb; color: #d97706; }
@@ -112,6 +119,7 @@
     .status-overdue { background: var(--danger-soft); color: var(--danger); }
     .hidden { display: none !important; }
 
+    /* Tabs */
     .tabs { display: flex; border-bottom: 1px solid var(--border); margin: 24px 0; overflow-x: auto; }
     .tab-btn { background: transparent; border: none; padding: 12px 24px; font-size: 14px; font-weight: 500; color: var(--muted); cursor: pointer; border-bottom: 2px solid transparent; margin-bottom: -1px; }
     .tab-btn:hover { color: var(--text); }
@@ -121,6 +129,7 @@
     .section-title h3 { margin: 0; font-size: 18px; font-weight: 600; }
     .empty { text-align: center; padding: 60px 20px; background: var(--bg); border-radius: var(--radius); color: var(--muted); border: 1px dashed var(--border); }
 
+    /* Modal */
     .modal-backdrop { position: fixed; inset: 0; background: rgba(15, 23, 42, 0.6); backdrop-filter: blur(4px); display: none; align-items: center; justify-content: center; z-index: 100; padding: 24px; }
     .modal-backdrop.show { display: flex; }
     .modal { background: var(--card); width: 100%; max-width: 700px; max-height: 90vh; overflow-y: auto; border-radius: var(--radius); box-shadow: 0 20px 25px -5px rgba(0,0,0,0.1); padding: 32px; }
@@ -129,6 +138,7 @@
     .form-grid { display: grid; grid-template-columns: repeat(2, 1fr); gap: 16px; }
     .full { grid-column: 1 / -1; }
 
+    /* Auth Screen */
     .auth-screen { position: fixed; inset: 0; background: var(--bg); display: flex; align-items: center; justify-content: center; z-index: 9999; }
     .auth-card { background: #fff; padding: 40px; width: 100%; max-width: 400px; border-radius: var(--radius); box-shadow: var(--shadow); border: 1px solid var(--border); text-align: center; }
     .auth-card .brand-mark { margin: 0 auto 20px; width: 48px; height: 48px; font-size: 20px; border-radius: 8px; }
@@ -152,16 +162,14 @@
     .summary-row { display: flex; justify-content: space-between; padding: 8px 0; font-size: 14px; }
     .summary-row.grand { font-size: 18px; font-weight: 700; border-top: 2px solid var(--border); margin-top: 8px; padding-top: 12px; }
 
-    .checklist-list { display: flex; flex-direction: column; gap: 8px; margin-top: 12px; }
-    .checklist-item { display: flex; justify-content: space-between; align-items: center; background: #fff; padding: 8px 12px; border: 1px solid var(--border); border-radius: var(--radius); font-size: 14px; }
-
     .file-list { display: grid; gap: 12px; }
     .file-item { background: var(--bg); padding: 16px; border-radius: var(--radius); border: 1px solid var(--border); display: flex; justify-content: space-between; align-items: center; }
 
     .print-report { display: none; }
+
     @media print {
       body { background: #fff; color: #000; }
-      .top-nav, .tabs, .no-print, .modal-backdrop, #dashboardView, #projectView, #libraryView, #financeView, .actions, .status-banner { display: none !important; }
+      .top-nav, .tabs, .no-print, .modal-backdrop, #dashboardView, #projectView, #libraryView, #financeView, .actions { display: none !important; }
       .app-wrapper { display: block; }
       main.content-container { padding: 0; max-width: none; }
       .print-report { display: block; padding: 24px; }
@@ -212,7 +220,6 @@
     </header>
 
     <main class="content-container">
-      
       <!-- DASHBOARD VIEW -->
       <section id="dashboardView">
         <div class="topbar no-print">
@@ -249,7 +256,7 @@
         <div id="projectTableWrap"></div>
       </section>
 
-      <!-- FINANCES VIEW (NEW) -->
+      <!-- FINANCES VIEW -->
       <section id="financeView" class="hidden">
         <div class="topbar no-print">
           <div>
@@ -339,13 +346,13 @@
 
   <script>
     // ==========================================
-    // APP CONFIGURATION
+    // APP CONFIGURATION & FAILSAFE LOGIC
     // ==========================================
     const SUPABASE_TABLE = 'app_state'; 
     const APP_STATE_ID = 'main';
-    const STORAGE_BUCKET = 'project_files'; // NEW Cloud Storage Bucket
-    const LOCAL_FALLBACK_KEY = 'projectApprovalsTracker.v21.localFallback';
-    const LIBRARY_FALLBACK_KEY = 'projectApprovalsTracker.v21.library';
+    const STORAGE_BUCKET = 'project_files';
+    const LOCAL_FALLBACK_KEY = 'projectApprovalsTracker.v22.localFallback';
+    const LIBRARY_FALLBACK_KEY = 'projectApprovalsTracker.v22.library';
     
     const BUSINESS_PROFILE = { name: 'Project Approvals', abn: 'ABN 16 696 716 980', email: 'info@projectapprovals.com.au', phone: '0414633507', address: 'Quakershill NSW 2763', bankDetails: 'PayID: info@projectapprovals.com.au\nBank: NAB\nAccount Name: Project Approvals\nBSB: 082-356\nAccount No: 308014097' };
     const INVOICE_SERVICE_OPTIONS = ['CDC consulting service','DA application support','CC approval support','OC approval support','BASIX coordination','Council lodgement support','Site inspection consulting','General approval consulting'];
@@ -367,24 +374,49 @@
       Other: ['Client instructions','Site photos','Consultant advice']
     };
 
+    // SAFE PASSWORD GETTER (Prevents crash if config.js is missing or delayed)
+    function getPortalPassword() {
+      if (typeof PORTAL_PASSWORD !== 'undefined' && PORTAL_PASSWORD) {
+        return PORTAL_PASSWORD;
+      }
+      return 'Jogiharsh@1993'; // Fallback
+    }
+
     function unlockPortal(event) {
       event.preventDefault();
-      if (document.getElementById('portalPassword').value === PORTAL_PASSWORD) {
-        sessionStorage.setItem('paPortalUnlocked', 'yes');
-        document.body.classList.remove('locked');
-        document.getElementById('authScreen').style.display = 'none';
-        document.querySelector('.app-wrapper').style.display = 'flex';
-      } else {
-        document.getElementById('authError').classList.add('show');
+      try {
+        const enteredPassword = document.getElementById('portalPassword').value;
+        const expectedPassword = getPortalPassword();
+
+        if (enteredPassword === expectedPassword) {
+          sessionStorage.setItem('paPortalUnlocked', 'yes');
+          document.body.classList.remove('locked');
+          document.getElementById('authScreen').style.display = 'none';
+          const appWrapper = document.querySelector('.app-wrapper');
+          if (appWrapper) appWrapper.style.display = 'flex';
+        } else {
+          const errorEl = document.getElementById('authError');
+          if (errorEl) {
+            errorEl.textContent = 'Incorrect password. Please try again.';
+            errorEl.classList.add('show');
+          }
+        }
+      } catch (err) {
+        console.error('Unlock portal error:', err);
+        alert('Login error: ' + err.message);
       }
     }
 
     function checkPortalAuth() {
-      if (sessionStorage.getItem('paPortalUnlocked') === 'yes') {
-        document.body.classList.remove('locked');
-        document.getElementById('authScreen').style.display = 'none';
-        document.querySelector('.app-wrapper').style.display = 'flex';
-      }
+      try {
+        if (sessionStorage.getItem('paPortalUnlocked') === 'yes') {
+          document.body.classList.remove('locked');
+          const authScreen = document.getElementById('authScreen');
+          if (authScreen) authScreen.style.display = 'none';
+          const appWrapper = document.querySelector('.app-wrapper');
+          if (appWrapper) appWrapper.style.display = 'flex';
+        }
+      } catch (e) { console.error(e); }
     }
 
     function setSyncStatus(message, tone='warning') {
@@ -418,11 +450,9 @@
       }; 
     }
 
-    // Helper to calculate what needs to happen next based on data
     function determineNextAction(project) {
        if (project.status === 'Hold') return 'On Hold';
        if (project.status === 'Completed') return 'Archived';
-       
        const missing = project.documents?.filter(d => d.required !== 'No' && !['Received','Approved'].includes(d.status)) || [];
        if (missing.length > 0) {
           return `Chase ${missing[0].responsible} for ${missing[0].name}`;
@@ -521,7 +551,6 @@
     function setDashboardView(viewType) { currentView = viewType; document.getElementById('btnViewGrid').classList.toggle('active', viewType === 'grid'); document.getElementById('btnViewBoard').classList.toggle('active', viewType === 'board'); renderDashboard(); }
 
     function renderDashboard() {
-      // Sort projects so recently created/edited sit at the top
       projects.sort((a, b) => new Date(b.createdAt || 0) - new Date(a.createdAt || 0));
 
       const q = document.getElementById('searchInput')?.value?.toLowerCase() || ''; const type = document.getElementById('typeFilter')?.value || '';
@@ -531,7 +560,6 @@
       document.getElementById('statActive').textContent = projects.filter(p=>p.status==='Active').length;
       document.getElementById('statMissing').textContent = projects.reduce((sum, p) => sum + (p.documents?.filter(d=>d.required!=='No'&&!['Received','Approved'].includes(d.status)).length || 0), 0);
       
-      // Calculate ONLY Unpaid/Outstanding Invoices for Dashboard
       document.getElementById('statUnpaid').textContent = formatCurrency(projects.reduce((sum, p) => { 
         if(p.invoice?.lineItems && p.invoice.status !== 'RECEIVED PAYMENT' && p.invoice.status !== 'CANCELLED') { 
           const sub = p.invoice.lineItems.reduce((s, i) => s + Number(i.price || 0), 0); 
@@ -562,7 +590,6 @@
       else wrap.innerHTML = `<div class="pipeline-board"><div class="pipeline-col"><h3>Active <span>${rows.filter(p=>p.status==='Active').length}</span></h3><div class="pipeline-cards">${rows.filter(p=>p.status==='Active').map(generateCard).join('')}</div></div><div class="pipeline-col" style="background:#fffbeb;"><h3>Hold <span>${rows.filter(p=>p.status==='Hold').length}</span></h3><div class="pipeline-cards">${rows.filter(p=>p.status==='Hold').map(generateCard).join('')}</div></div><div class="pipeline-col" style="background:#f0fdf4;"><h3>Completed <span>${rows.filter(p=>p.status==='Completed').length}</span></h3><div class="pipeline-cards">${rows.filter(p=>p.status==='Completed').map(generateCard).join('')}</div></div></div>`;
     }
 
-    // === GLOBAL FINANCES LOGIC ===
     function showFinances() {
       showOnly('financeView');
       document.getElementById('navFinances').classList.add('active');
@@ -596,7 +623,6 @@
          }
       });
 
-      // Sort by Issue Date Descending
       allInvoices.sort((a,b) => new Date(b.issueDate || 0) - new Date(a.issueDate || 0));
 
       document.getElementById('financeUnpaid').textContent = formatCurrency(unpaidTotal);
@@ -642,14 +668,13 @@
       p.documents ||= []; p.notesList ||= []; p.projectNotesList ||= []; p.invoice ||= defaultInvoice(p); p.cloudFiles ||= [];
       const el = document.getElementById('projectTabContent');
       if (activeTab === 'overview') el.innerHTML = `<div class="grid two"><div class="card"><h3>Project Details</h3><table><tbody><tr><th>Client</th><td>${esc(p.clientName)}<br><span style="color:var(--muted);">${esc(p.clientEmail)}</span></td></tr><tr><th>Address</th><td>${esc(p.siteAddress)}</td></tr><tr><th>Council</th><td>${esc(p.council)}</td></tr><tr><th>Type</th><td>${esc(p.approvalType)}</td></tr><tr><th>Status</th><td>${esc(p.status)}</td></tr></tbody></table></div><div class="card"><h3>Snapshot</h3><div class="grid two"><div class="stat-card"><span>Total Docs</span><strong>${p.documents.length}</strong></div><div class="stat-card"><span>Ready Docs</span><strong>${p.documents.filter(d=>['Received','Approved'].includes(d.status)).length}</strong></div></div><br><p><strong>Next Action:</strong> ${determineNextAction(p)}</p></div></div>`;
-      if (activeTab === 'documents') el.innerHTML = `<div class="card"><div class="section-title"><h3>Document Checklist</h3><button class="btn primary small" onclick="addDocumentPrompt()">+ Add Item</button></div><div style="overflow-x:auto;"><table><thead><tr><th>Document</th><th>Required</th><th>Status</th><th>Responsible</th><th></th></tr></thead><tbody>${p.documents.map(d => `<tr><td><input value="${esc(d.name)}" onchange="updateDoc('${d.id}','name',this.value)"></td><td><select onchange="updateDoc('${d.id}','required',this.value)"><option ${d.required==='Yes'?'selected':''}>Yes</option><option${d.required==='No'?'selected':''}>No</option></select></td><td><select onchange="updateDoc('${d.id}','status',this.value)">${['Not required','Required','Requested','Received','Reviewed','Needs revision','Uploaded to portal','Approved'].map(s => `<option ${d.status===s?'selected':''}>${s}</option>`).join('')}</select></td><td><input value="${esc(d.responsible)}" onchange="updateDoc('${d.id}','responsible',this.value)"></td><td><button class="btn small danger" onclick="removeDoc('${d.id}')">Del</button></td></tr>`).join('')}</tbody></table></div></div>`;
+      if (activeTab === 'documents') el.innerHTML = `<div class="card"><div class="section-title"><h3>Document Checklist</h3><button class="btn primary small" onclick="addDocumentPrompt()">+ Add Item</button></div><div style="overflow-x:auto;"><table><thead><tr><th>Document</th><th>Required</th><th>Status</th><th>Responsible</th><th></th></tr></thead><tbody>${p.documents.map(d => `<tr><td><input value="${esc(d.name)}" onchange="updateDoc('${d.id}','name',this.value)"></td><td><select onchange="updateDoc('${d.id}','required',this.value)"><option ${d.required==='Yes'?'selected':''}>Yes</option><option ${d.required==='No'?'selected':''}>No</option></select></td><td><select onchange="updateDoc('${d.id}','status',this.value)">${['Not required','Required','Requested','Received','Reviewed','Needs revision','Uploaded to portal','Approved'].map(s => `<option ${d.status===s?'selected':''}>${s}</option>`).join('')}</select></td><td><input value="${esc(d.responsible)}" onchange="updateDoc('${d.id}','responsible',this.value)"></td><td><button class="btn small danger" onclick="removeDoc('${d.id}')">Del</button></td></tr>`).join('')}</tbody></table></div></div>`;
       if (activeTab === 'councilNotes') el.innerHTML = `<div class="card"><h3>Notes</h3><button class="btn primary small" onclick="addCouncilNote()">+ Add Note</button><br><br><table><tbody>${p.notesList.map(n => `<tr><td><input type="date" value="${esc(n.date)}" onchange="updateCouncilNote('${n.id}','date',this.value)"></td><td><textarea onchange="updateCouncilNote('${n.id}','note',this.value)">${esc(n.note)}</textarea></td><td><button class="btn small danger" onclick="removeCouncilNote('${n.id}')">Del</button></td></tr>`).join('')}</tbody></table></div>`;
       if (activeTab === 'projectNotes') el.innerHTML = `<div class="card"><h3>Internal Notes</h3><button class="btn primary small" onclick="addProjectNote()">+ Add Note</button><br><br><div class="note-list">${p.projectNotesList.map(n => `<div class="note-card"><div style="flex:1;"><input value="${esc(n.title)}" placeholder="Title" onchange="updateProjectNote('${n.id}','title',this.value)" style="margin-bottom:8px;"><textarea onchange="updateProjectNote('${n.id}','body',this.value)">${esc(n.body)}</textarea></div><button class="btn danger small" onclick="removeProjectNote('${n.id}')" style="margin-left:12px;">Del</button></div>`).join('')}</div></div>`;
       if (activeTab === 'invoice') renderInvoiceTab(p, el);
       if (activeTab === 'files') renderFilesTab(p, el);
     }
 
-    // === INVOICE TAB RENDERING ===
     function renderInvoiceTab(p, el) {
       const inv = p.invoice;
       const subtotal = inv.lineItems.reduce((sum, item) => sum + Number(item.price || 0), 0); 
@@ -715,7 +740,6 @@
         </div>`;
     }
 
-    // === NATIVE PRINT ENGINE (RESTORED) ===
     function printProjectReport() {
       const p = getCurrentProject();
       const completed = p.documents.filter(d => ['Received','Reviewed','Uploaded to portal','Approved'].includes(d.status));
@@ -781,11 +805,12 @@
       `;
       window.print();
     }
+
     function reportList(items, empty) { return items.length ? `<table style="width:100%;text-align:left;border-collapse:collapse;"><thead><tr><th style="padding:8px;border-bottom:1px solid #ccc;">Document</th><th style="padding:8px;border-bottom:1px solid #ccc;">Status</th><th style="padding:8px;border-bottom:1px solid #ccc;">Responsible</th></tr></thead><tbody>${items.map(d => `<tr><td style="padding:8px;border-bottom:1px solid #eee;">${esc(d.name)}</td><td style="padding:8px;border-bottom:1px solid #eee;">${esc(d.status)}</td><td style="padding:8px;border-bottom:1px solid #eee;">${esc(d.responsible)}</td></tr>`).join('')}</tbody></table>` : `<p>${empty}</p>`; }
     function reportNotes(p) { return p.notesList?.length ? `<table style="width:100%;text-align:left;border-collapse:collapse;"><thead><tr><th style="padding:8px;border-bottom:1px solid #ccc;">Date</th><th style="padding:8px;border-bottom:1px solid #ccc;">Note</th></tr></thead><tbody>${p.notesList.map(n => `<tr><td style="padding:8px;border-bottom:1px solid #eee;">${esc(n.date)}</td><td style="padding:8px;border-bottom:1px solid #eee;">${esc(n.note)}</td></tr>`).join('')}</tbody></table>` : '<p>No notes added.</p>'; }
-    function reportProjectNotes(p) { return p.projectNotesList?.length ? `<table style="width:100%;text-align:left;border-collapse:collapse;"><thead><tr><th style="padding:8px;border-bottom:1px solid #ccc;">Title</th><th style="padding:8px;border-bottom:1px solid #ccc;">Note</th></tr></thead><tbody>${p.projectNotesList.map(n => `<tr><td style="padding:8px;border-bottom:1px solid #eee;">${esc(n.title \vert{}\vert{} '-')}</td><td style="padding:8px;border-bottom:1px solid #eee;">${esc(n.body)}</td></tr>`).join('')}</tbody></table>` : '<p>No project notes added.</p>'; }
+    function reportProjectNotes(p) { return p.projectNotesList?.length ? `<table style="width:100%;text-align:left;border-collapse:collapse;"><thead><tr><th style="padding:8px;border-bottom:1px solid #ccc;">Title</th><th style="padding:8px;border-bottom:1px solid #ccc;">Note</th></tr></thead><tbody>${p.projectNotesList.map(n => `<tr><td style="padding:8px;border-bottom:1px solid #eee;">${esc(n.title || '-')}</td><td style="padding:8px;border-bottom:1px solid #eee;">${esc(n.body)}</td></tr>`).join('')}</tbody></table>` : '<p>No project notes added.</p>'; }
 
-    // === TRUE CLOUD STORAGE LOGIC (SUPABASE) ===
+    // === CLOUD STORAGE LOGIC ===
     async function renderFilesTab(p, el) {
       el.innerHTML = `<div class="card"><h3>Project Files (Cloud Storage)</h3><p style="font-size:13px; color:var(--muted);">Files upload directly to your secure Supabase cloud bucket.</p><input type="file" multiple onchange="uploadFilesToCloud(event, '${p.id}')" style="margin-bottom:16px;" /><div id="filesContainer" class="file-list">Loading files...</div></div>`;
       
@@ -814,7 +839,7 @@
           const { data, error } = await supabaseClient.storage.from(STORAGE_BUCKET).upload(uniquePath, file);
           if (error) {
              console.error("Upload error:", error);
-             alert("Error uploading: " + file.name + ". Did you create the public 'project_files' bucket in Supabase?");
+             alert("Error uploading: " + file.name + ". Ensure public 'project_files' bucket exists in Supabase.");
           } else {
              const { data: urlData } = supabaseClient.storage.from(STORAGE_BUCKET).getPublicUrl(uniquePath);
              p.cloudFiles.push({ id: uid(), name: file.name, path: uniquePath, url: urlData.publicUrl });
@@ -858,9 +883,61 @@
     }
 
     // Modal Logic
-    function openProjectModal(id='') { document.getElementById('projectForm').reset(); populateCouncils(); document.getElementById('projectId').value = id || ''; document.getElementById('modalTitle').textContent = id ? 'Edit Project' : 'Add Project'; if (id) { const p = projects.find(x => x.id === id); ['clientName','clientPhone','clientEmail','siteAddress','council','lotDp','projectType','approvalType','jobStatus'].forEach(key => { const el = document.getElementById(key); if (el) el.value = p[key==='jobStatus'?'status':key] || ''; }); } else { document.getElementById('jobStatus').value = 'Active'; } document.getElementById('projectModal').classList.add('show'); }
+    function openProjectModal(id='') { 
+      document.getElementById('projectForm').reset(); 
+      populateCouncils(); 
+      document.getElementById('projectId').value = id || ''; 
+      document.getElementById('modalTitle').textContent = id ? 'Edit Project' : 'Add Project'; 
+      if (id) { 
+        const p = projects.find(x => x.id === id); 
+        const fieldMap = ['clientName','clientPhone','clientEmail','siteAddress','council','lotDp','projectType','approvalType','jobStatus'];
+        fieldMap.forEach(key => { 
+          const el = document.getElementById(key); 
+          if (el) el.value = p[key==='jobStatus'?'status':key] || ''; 
+        }); 
+      } else { 
+        document.getElementById('jobStatus').value = 'Active'; 
+      } 
+      document.getElementById('projectModal').classList.add('show'); 
+    }
+
     function closeProjectModal() { document.getElementById('projectModal').classList.remove('show'); }
-    function saveProject(event) { event.preventDefault(); const id = document.getElementById('projectId').value; const data = { clientName: clientName.value, clientPhone: clientPhone.value, clientEmail: clientEmail.value, siteAddress: siteAddress.value, council: council.value, lotDp: lotDp.value, projectType: projectType.value, approvalType: approvalType.value, status: jobStatus.value }; if (id) { Object.assign(projects.find(x => x.id === id), data); } else { const newProject = { id: uid(), createdAt: todayISO(), updatedAt: new Date().toISOString(), ...data, documents: (checklistLibrary[data.approvalType] || checklistLibrary.Other).map(name => ({ id: uid(), name, required: 'Yes', status: 'Required', responsible: 'Client/Consultant' })), notesList: [], projectNotesList: [], cloudFiles: [] }; newProject.invoice = defaultInvoice(newProject); projects.unshift(newProject); } queueSave(); closeProjectModal(); id ? openProject(id) : showDashboard(); }
+
+    function saveProject(event) { 
+      event.preventDefault(); 
+      const id = document.getElementById('projectId').value; 
+      const data = { 
+        clientName: document.getElementById('clientName').value, 
+        clientPhone: document.getElementById('clientPhone').value, 
+        clientEmail: document.getElementById('clientEmail').value, 
+        siteAddress: document.getElementById('siteAddress').value, 
+        council: document.getElementById('council').value, 
+        lotDp: document.getElementById('lotDp').value, 
+        projectType: document.getElementById('projectType').value, 
+        approvalType: document.getElementById('approvalType').value, 
+        status: document.getElementById('jobStatus').value 
+      }; 
+
+      if (id) { 
+        Object.assign(projects.find(x => x.id === id), data); 
+      } else { 
+        const newProject = { 
+          id: uid(), 
+          createdAt: todayISO(), 
+          updatedAt: new Date().toISOString(), 
+          ...data, 
+          documents: (checklistLibrary[data.approvalType] || checklistLibrary.Other).map(name => ({ id: uid(), name, required: 'Yes', status: 'Required', responsible: 'Client/Consultant' })), 
+          notesList: [], 
+          projectNotesList: [], 
+          cloudFiles: [] 
+        }; 
+        newProject.invoice = defaultInvoice(newProject); 
+        projects.unshift(newProject); 
+      } 
+      queueSave(); 
+      closeProjectModal(); 
+      id ? openProject(id) : showDashboard(); 
+    }
 
     function updateDoc(id, field, value) { const p=getCurrentProject(); p.documents.find(x=>x.id===id)[field]=value; queueSave(); }
     function removeDoc(id) { const p=getCurrentProject(); p.documents=p.documents.filter(d=>d.id!==id); queueSave(); renderProjectTab(); }
@@ -877,7 +954,7 @@
     function removeInvoiceLine(id) { const p=getCurrentProject(); p.invoice.lineItems = p.invoice.lineItems.filter(i => i.id !== id); queueSave(); renderProjectTab(); }
 
     function showChecklistLibrary() { showOnly('libraryView'); document.getElementById('navLibrary').classList.add('active'); renderLibraryUI(); }
-    function renderLibraryUI() { const container = document.getElementById('libraryView'); let html = `<div class="topbar"><h2>Checklist Library Editor</h2><p>Saved locally to your browser.</p></div><div class="grid two">`; for (const [type, items] of Object.entries(checklistLibrary)) { html += `<div class="card checklist-category"><h3>${type}</h3><div class="checklist-list">${items.map((item, index) => `<div class="checklist-item"><span>${esc(item)}</span><button class="btn danger small" onclick="removeLibraryItem('${type}',${index})">✕</button></div>`).join('')}</div><div style="display:flex;gap:8px;margin-top:12px;"><input type="text" id="addInput_${type}" placeholder="New document name..." /><button class="btn primary small" onclick="addLibraryItem('${type}')">Add</button></div></div>`; } html += `</div>`; container.innerHTML = html; }
+    function renderLibraryUI() { const container = document.getElementById('libraryView'); let html = `<div class="topbar"><h2>Checklist Library Editor</h2><p>Saved locally to your browser.</p></div><div class="grid two">`; for (const [type, items] of Object.entries(checklistLibrary)) { html += `<div class="card checklist-category"><h3>${type}</h3><div class="checklist-list">${items.map((item, index) => `<div class="checklist-item"><span>${esc(item)}</span><button class="btn danger small" onclick="removeLibraryItem('${type}', ${index})">✕</button></div>`).join('')}</div><div style="display:flex;gap:8px;margin-top:12px;"><input type="text" id="addInput_${type}" placeholder="New document name..." /><button class="btn primary small" onclick="addLibraryItem('${type}')">Add</button></div></div>`; } html += `</div>`; container.innerHTML = html; }
     function addLibraryItem(type) { const val = document.getElementById(`addInput_${type}`).value.trim(); if(val) { checklistLibrary[type].push(val); saveLocalFallback(); renderLibraryUI(); } }
     function removeLibraryItem(type, index) { if(confirm('Remove this item?')) { checklistLibrary[type].splice(index, 1); saveLocalFallback(); renderLibraryUI(); } }
     

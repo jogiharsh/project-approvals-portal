@@ -28,7 +28,7 @@
     button, input, select, textarea { font: inherit; }
 
     /* Layout */
-    .app-wrapper { display: flex; flex-direction: column; min-height: 100vh; display: none; }
+    .app-wrapper { display: flex; flex-direction: column; min-height: 100vh; display: none; background: var(--bg); position: relative; z-index: 1; }
     .top-nav { background: #ffffff; border-bottom: 1px solid var(--border); position: sticky; top: 0; z-index: 50; }
     .nav-container { max-width: 1400px; margin: 0 auto; padding: 0 24px; display: flex; align-items: center; justify-content: space-between; height: 64px; }
     .brand { display: flex; align-items: center; gap: 12px; }
@@ -326,13 +326,17 @@
   </div>
 
   <script>
+    // ==========================================
+    // SUPABASE COMMUNICATION (USING THE OFFICIAL SDK)
+    // ==========================================
+    
     // Note: The variables PORTAL_PASSWORD, SUPABASE_URL, and SUPABASE_ANON_KEY 
     // are securely loaded from your config.js file!
 
     const SUPABASE_TABLE = 'app_state'; 
     const APP_STATE_ID = 'main';
-    const LOCAL_FALLBACK_KEY = 'projectApprovalsTracker.v12.localFallback';
-    const LIBRARY_FALLBACK_KEY = 'projectApprovalsTracker.v12.library';
+    const LOCAL_FALLBACK_KEY = 'projectApprovalsTracker.v11.localFallback';
+    const LIBRARY_FALLBACK_KEY = 'projectApprovalsTracker.v11.library';
     
     const BUSINESS_PROFILE = { name: 'Project Approvals', abn: 'ABN 16 696 716 980', email: 'info@projectapprovals.com.au', phone: '0414633507', address: 'Quakershill NSW 2763', bankDetails: 'PayID: info@projectapprovals.com.au\nBank: NAB\nAccount Name: Project Approvals\nBSB: 082-356\nAccount No: 308014097' };
     const INVOICE_SERVICE_OPTIONS = ['CDC consulting service','DA application support','CC approval support','OC approval support','BASIX coordination','Council lodgement support','Site inspection consulting','General approval consulting'];
@@ -400,28 +404,16 @@
 
     function defaultInvoice(project) { return { invoiceNumber: getNextGlobalInvoiceNumber(), issueDate: todayISO(), dueDate: addDays(todayISO(), 7), lineItems: [{ id: uid(), serviceName: `${project?.approvalType || 'Approval'} consulting service`, price: '' }], notes: BUSINESS_PROFILE.bankDetails }; }
 
-    function loadLocalFallback() { 
-      try { 
-        const lib = localStorage.getItem(LIBRARY_FALLBACK_KEY); 
-        if (lib) checklistLibrary = JSON.parse(lib); 
-        return JSON.parse(localStorage.getItem(LOCAL_FALLBACK_KEY) || '[]'); 
-      } catch { return []; } 
-    }
-    
-    // NEW: Wrapped in try/catch to prevent QuotaExceeded errors
+    function loadLocalFallback() { try { const lib = localStorage.getItem(LIBRARY_FALLBACK_KEY); if (lib) checklistLibrary = JSON.parse(lib); return JSON.parse(localStorage.getItem(LOCAL_FALLBACK_KEY) || '[]'); } catch { return []; } }
     function saveLocalFallback() { 
       try {
         localStorage.setItem(LOCAL_FALLBACK_KEY, JSON.stringify(projects)); 
         localStorage.setItem(LIBRARY_FALLBACK_KEY, JSON.stringify(checklistLibrary)); 
-      } catch (error) {
-        console.warn("Local storage limit reached. Skipping local offline backup to prevent crash.");
-      }
+      } catch(e) { console.warn('Local storage full'); }
     }
-    
-    function hasSupabaseConfig() { 
-      return typeof SUPABASE_URL !== 'undefined' && typeof SUPABASE_ANON_KEY !== 'undefined' && SUPABASE_URL && SUPABASE_ANON_KEY && !SUPABASE_URL.includes('PASTE_YOUR_'); 
-    }
+    function hasSupabaseConfig() { return typeof SUPABASE_URL !== 'undefined' && typeof SUPABASE_ANON_KEY !== 'undefined' && SUPABASE_URL && SUPABASE_ANON_KEY && !SUPABASE_URL.includes('PASTE_YOUR_'); }
 
+    // --- CLOUD LOADING LOGIC USING SUPABASE-JS ---
     async function loadProjectsFromCloud() {
       if (!supabaseClient) return;
       
@@ -443,6 +435,7 @@
       saveLocalFallback();
     }
 
+    // --- CLOUD SAVING LOGIC USING SUPABASE-JS ---
     async function saveAll() {
       saveLocalFallback();
       if (!isCloudReady || !supabaseClient) return;
@@ -582,7 +575,6 @@
             </table>
           </div>
           
-          <!-- Visual Preview for the screen ONLY -->
           <div class="invoice-preview" id="invoicePDFTarget">
             <div class="invoice-header"><div><h2>${esc(BUSINESS_PROFILE.name)}</h2><p>${esc(BUSINESS_PROFILE.address)}<br>${esc(BUSINESS_PROFILE.abn)}</p></div></div>
             <div class="invoice-meta"><div><h4>Bill To</h4><p>${esc(p.clientName)}<br>${esc(p.clientEmail)}</p></div><div><h4>Project</h4><p>${esc(p.siteAddress)}<br>${esc(p.council)}</p></div><div><h4>Details</h4><div class="invoice-meta-row"><span>Invoice No:</span> <strong>${esc(inv.invoiceNumber)}</strong></div><div class="invoice-meta-row"><span>Issue Date:</span> <strong>${esc(inv.issueDate)}</strong></div><div class="invoice-meta-row"><span>Due Date:</span> <strong>${esc(inv.dueDate)}</strong></div></div></div>
@@ -601,11 +593,14 @@
       const gst = subtotal * 0.1;
       const total = subtotal + gst;
 
+      // THE FIX FOR BLANK PDFS: Do not hide it way off screen.
+      // Instead, position it securely underneath the main layout.
       const offscreenDiv = document.createElement('div');
       offscreenDiv.style.width = '800px'; 
       offscreenDiv.style.position = 'absolute';
-      offscreenDiv.style.left = '-9999px';
+      offscreenDiv.style.left = '0';
       offscreenDiv.style.top = '0';
+      offscreenDiv.style.zIndex = '-9999'; // Hidden entirely behind app
       offscreenDiv.style.padding = '40px';
       offscreenDiv.style.background = '#ffffff';
       offscreenDiv.style.color = '#000000';
@@ -637,8 +632,18 @@
       document.body.appendChild(offscreenDiv);
 
       const filename = `${invoice.invoiceNumber}_${p.clientName.replace(/\s+/g, '_')}.pdf`;
-      const opt = { margin: 10, filename: filename, image: { type: 'jpeg', quality: 0.98 }, html2canvas: { scale: 2 }, jsPDF: { unit: 'mm', format: 'a4', orientation: 'portrait' } };
-      html2pdf().set(opt).from(offscreenDiv).save().then(() => { document.body.removeChild(offscreenDiv); });
+      const opt = { 
+        margin: 10, 
+        filename: filename, 
+        image: { type: 'jpeg', quality: 0.98 }, 
+        html2canvas: { scale: 2, useCORS: true }, 
+        jsPDF: { unit: 'mm', format: 'a4', orientation: 'portrait' } 
+      };
+
+      // Added a slight delay so the browser can paint the hidden canvas before snapping it!
+      setTimeout(() => {
+        html2pdf().set(opt).from(offscreenDiv).save().then(() => { document.body.removeChild(offscreenDiv); });
+      }, 150);
     }
 
     /* LOCAL IMAGE CACHING (INDEXEDDB FILES TAB) */

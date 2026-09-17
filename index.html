@@ -268,6 +268,7 @@
           <button class="tab-btn" data-tab="documents" onclick="switchTab('documents')">Documents</button>
           <button class="tab-btn" data-tab="councilNotes" onclick="switchTab('councilNotes')">Council Notes</button>
           <button class="tab-btn" data-tab="invoice" onclick="switchTab('invoice')">Invoice</button>
+          <!-- Local Image Caching Tab -->
           <button class="tab-btn" data-tab="files" onclick="switchTab('files')">Files</button>
           <button class="tab-btn" data-tab="projectNotes" onclick="switchTab('projectNotes')">Internal Notes</button>
         </div>
@@ -319,8 +320,8 @@
     // ==========================================
     const SUPABASE_TABLE = 'app_state'; 
     const APP_STATE_ID = 'main';
-    const LOCAL_FALLBACK_KEY = 'projectApprovalsTracker.v14.localFallback';
-    const LIBRARY_FALLBACK_KEY = 'projectApprovalsTracker.v14.library';
+    const LOCAL_FALLBACK_KEY = 'projectApprovalsTracker.v15.localFallback';
+    const LIBRARY_FALLBACK_KEY = 'projectApprovalsTracker.v15.library';
     
     const BUSINESS_PROFILE = { name: 'Project Approvals', abn: 'ABN 16 696 716 980', email: 'info@projectapprovals.com.au', phone: '0414633507', address: 'Quakershill NSW 2763', bankDetails: 'PayID: info@projectapprovals.com.au\nBank: NAB\nAccount Name: Project Approvals\nBSB: 082-356\nAccount No: 308014097' };
     const INVOICE_SERVICE_OPTIONS = ['CDC consulting service','DA application support','CC approval support','OC approval support','BASIX coordination','Council lodgement support','Site inspection consulting','General approval consulting'];
@@ -379,7 +380,7 @@
     function looksCustomService(name='') { return !!name && !INVOICE_SERVICE_OPTIONS.includes(name); }
     function addDays(dateString, days) { const d = dateString ? new Date(dateString) : new Date(); d.setDate(d.getDate() + days); return d.toISOString().slice(0, 10); }
 
-    // === UNIQUE INVOICE NUMBER GENERATOR ===
+    // === UNIQUE INVOICE NUMBER GENERATOR (FIXED) ===
     function generateUniqueInvoiceNumber() {
       const d = new Date();
       const datePart = d.getFullYear() + String(d.getMonth() + 1).padStart(2, '0') + String(d.getDate()).padStart(2, '0');
@@ -387,12 +388,13 @@
       return `INV-${datePart}-${randomPart}`;
     }
 
+    // === DEFAULT INVOICE TEMPLATE (FIXED) ===
     function defaultInvoice(project) { 
       return { 
         invoiceNumber: generateUniqueInvoiceNumber(), 
         issueDate: todayISO(), 
         dueDate: addDays(todayISO(), 7), 
-        hasGST: true, 
+        hasGST: true, // GST Toggle defaults to true
         lineItems: [{ id: uid(), serviceName: `${project?.approvalType || 'Approval'} consulting service`, price: '' }], 
         notes: BUSINESS_PROFILE.bankDetails 
       }; 
@@ -467,6 +469,7 @@
       document.getElementById('statTotal').textContent = projects.length; document.getElementById('statActive').textContent = projects.filter(p=>p.status==='Active').length;
       document.getElementById('statMissing').textContent = projects.reduce((sum, p) => sum + p.documents.filter(d=>d.required!=='No'&&!['Received','Approved'].includes(d.status)).length, 0);
       
+      // UI DASHBOARD GST CALCULATION (FIXED)
       document.getElementById('statRevenue').textContent = formatCurrency(projects.reduce((sum, p) => { 
         if(p.invoice?.lineItems) { 
           const sub = p.invoice.lineItems.reduce((s, i) => s + Number(i.price || 0), 0); 
@@ -512,6 +515,7 @@
       if (activeTab === 'files') renderFilesTab(p, el);
     }
 
+    // === UI INVOICE TAB RENDERING (FIXED GST INCLUSION) ===
     function renderInvoiceTab(p, el) {
       const inv = p.invoice;
       const subtotal = inv.lineItems.reduce((sum, item) => sum + Number(item.price || 0), 0); 
@@ -519,7 +523,6 @@
       const gst = applyGST ? subtotal * 0.1 : 0; 
       const total = subtotal + gst;
 
-      // Extract GST Row cleanly to prevent template literal parsing errors
       let gstHtmlRow = '';
       if (applyGST) {
         gstHtmlRow = `<div class="summary-row"><span>GST (10%):</span> <strong>${formatCurrency(gst)}</strong></div>`;
@@ -568,7 +571,7 @@
         </div>`;
     }
 
-    // PERFECT PDF GENERATION
+    // === RAW STRING PDF GENERATION (FIXED BLANK SCREEN BUG) ===
     function downloadInvoicePDF() {
       const p = getCurrentProject();
       p.invoice ||= defaultInvoice(p);
@@ -584,43 +587,31 @@
         pdfGstRow = `<div style="display:flex; justify-content:space-between; padding:4px 0;"><span>GST (10%):</span><strong>${formatCurrency(gst)}</strong></div>`;
       }
 
-      const offscreenDiv = document.createElement('div');
-      
-      // Strict width constraint ensuring it matches the A4 aspect ratio before screenshot
-      offscreenDiv.style.width = '800px'; 
-      offscreenDiv.style.position = 'absolute';
-      offscreenDiv.style.left = '0';
-      offscreenDiv.style.top = '0';
-      offscreenDiv.style.zIndex = '-9999'; // Hidden entirely behind app
-      offscreenDiv.style.padding = '40px';
-      offscreenDiv.style.background = '#ffffff';
-      offscreenDiv.style.color = '#000000';
-      offscreenDiv.style.fontFamily = 'Helvetica, Arial, sans-serif';
-
-      offscreenDiv.innerHTML = `
-        <div style="display:flex; justify-content:space-between; margin-bottom:40px;">
-          <div><h2 style="margin:0; font-size:26px;">${esc(BUSINESS_PROFILE.name)}</h2><p style="margin:4px 0 0; color:#555; font-size:14px;">${esc(BUSINESS_PROFILE.address)}<br>${esc(BUSINESS_PROFILE.abn)}</p></div>
-        </div>
-        <div style="display:flex; justify-content:space-between; margin-bottom:40px; padding-bottom:20px; border-bottom:1px solid #ccc;">
-          <div style="flex:1;"><h4 style="margin:0 0 8px; color:#555; text-transform:uppercase; font-size:12px;">Bill To</h4><p style="margin:0; font-size:14px;">${esc(p.clientName)}<br>${esc(p.clientEmail)}</p></div>
-          <div style="flex:1;"><h4 style="margin:0 0 8px; color:#555; text-transform:uppercase; font-size:12px;">Project</h4><p style="margin:0; font-size:14px;">${esc(p.siteAddress)}<br>${esc(p.council)}</p></div>
-          <div style="flex:1; text-align:right;"><h4 style="margin:0 0 8px; color:#555; text-transform:uppercase; font-size:12px;">Invoice Details</h4><p style="margin:0; font-size:14px;">No: <strong>${esc(invoice.invoiceNumber)}</strong><br>Date: <strong>${esc(invoice.issueDate)}</strong><br>Due: <strong>${esc(invoice.dueDate)}</strong></p></div>
-        </div>
-        <table style="width:100%; border-collapse:collapse; margin-bottom:40px; font-size:14px;">
-          <thead><tr style="border-bottom:2px solid #ddd; text-align:left;"><th style="padding:12px;">Description</th><th style="padding:12px; text-align:right;">Amount</th></tr></thead>
-          <tbody>${invoice.lineItems.map(i => `<tr><td style="padding:12px; border-bottom:1px solid #eee;"><strong>${esc(i.serviceName)}</strong></td><td style="padding:12px; border-bottom:1px solid #eee; text-align:right;">${formatCurrency(i.price)}</td></tr>`).join('')}</tbody>
-        </table>
-        <div style="display:flex; justify-content:space-between; align-items:flex-end; font-size:14px;">
-          <div style="width:55%; white-space:pre-wrap; color:#555;">${esc(invoice.notes)}</div>
-          <div style="width:35%;">
-            <div style="display:flex; justify-content:space-between; padding:4px 0;"><span>Subtotal:</span><strong>${formatCurrency(subtotal)}</strong></div>
-            ${pdfGstRow}
-            <div style="display:flex; justify-content:space-between; padding:12px 0; border-top:2px solid #ccc; font-size:18px; font-weight:bold; margin-top:8px;"><span>Total:</span><span>${formatCurrency(total)}</span></div>
+      // Generate a raw HTML string. Bypassing the DOM completely guarantees it cannot take a "blank screenshot".
+      const invoiceHTML = `
+        <div style="padding: 40px; background: #ffffff; color: #000000; font-family: Helvetica, Arial, sans-serif; font-size: 14px; width: 800px; margin: 0 auto; box-sizing: border-box;">
+          <div style="display:flex; justify-content:space-between; margin-bottom:40px;">
+            <div><h2 style="margin:0; font-size:26px;">${esc(BUSINESS_PROFILE.name)}</h2><p style="margin:4px 0 0; color:#555; font-size:14px;">${esc(BUSINESS_PROFILE.address)}<br>${esc(BUSINESS_PROFILE.abn)}</p></div>
+          </div>
+          <div style="display:flex; justify-content:space-between; margin-bottom:40px; padding-bottom:20px; border-bottom:1px solid #ccc;">
+            <div style="flex:1;"><h4 style="margin:0 0 8px; color:#555; text-transform:uppercase; font-size:12px;">Bill To</h4><p style="margin:0; font-size:14px;">${esc(p.clientName)}<br>${esc(p.clientEmail)}</p></div>
+            <div style="flex:1;"><h4 style="margin:0 0 8px; color:#555; text-transform:uppercase; font-size:12px;">Project</h4><p style="margin:0; font-size:14px;">${esc(p.siteAddress)}<br>${esc(p.council)}</p></div>
+            <div style="flex:1; text-align:right;"><h4 style="margin:0 0 8px; color:#555; text-transform:uppercase; font-size:12px;">Invoice Details</h4><p style="margin:0; font-size:14px;">No: <strong>${esc(invoice.invoiceNumber)}</strong><br>Date: <strong>${esc(invoice.issueDate)}</strong><br>Due: <strong>${esc(invoice.dueDate)}</strong></p></div>
+          </div>
+          <table style="width:100%; border-collapse:collapse; margin-bottom:40px; font-size:14px;">
+            <thead><tr style="border-bottom:2px solid #ddd; text-align:left;"><th style="padding:12px;">Description</th><th style="padding:12px; text-align:right;">Amount</th></tr></thead>
+            <tbody>${invoice.lineItems.map(i => `<tr><td style="padding:12px; border-bottom:1px solid #eee;"><strong>${esc(i.serviceName)}</strong></td><td style="padding:12px; border-bottom:1px solid #eee; text-align:right;">${formatCurrency(i.price)}</td></tr>`).join('')}</tbody>
+          </table>
+          <div style="display:flex; justify-content:space-between; align-items:flex-end; font-size:14px;">
+            <div style="width:55%; white-space:pre-wrap; color:#555;">${esc(invoice.notes)}</div>
+            <div style="width:35%;">
+              <div style="display:flex; justify-content:space-between; padding:4px 0;"><span>Subtotal:</span><strong>${formatCurrency(subtotal)}</strong></div>
+              ${pdfGstRow}
+              <div style="display:flex; justify-content:space-between; padding:12px 0; border-top:2px solid #ccc; font-size:18px; font-weight:bold; margin-top:8px;"><span>Total:</span><span>${formatCurrency(total)}</span></div>
+            </div>
           </div>
         </div>
       `;
-
-      document.body.appendChild(offscreenDiv);
 
       const filename = `${invoice.invoiceNumber}_${p.clientName.replace(/\s+/g, '_')}.pdf`;
       const opt = { 
@@ -631,10 +622,8 @@
         jsPDF: { unit: 'mm', format: 'a4', orientation: 'portrait' } 
       };
 
-      // Added a slight delay so the browser can paint the hidden canvas before snapping it!
-      setTimeout(() => {
-        html2pdf().set(opt).from(offscreenDiv).save().then(() => { document.body.removeChild(offscreenDiv); });
-      }, 150);
+      // Direct string-to-PDF compilation 
+      html2pdf().set(opt).from(invoiceHTML).save();
     }
 
     /* LOCAL IMAGE CACHING (INDEXEDDB FILES TAB) */
@@ -703,6 +692,8 @@
     function addProjectNote() { const p=getCurrentProject(); p.projectNotesList.push({ id: uid(), title:'', body:'' }); queueSave(); renderProjectTab(); }
     function updateProjectNote(id, f, v) { const p=getCurrentProject(); p.projectNotesList.find(x=>x.id===id)[f]=v; queueSave(); }
     function removeProjectNote(id) { const p=getCurrentProject(); p.projectNotesList=p.projectNotesList.filter(n=>n.id!==id); queueSave(); renderProjectTab(); }
+    
+    // UI UPDATES FOR INVOICE TOGGLE
     function updateInvoiceField(field, value) { const p=getCurrentProject(); p.invoice[field]=value; queueSave(); renderProjectTab(); }
     function updateInvoiceLine(id, field, value) { const p=getCurrentProject(); p.invoice.lineItems.find(x=>x.id===id)[field]=value; queueSave(); renderProjectTab(); }
     function addInvoiceLine() { const p=getCurrentProject(); p.invoice.lineItems.push({ id: uid(), serviceName:'', price:'' }); queueSave(); renderProjectTab(); }

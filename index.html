@@ -3,777 +3,246 @@
 <head>
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-  <title>Project Approvals - NSW Approval Tracker</title>
+  <title>Project Approvals - NSW Tracker</title>
+  
+  <!-- html2pdf library for perfectly scaled PDF Invoices -->
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/html2pdf.js/0.10.1/html2pdf.bundle.min.js"></script>
+  
+  <!-- Load your private config file -->
+  <script src="config.js"></script>
+
   <style>
     :root {
-      --bg: #f5f7f8;
-      --card: #ffffff;
-      --text: #1d2930;
-      --muted: #64757d;
-      --border: #dce5e8;
-      --primary: #0f766e;
-      --primary-dark: #115e59;
-      --primary-soft: #e6f4f1;
-      --accent: #0ea5a4;
-      --danger: #b42318;
-      --danger-soft: #fee4e2;
-      --warning: #b54708;
-      --warning-soft: #fff3cd;
-      --success: #027a48;
-      --success-soft: #dcfae6;
-      --shadow: 0 10px 30px rgba(16, 24, 40, 0.08);
-      --radius: 18px;
+      --bg: #f8fafc; --card: #ffffff; --text: #0f172a; --muted: #64748b; --border: #e2e8f0;
+      --primary: #4f46e5; --primary-hover: #4338ca; --primary-soft: #e0e7ff;
+      --danger: #dc2626; --danger-soft: #fef2f2; --success: #16a34a;
+      --shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.05), 0 2px 4px -2px rgba(0, 0, 0, 0.05);
+      --radius: 8px;
     }
 
     * { box-sizing: border-box; }
-
-    body {
-      margin: 0;
-      font-family: Inter, ui-sans-serif, system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
-      background: var(--bg);
-      color: var(--text);
-    }
-
+    body { margin: 0; font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif; background: var(--bg); color: var(--text); line-height: 1.5; }
     button, input, select, textarea { font: inherit; }
 
-    .app-shell {
-      display: grid;
-      grid-template-columns: 280px 1fr;
-      min-height: 100vh;
-    }
+    /* Layout */
+    .app-wrapper { display: flex; flex-direction: column; min-height: 100vh; display: none; }
+    .top-nav { background: #ffffff; border-bottom: 1px solid var(--border); position: sticky; top: 0; z-index: 50; }
+    .nav-container { max-width: 1400px; margin: 0 auto; padding: 0 24px; display: flex; align-items: center; justify-content: space-between; height: 64px; }
+    .brand { display: flex; align-items: center; gap: 12px; }
+    .brand-mark { width: 32px; height: 32px; background: var(--primary); color: #fff; display: grid; place-items: center; font-weight: 800; border-radius: 4px; font-size: 14px; }
+    .brand h1 { font-size: 16px; margin: 0; font-weight: 600; }
+    .main-menu { display: flex; gap: 4px; align-items: center; }
 
-    aside {
-      background: #0b2f32;
-      color: #fff;
-      padding: 24px 18px;
-      position: sticky;
-      top: 0;
-      height: 100vh;
-      overflow-y: auto;
-    }
+    .nav-btn { background: transparent; border: none; color: var(--muted); padding: 8px 12px; border-radius: var(--radius); cursor: pointer; font-weight: 500; font-size: 14px; transition: all 0.2s; }
+    .nav-btn:hover { color: var(--text); background: var(--bg); }
+    .nav-btn.active { background: var(--primary-soft); color: var(--primary); }
 
-    .brand {
-      display: flex;
-      gap: 12px;
-      align-items: center;
-      margin-bottom: 28px;
-    }
+    .sync-wrapper { display: flex; align-items: center; gap: 8px; margin-left: 16px; padding-left: 16px; border-left: 1px solid var(--border); }
+    .sync-dot { width: 10px; height: 10px; border-radius: 50%; background: #ccc; cursor: help; }
+    .sync-dot.green { background: #16a34a; box-shadow: 0 0 6px rgba(22, 163, 74, 0.4); }
+    .sync-dot.red { background: #dc2626; box-shadow: 0 0 6px rgba(220, 38, 38, 0.4); }
+    .sync-dot.yellow { background: #d97706; box-shadow: 0 0 6px rgba(217, 119, 6, 0.4); }
 
-    .brand-mark {
-      width: 42px;
-      height: 42px;
-      border-radius: 14px;
-      background: linear-gradient(135deg, #2dd4bf, #0f766e);
-      display: grid;
-      place-items: center;
-      font-weight: 900;
-      letter-spacing: -1px;
-      color: #fff;
-    }
+    main.content-container { max-width: 1400px; margin: 0 auto; padding: 32px 24px; width: 100%; flex: 1; }
+    .topbar { display: flex; justify-content: space-between; align-items: flex-end; margin-bottom: 24px; }
+    .topbar h2 { margin: 0; font-size: 24px; font-weight: 600; }
+    .topbar p { margin: 4px 0 0; color: var(--muted); font-size: 14px; }
+    .actions { display: flex; gap: 8px; flex-wrap: wrap; }
 
-    .brand h1 {
-      font-size: 18px;
-      margin: 0;
-      line-height: 1.1;
-    }
+    /* Buttons */
+    .btn { background: #fff; border: 1px solid var(--border); color: var(--text); padding: 8px 16px; border-radius: var(--radius); font-size: 14px; font-weight: 500; cursor: pointer; transition: all 0.2s; display: inline-flex; align-items: center; gap: 6px; }
+    .btn:hover { background: var(--bg); border-color: #cbd5e1; }
+    .btn.primary { background: var(--primary); border-color: var(--primary); color: #fff; }
+    .btn.primary:hover { background: var(--primary-hover); border-color: var(--primary-hover); }
+    .btn.danger { background: #fff; border-color: var(--danger); color: var(--danger); }
+    .btn.danger:hover { background: var(--danger-soft); }
+    .btn.small { padding: 4px 10px; font-size: 12px; }
+    .btn.outline-primary { color: var(--primary); border-color: var(--primary-soft); }
+    .btn.outline-primary:hover { background: var(--primary-soft); }
 
-    .brand p {
-      margin: 3px 0 0;
-      color: #b8d4d3;
-      font-size: 12px;
-    }
+    /* Grids & Cards */
+    .grid { display: grid; gap: 20px; }
+    .grid.stats { grid-template-columns: repeat(4, 1fr); margin-bottom: 24px; }
+    .grid.two { grid-template-columns: repeat(2, 1fr); }
+    .card { background: var(--card); border: 1px solid var(--border); border-radius: var(--radius); padding: 24px; }
+    .stat-card { background: var(--card); border: 1px solid var(--border); border-radius: var(--radius); padding: 20px; display: flex; flex-direction: column; }
+    .stat-card span { color: var(--muted); font-size: 13px; font-weight: 500; text-transform: uppercase; letter-spacing: 0.5px; }
+    .stat-card strong { font-size: 32px; font-weight: 300; margin-top: 8px; color: var(--text); }
 
-    .nav-btn {
-      width: 100%;
-      border: 0;
-      color: #d8eeee;
-      background: transparent;
-      text-align: left;
-      padding: 12px 13px;
-      border-radius: 12px;
-      margin-bottom: 5px;
-      cursor: pointer;
-      display: flex;
-      align-items: center;
-      gap: 10px;
-    }
+    /* Dashboard Layouts */
+    .toolbar { display: flex; justify-content: space-between; align-items: center; gap: 12px; margin-bottom: 24px; background: var(--card); padding: 12px; border-radius: var(--radius); border: 1px solid var(--border); }
+    .toolbar-filters { display: flex; gap: 12px; flex: 1; }
+    .view-toggle { display: flex; background: var(--bg); border-radius: var(--radius); padding: 4px; border: 1px solid var(--border); }
+    .view-toggle button { background: transparent; border: none; padding: 6px 12px; font-size: 13px; cursor: pointer; border-radius: 4px; color: var(--muted); font-weight: 500; }
+    .view-toggle button.active { background: #fff; color: var(--text); box-shadow: 0 1px 2px rgba(0,0,0,0.05); }
+    
+    .project-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(320px, 1fr)); gap: 20px; }
+    .pipeline-board { display: grid; grid-template-columns: repeat(3, 1fr); gap: 24px; align-items: start; }
+    .pipeline-col { background: #f1f5f9; border-radius: var(--radius); padding: 16px; min-height: 400px; }
+    .pipeline-col h3 { margin: 0 0 16px; font-size: 14px; text-transform: uppercase; color: var(--muted); display: flex; justify-content: space-between; }
+    .pipeline-col h3 span { background: #e2e8f0; padding: 2px 8px; border-radius: 99px; font-size: 12px; }
+    .pipeline-cards { display: flex; flex-direction: column; gap: 12px; }
+    
+    .project-card { background: var(--card); border: 1px solid var(--border); border-radius: var(--radius); padding: 20px; cursor: pointer; transition: box-shadow 0.2s, transform 0.2s; display: flex; flex-direction: column; gap: 12px; }
+    .project-card:hover { box-shadow: var(--shadow); transform: translateY(-2px); border-color: #cbd5e1; }
+    .project-card-header { display: flex; justify-content: space-between; align-items: flex-start; }
+    .project-card h4 { margin: 0; font-size: 15px; font-weight: 600; color: var(--text); line-height: 1.3; }
+    .project-card p { margin: 0; font-size: 13px; color: var(--muted); }
+    .project-card-footer { margin-top: auto; padding-top: 12px; border-top: 1px solid var(--border); display: flex; justify-content: space-between; align-items: center; }
 
-    .nav-btn.active, .nav-btn:hover { background: rgba(255,255,255,0.11); color: #fff; }
+    /* Forms */
+    .field { display: flex; flex-direction: column; position: relative; }
+    .field label { font-size: 12px; font-weight: 600; color: var(--text); margin-bottom: 6px; text-transform: uppercase; }
+    input, select, textarea { width: 100%; border: 1px solid var(--border); background: #fff; padding: 8px 12px; border-radius: var(--radius); font-size: 14px; outline: none; transition: border-color 0.2s; }
+    textarea { min-height: 80px; resize: vertical; }
+    input:focus, select:focus, textarea:focus { border-color: var(--primary); box-shadow: 0 0 0 3px var(--primary-soft); }
 
-    .side-note {
-      background: rgba(255,255,255,0.08);
-      border: 1px solid rgba(255,255,255,0.12);
-      padding: 14px;
-      border-radius: 16px;
-      margin-top: 22px;
-      color: #d3ebea;
-      font-size: 13px;
-      line-height: 1.45;
-    }
-
-    .sync-status {
-      display: inline-flex;
-      align-items: center;
-      gap: 8px;
-      margin-top: 10px;
-      padding: 6px 10px;
-      border-radius: 999px;
-      background: rgba(255,255,255,0.1);
-      color: #dff6f2;
-      font-size: 12px;
-      font-weight: 700;
-    }
-
-    .sync-status.error {
-      background: rgba(180, 35, 24, 0.22);
-      color: #ffe3e0;
-    }
-
-    .sync-status.warning {
-      background: rgba(181, 71, 8, 0.22);
-      color: #ffe9c5;
-    }
-
-    main { padding: 28px; min-width: 0; }
-
-    .topbar {
-      display: flex;
-      align-items: center;
-      justify-content: space-between;
-      gap: 18px;
-      margin-bottom: 22px;
-    }
-
-    .topbar h2 { margin: 0; font-size: 28px; letter-spacing: -0.7px; }
-    .topbar p { margin: 5px 0 0; color: var(--muted); }
-
-    .actions { display: flex; gap: 10px; flex-wrap: wrap; }
-
-    .btn {
-      border: 1px solid var(--border);
-      background: #fff;
-      color: var(--text);
-      padding: 10px 14px;
-      border-radius: 12px;
-      cursor: pointer;
-      font-weight: 650;
-      display: inline-flex;
-      align-items: center;
-      justify-content: center;
-      gap: 8px;
-    }
-
-    .btn:hover { border-color: #b7c7cc; }
-    .btn.primary { background: var(--primary); color: #fff; border-color: var(--primary); }
-    .btn.primary:hover { background: var(--primary-dark); }
-    .btn.danger { background: var(--danger-soft); color: var(--danger); border-color: #fecaca; }
-    .btn.small { padding: 7px 10px; border-radius: 10px; font-size: 13px; }
-
-    .grid { display: grid; gap: 16px; }
-    .grid.stats { grid-template-columns: repeat(4, minmax(0,1fr)); margin-bottom: 18px; }
-    .grid.two { grid-template-columns: repeat(2, minmax(0,1fr)); }
-
-    .card {
-      background: var(--card);
-      border: 1px solid var(--border);
-      border-radius: var(--radius);
-      box-shadow: var(--shadow);
-      padding: 18px;
-    }
-
-    .stat-card strong { display: block; font-size: 30px; letter-spacing: -0.8px; }
-    .stat-card span { color: var(--muted); font-size: 13px; }
-
-    .toolbar {
-      display: grid;
-      grid-template-columns: 1fr 180px 180px 180px;
-      gap: 10px;
-      margin-bottom: 14px;
-    }
-
-    .field { position: relative; }
-    .field label {
-      display: block;
-      color: var(--muted);
-      font-size: 12px;
-      font-weight: 700;
-      margin-bottom: 6px;
-    }
-
-    input, select, textarea {
-      width: 100%;
-      border: 1px solid var(--border);
-      border-radius: 12px;
-      padding: 11px 12px;
-      background: #fff;
-      color: var(--text);
-      outline: none;
-    }
-
-    textarea { min-height: 90px; resize: vertical; }
-    input:focus, select:focus, textarea:focus { border-color: var(--accent); box-shadow: 0 0 0 4px rgba(14,165,164,0.11); }
-
-    .suggestions {
-      position: absolute;
-      z-index: 60;
-      top: calc(100% + 6px);
-      left: 0;
-      right: 0;
-      display: none;
-      max-height: 230px;
-      overflow-y: auto;
-      border: 1px solid var(--border);
-      border-radius: 14px;
-      background: #fff;
-      box-shadow: var(--shadow);
-    }
-
+    .suggestions { position: absolute; top: 100%; left: 0; right: 0; background: #fff; border: 1px solid var(--border); border-radius: var(--radius); box-shadow: var(--shadow); z-index: 60; display: none; max-height: 200px; overflow-y: auto; margin-top: 4px; }
     .suggestions.show { display: block; }
+    .suggestion { width: 100%; text-align: left; padding: 10px 12px; background: none; border: none; border-bottom: 1px solid var(--bg); cursor: pointer; font-size: 14px; }
+    .suggestion:hover { background: var(--bg); }
+    .address-status { font-size: 11px; color: var(--muted); margin-top: 4px; min-height: 16px; }
 
-    .suggestion {
-      width: 100%;
-      border: 0;
-      border-bottom: 1px solid var(--border);
-      background: #fff;
-      text-align: left;
-      padding: 11px 12px;
-      color: var(--text);
-      cursor: pointer;
-      border-radius: 0;
-    }
+    /* Tables */
+    table { width: 100%; border-collapse: collapse; font-size: 14px; }
+    th, td { text-align: left; padding: 12px 16px; border-bottom: 1px solid var(--border); }
+    th { background: #fdfdfd; color: var(--muted); font-size: 12px; font-weight: 600; text-transform: uppercase; }
+    tr:hover td { background: var(--bg); }
 
-    .suggestion:hover { background: #f3fbfa; }
-    .suggestion:last-child { border-bottom: 0; }
-    .suggestion small {
-      display: block;
-      margin-top: 3px;
-      color: var(--muted);
-      font-size: 12px;
-    }
-
-    .address-status {
-      min-height: 18px;
-      margin-top: 6px;
-      color: var(--muted);
-      font-size: 12px;
-    }
-
-    table { width: 100%; border-collapse: collapse; }
-    th, td { text-align: left; padding: 12px 10px; border-bottom: 1px solid var(--border); vertical-align: top; }
-    th { color: var(--muted); font-size: 12px; text-transform: uppercase; letter-spacing: 0.04em; }
-    tr:hover td { background: #fbfdfd; }
-
-    .pill {
-      display: inline-flex;
-      align-items: center;
-      border-radius: 999px;
-      padding: 5px 9px;
-      font-size: 12px;
-      font-weight: 750;
-      white-space: nowrap;
-    }
-
-    .pill.da { background: #e0f2fe; color: #075985; }
-    .pill.cdc { background: #ecfdf3; color: #027a48; }
-    .pill.cc { background: #fef3c7; color: #92400e; }
-    .pill.oc { background: #f3e8ff; color: #6b21a8; }
-    .pill.basix { background: #e6f4f1; color: #0f766e; }
-    .pill.bic { background: #ffe4e6; color: #9f1239; }
-    .pill.other { background: #edf2f7; color: #344054; }
-
-    .status-new { background: #edf2f7; color: #344054; }
-    .status-pending, .status-rfi { background: var(--warning-soft); color: var(--warning); }
-    .status-approved, .status-received, .status-reviewed { background: var(--success-soft); color: var(--success); }
-    .status-revision { background: var(--danger-soft); color: var(--danger); }
-
-    .project-row { cursor: pointer; }
+    /* Pills */
+    .pill { display: inline-block; padding: 4px 10px; border-radius: 99px; font-size: 11px; font-weight: 600; text-transform: uppercase; letter-spacing: 0.5px; }
+    .status-active { background: #e0e7ff; color: #4338ca; }
+    .status-hold { background: #fffbeb; color: #d97706; }
+    .status-completed { background: #f0fdf4; color: #16a34a; }
     .hidden { display: none !important; }
 
-    .tabs {
-      display: flex;
-      flex-wrap: wrap;
-      gap: 8px;
-      margin: 18px 0;
-    }
+    /* Tabs */
+    .tabs { display: flex; border-bottom: 1px solid var(--border); margin: 24px 0; overflow-x: auto; }
+    .tab-btn { background: transparent; border: none; padding: 12px 24px; font-size: 14px; font-weight: 500; color: var(--muted); cursor: pointer; border-bottom: 2px solid transparent; margin-bottom: -1px; }
+    .tab-btn:hover { color: var(--text); }
+    .tab-btn.active { color: var(--primary); border-bottom-color: var(--primary); }
 
-    .tab-btn {
-      border: 1px solid var(--border);
-      background: #fff;
-      color: var(--muted);
-      border-radius: 999px;
-      padding: 9px 13px;
-      cursor: pointer;
-      font-weight: 700;
-    }
+    .section-title { display: flex; align-items: center; justify-content: space-between; margin-bottom: 20px; }
+    .section-title h3 { margin: 0; font-size: 18px; font-weight: 600; }
+    .empty { text-align: center; padding: 60px 20px; background: var(--bg); border-radius: var(--radius); color: var(--muted); border: 1px dashed var(--border); }
 
-    .tab-btn.active { background: var(--primary-soft); color: var(--primary-dark); border-color: #99d5ce; }
-
-    .section-title {
-      display: flex;
-      align-items: center;
-      justify-content: space-between;
-      gap: 12px;
-      margin-bottom: 14px;
-    }
-
-    .section-title h3 { margin: 0; font-size: 18px; }
-    .section-title p { margin: 4px 0 0; color: var(--muted); font-size: 13px; }
-
-    .empty {
-      text-align: center;
-      color: var(--muted);
-      padding: 38px 20px;
-      border: 1px dashed var(--border);
-      border-radius: var(--radius);
-      background: #fbfdfd;
-    }
-
-    .template-box {
-      background: #f8fbfb;
-      border: 1px solid var(--border);
-      border-radius: 14px;
-      padding: 14px;
-      white-space: pre-wrap;
-      line-height: 1.45;
-    }
-
-    .invoice-shell {
-      display: grid;
-      gap: 18px;
-    }
-
-    .invoice-preview {
-      background: #fff;
-      border: 1px solid var(--border);
-      border-radius: 24px;
-      box-shadow: var(--shadow);
-      padding: 12px;
-    }
-
-    .invoice-sheet {
-      border: 1px solid #ececec;
-      background: #fff;
-      min-height: 1120px;
-    }
-
-    .invoice-body {
-      display: grid;
-      grid-template-rows: auto auto auto auto 1fr;
-      min-height: 1120px;
-      padding: 28px 32px 24px;
-      gap: 20px;
-    }
-
-    .invoice-sheet.compact .invoice-body {
-      min-height: auto;
-      padding: 20px 24px 18px;
-      gap: 14px;
-    }
-
-    .invoice-head {
-      display: grid;
-      grid-template-columns: minmax(0, 1fr) 96px;
-      gap: 18px;
-      align-items: start;
-    }
-
-    .invoice-logo-wrap {
-      width: 96px;
-      height: 96px;
-      justify-self: end;
-      display: grid;
-      place-items: center;
-      background: #fff;
-      border: 1px solid #d8dce3;
-      border-radius: 18px;
-      padding: 8px;
-    }
-
-    .invoice-company h2 {
-      margin: 0 0 10px;
-      color: #11284c;
-      font-size: 24px;
-      letter-spacing: -0.03em;
-    }
-
-    .invoice-company p,
-    .invoice-party p,
-    .invoice-payment p {
-      margin: 0;
-      line-height: 1.7;
-      white-space: pre-line;
-    }
-
-    .invoice-logo {
-      width: 100%;
-      height: 100%;
-      object-fit: contain;
-      background: #fff;
-    }
-
-    .invoice-divider {
-      height: 1px;
-      background: #bfd4ef;
-    }
-
-    .invoice-parties {
-      display: grid;
-      grid-template-columns: minmax(0, 1fr) minmax(0, 1fr) 220px;
-      gap: 18px;
-      align-items: start;
-    }
-
-    .invoice-party h4,
-    .invoice-dates h4 {
-      margin: 0 0 8px;
-      color: #1154a3;
-      font-size: 12px;
-      text-transform: uppercase;
-      letter-spacing: 0.06em;
-    }
-
-    .invoice-dates {
-      display: grid;
-      gap: 8px;
-    }
-
-    .invoice-date-row {
-      display: grid;
-      grid-template-columns: 1fr auto;
-      gap: 10px;
-      font-size: 13px;
-    }
-
-    .invoice-table {
-      width: 100%;
-      border-collapse: collapse;
-      font-size: 13px;
-    }
-
-    .invoice-table th,
-    .invoice-table td {
-      border: 1px solid #d8dce3;
-      padding: 12px;
-      vertical-align: top;
-      background: #fff;
-    }
-
-    .invoice-sheet.compact .invoice-table th,
-    .invoice-sheet.compact .invoice-table td {
-      padding: 9px 10px;
-      font-size: 12px;
-    }
-
-    .invoice-table th {
-      border-color: #1154a3;
-      color: #11284c;
-      background: #f5f9ff;
-      font-size: 12px;
-      font-weight: 800;
-      letter-spacing: 0.04em;
-      text-transform: uppercase;
-      text-align: left;
-    }
-
-    .invoice-table td:last-child,
-    .invoice-table th:last-child {
-      text-align: right;
-      white-space: nowrap;
-      width: 120px;
-    }
-
-    .invoice-line-title {
-      font-weight: 700;
-      margin-bottom: 6px;
-    }
-
-    .invoice-bottom {
-      display: grid;
-      grid-template-columns: minmax(0, 1fr) 280px;
-      gap: 18px;
-      align-items: end;
-      margin-top: auto;
-    }
-
-    .invoice-payment p {
-      font-size: 14px;
-    }
-
-    .invoice-sheet.compact .invoice-payment p,
-    .invoice-sheet.compact .invoice-total-row {
-      font-size: 13px;
-    }
-
-    .invoice-sheet.compact .invoice-total-row.grand {
-      font-size: 19px;
-    }
-
-    .invoice-service-picker {
-      display: grid;
-      gap: 8px;
-    }
-
-    .invoice-totals {
-      margin-left: auto;
-      width: 100%;
-      display: grid;
-      gap: 8px;
-    }
-
-    .invoice-total-row {
-      display: grid;
-      grid-template-columns: 1fr auto;
-      gap: 12px;
-      font-size: 15px;
-    }
-
-    .invoice-total-row.grand {
-      font-size: 22px;
-      font-weight: 800;
-      color: #11284c;
-    }
-
-    .modal-backdrop {
-      position: fixed;
-      inset: 0;
-      background: rgba(5, 20, 23, 0.55);
-      display: none;
-      align-items: center;
-      justify-content: center;
-      padding: 20px;
-      z-index: 40;
-    }
-
+    /* Modal */
+    .modal-backdrop { position: fixed; inset: 0; background: rgba(15, 23, 42, 0.6); backdrop-filter: blur(4px); display: none; align-items: center; justify-content: center; z-index: 100; padding: 24px; }
     .modal-backdrop.show { display: flex; }
-
-    .modal {
-      width: min(780px, 100%);
-      max-height: 90vh;
-      overflow-y: auto;
-      background: #fff;
-      border-radius: 22px;
-      box-shadow: 0 24px 70px rgba(0,0,0,0.25);
-      padding: 20px;
-    }
-
-    .modal-header {
-      display: flex;
-      align-items: start;
-      justify-content: space-between;
-      gap: 10px;
-      border-bottom: 1px solid var(--border);
-      padding-bottom: 14px;
-      margin-bottom: 16px;
-    }
-
-    .modal-header h3 { margin: 0; font-size: 22px; }
-    .form-grid { display: grid; grid-template-columns: repeat(2, minmax(0,1fr)); gap: 13px; }
+    .modal { background: var(--card); width: 100%; max-width: 700px; max-height: 90vh; overflow-y: auto; border-radius: var(--radius); box-shadow: 0 20px 25px -5px rgba(0,0,0,0.1); padding: 32px; }
+    .modal-header { display: flex; justify-content: space-between; align-items: flex-start; border-bottom: 1px solid var(--border); padding-bottom: 16px; margin-bottom: 24px; }
+    .modal-header h3 { margin: 0; font-size: 20px; font-weight: 600; }
+    .form-grid { display: grid; grid-template-columns: repeat(2, 1fr); gap: 16px; }
     .full { grid-column: 1 / -1; }
 
-    .print-report { display: none; }
-
-    .file-list, .note-list { display: grid; gap: 10px; }
-    .file-item, .note-card {
-      display: flex;
-      justify-content: space-between;
-      gap: 12px;
-      align-items: flex-start;
-      padding: 12px;
-      border: 1px solid var(--border);
-      border-radius: 14px;
-      background: #fbfdfd;
-    }
-
-    .note-card p { margin: 6px 0 0; white-space: pre-wrap; line-height: 1.45; }
-    .muted { color: var(--muted); }
-    .small-text { font-size: 13px; }
-
-    .auth-screen {
-      position: fixed;
-      inset: 0;
-      z-index: 9999;
-      display: flex;
-      align-items: center;
-      justify-content: center;
-      padding: 24px;
-      background: linear-gradient(135deg, #052f33, #0b2f32 45%, #f5f7f8 45%);
-    }
-
-    .auth-card {
-      width: min(420px, 100%);
-      background: #fff;
-      border: 1px solid var(--border);
-      border-radius: 22px;
-      box-shadow: 0 24px 70px rgba(0,0,0,0.22);
-      padding: 28px;
-    }
-
-    .auth-card h2 {
-      margin: 0 0 8px;
-      font-size: 26px;
-      letter-spacing: -0.7px;
-    }
-
-    .auth-card p {
-      margin: 0 0 18px;
-      color: var(--muted);
-      line-height: 1.45;
-    }
-
-    .auth-error {
-      display: none;
-      margin-top: 10px;
-      color: var(--danger);
-      background: var(--danger-soft);
-      border-radius: 12px;
-      padding: 10px 12px;
-      font-size: 13px;
-      font-weight: 700;
-    }
-
+    /* Auth Screen */
+    .auth-screen { position: fixed; inset: 0; background: var(--bg); display: flex; align-items: center; justify-content: center; z-index: 9999; }
+    .auth-card { background: #fff; padding: 40px; width: 100%; max-width: 400px; border-radius: var(--radius); box-shadow: var(--shadow); border: 1px solid var(--border); text-align: center; }
+    .auth-card .brand-mark { margin: 0 auto 20px; width: 48px; height: 48px; font-size: 20px; border-radius: 8px; }
+    .auth-card h2 { margin: 0 0 8px; font-size: 24px; font-weight: 600; }
+    .auth-error { display: none; margin-top: 16px; color: var(--danger); background: var(--danger-soft); padding: 12px; border-radius: var(--radius); font-size: 13px; }
     .auth-error.show { display: block; }
 
-    body.locked .app-shell { display: none; }
+    /* Invoice Specific */
+    .invoice-shell { display: grid; gap: 24px; }
+    .invoice-preview { background: #fff; border: 1px solid var(--border); border-radius: 8px; padding: 40px; box-shadow: var(--shadow); }
+    .invoice-header { display: flex; justify-content: space-between; margin-bottom: 40px; }
+    .invoice-meta { display: grid; grid-template-columns: 1fr 1fr 1fr; gap: 24px; margin-bottom: 40px; padding-bottom: 24px; border-bottom: 1px solid var(--border); }
+    .invoice-meta-row { display: flex; justify-content: space-between; font-size: 14px; margin-bottom: 4px; }
+    .invoice-table-rendered { width: 100%; border-collapse: collapse; margin-bottom: 40px; }
+    .invoice-table-rendered th, .invoice-table-rendered td { padding: 12px; border: 1px solid var(--border); }
+    .invoice-table-rendered td:last-child, .invoice-table-rendered th:last-child { text-align: right; width: 140px; }
+    .invoice-footer { display: flex; justify-content: space-between; align-items: flex-end; }
+    .invoice-notes { font-size: 14px; white-space: pre-wrap; color: var(--muted); }
+    .invoice-summary { width: 300px; }
+    .summary-row { display: flex; justify-content: space-between; padding: 8px 0; font-size: 14px; }
+    .summary-row.grand { font-size: 18px; font-weight: 700; border-top: 2px solid var(--border); margin-top: 8px; padding-top: 12px; }
 
-    @media (max-width: 980px) {
-      .app-shell { grid-template-columns: 1fr; }
-      aside { position: relative; height: auto; }
-      .toolbar { grid-template-columns: 1fr 1fr; }
-      .grid.stats, .grid.two { grid-template-columns: 1fr 1fr; }
-      .invoice-parties, .invoice-bottom { grid-template-columns: 1fr; }
-    }
+    /* Checklist Editable Library */
+    .checklist-list { display: flex; flex-direction: column; gap: 8px; margin-top: 12px; }
+    .checklist-item { display: flex; justify-content: space-between; align-items: center; background: #fff; padding: 8px 12px; border: 1px solid var(--border); border-radius: var(--radius); font-size: 14px; }
 
-    @media (max-width: 640px) {
-      main { padding: 18px; }
-      .topbar { align-items: flex-start; flex-direction: column; }
-      .toolbar, .form-grid, .grid.stats, .grid.two { grid-template-columns: 1fr; }
-      table { font-size: 13px; }
-      th, td { padding: 10px 6px; }
-    }
-
-    @media print {
-      body { background: #fff; }
-      aside, .topbar, .tabs, .no-print, .modal-backdrop, #dashboardView, #projectView { display: none !important; }
-      main { padding: 0; }
-      .app-shell { display: block; }
-      .print-report { display: block; padding: 24px; }
-      .card { box-shadow: none; border: 1px solid #bbb; break-inside: avoid; margin-bottom: 14px; }
-      .invoice-preview { box-shadow: none !important; border: 0 !important; padding: 0 !important; }
-      .invoice-sheet { border: 0 !important; min-height: auto !important; }
-      .invoice-body { min-height: auto !important; padding: 16px 18px 12px !important; gap: 12px !important; }
-      .invoice-table th, .invoice-table td { padding: 8px 9px !important; font-size: 12px !important; }
-      .invoice-company h2 { font-size: 20px !important; margin-bottom: 6px !important; }
-      .invoice-company p, .invoice-party p, .invoice-payment p, .invoice-date-row { font-size: 12px !important; line-height: 1.45 !important; }
-      .invoice-logo-wrap { width: 72px !important; height: 72px !important; padding: 6px !important; background: #fff !important; border-color: #d8dce3 !important; }
-      .invoice-logo { width: 100% !important; height: 100% !important; background: #fff !important; }
-      .invoice-bottom { gap: 12px !important; }
-      .invoice-total-row { font-size: 13px !important; }
-      .invoice-total-row.grand { font-size: 18px !important; }
-      tr { page-break-inside: avoid; page-break-after: auto; }
-      .print-title { font-size: 26px; margin: 0 0 6px; }
-      .print-subtitle { color: #555; margin: 0 0 20px; }
-    }
+    .file-list { display: grid; gap: 12px; }
+    .file-item { background: var(--bg); padding: 16px; border-radius: var(--radius); border: 1px solid var(--border); display: flex; justify-content: space-between; align-items: center; }
   </style>
 </head>
 <body class="locked">
 
   <div id="authScreen" class="auth-screen">
     <form class="auth-card" onsubmit="unlockPortal(event)">
-      <div class="brand" style="margin-bottom:18px;color:#0b2f32;">
-        <div class="brand-mark">PA</div>
-        <div>
-          <h1 style="margin:0;font-size:18px;">Project Approvals</h1>
-          <p style="margin:3px 0 0;color:#64757d;font-size:12px;">Internal Portal</p>
-        </div>
-      </div>
-      <h2>Portal Login</h2>
-      <p>Enter the portal password to access your internal approval tracker.</p>
+      <div class="brand-mark">PA</div>
+      <h2>Internal Portal</h2>
+      <p>Enter your password to access the approval tracker.</p>
       <div class="field">
-        <label>Password</label>
-        <input id="portalPassword" type="password" autocomplete="current-password" placeholder="Enter password" required />
+        <input id="portalPassword" type="password" autocomplete="current-password" placeholder="Password" required />
       </div>
-      <button class="btn primary" type="submit" style="width:100%;margin-top:14px;">Unlock Portal</button>
+      <button class="btn primary" type="submit" style="width:100%; margin-top:16px;">Access Portal</button>
       <div id="authError" class="auth-error">Incorrect password. Please try again.</div>
     </form>
   </div>
 
-  <div class="app-shell">
-    <aside>
-      <div class="brand">
-        <div class="brand-mark">PA</div>
-        <div>
-          <h1>Project Approvals</h1>
-          <p>NSW Approval Tracker</p>
+  <div class="app-wrapper">
+    <header class="top-nav">
+      <div class="nav-container">
+        <div class="brand">
+          <div class="brand-mark">PA</div>
+          <div><h1>Project Approvals</h1></div>
         </div>
+        <nav class="main-menu">
+          <button class="nav-btn active" onclick="showDashboard()">Dashboard</button>
+          <button class="nav-btn" onclick="openProjectModal()">Add Project</button>
+          <button class="nav-btn" onclick="showChecklistLibrary()">Library</button>
+          <button class="nav-btn" onclick="exportData()">Backup</button>
+          <input id="importFile" type="file" accept="application/json" class="hidden" onchange="importData(event)" />
+          <button class="nav-btn" onclick="document.getElementById('importFile').click()">Restore</button>
+          
+          <div class="sync-wrapper">
+            <div id="syncDot" class="sync-dot yellow" title="Waiting for setup"></div>
+          </div>
+        </nav>
       </div>
+    </header>
 
-      <button class="nav-btn active" onclick="showDashboard()">Dashboard</button>
-      <button class="nav-btn" onclick="openProjectModal()">Add Project</button>
-      <button class="nav-btn" onclick="showChecklistLibrary()">Checklist Library</button>
-      <button class="nav-btn" onclick="showTemplatesOnly()">Templates</button>
-      <button class="nav-btn" onclick="exportData()">Backup Data</button>
-      <button class="nav-btn" onclick="document.getElementById('importFile').click()">Restore Data</button>
-      <input id="importFile" type="file" accept="application/json" class="hidden" onchange="importData(event)" />
-
-      <div class="side-note">
-        <strong>Supabase cloud version</strong><br />
-        Project data saves online so you can access it from another browser later. Files/photos still stay browser-based in this version.
-        <div id="syncStatus" class="sync-status warning">Waiting for Supabase setup</div>
-      </div>
-    </aside>
-
-    <main>
-      <div class="topbar no-print">
-        <div>
-          <h2 id="pageTitle">Dashboard</h2>
-          <p id="pageSubtitle">Track DA, CDC, CC, OC, BASIX and BIC jobs in one place.</p>
-        </div>
-        <div class="actions">
-          <button class="btn" onclick="seedDemoData()">Load Demo</button>
-          <button class="btn primary" onclick="openProjectModal()">New Project</button>
-        </div>
-      </div>
-
+    <main class="content-container">
+      <!-- DASHBOARD VIEW -->
       <section id="dashboardView">
-        <div class="grid stats">
-          <div class="card stat-card"><span>Total Projects</span><strong id="statTotal">0</strong></div>
-          <div class="card stat-card"><span>Missing Documents</span><strong id="statMissing">0</strong></div>
-          <div class="card stat-card"><span>Urgent / Due Soon</span><strong id="statUrgent">0</strong></div>
-          <div class="card stat-card"><span>RFI / Council Requests</span><strong id="statRfi">0</strong></div>
+        <div class="topbar">
+          <div>
+            <h2 id="pageTitle">Dashboard</h2>
+            <p id="pageSubtitle">Track DA, CDC, CC, OC, BASIX and BIC jobs.</p>
+          </div>
+          <div class="actions">
+            <button class="btn" onclick="exportToCSV()">⤓ Export CSV</button>
+            <button class="btn primary" onclick="openProjectModal()">+ New Project</button>
+          </div>
         </div>
 
-        <div class="card">
-          <div class="section-title">
-            <div>
-              <h3>Active Jobs</h3>
-              <p>Click a row to open the project file.</p>
-            </div>
-          </div>
-          <div class="toolbar">
-            <input id="searchInput" placeholder="Search address, client, council or status..." oninput="renderDashboard()" />
-            <select id="typeFilter" onchange="renderDashboard()">
-              <option value="">All approval types</option>
-              <option>DA</option><option>CDC</option><option>CC</option><option>OC</option><option>BASIX</option><option>BIC</option><option>Other</option>
-            </select>
-            <select id="statusFilter" onchange="renderDashboard()">
-              <option value="">All statuses</option>
-              <option>New enquiry</option><option>Documents pending</option><option>Submitted</option><option>RFI</option><option>Certifier review</option><option>Approved</option><option>Final docs</option>
-            </select>
-            <select id="priorityFilter" onchange="renderDashboard()">
-              <option value="">All priorities</option>
-              <option value="urgent">Urgent / due soon</option>
-              <option value="missing">Missing documents</option>
-              <option value="client">Waiting on client</option>
-              <option value="consultant">Waiting on consultant</option>
-              <option value="council">Waiting on council/certifier</option>
-            </select>
-          </div>
-          <div id="projectTableWrap"></div>
+        <div class="grid stats">
+          <div class="stat-card"><span>Total Projects</span><strong id="statTotal">0</strong></div>
+          <div class="stat-card"><span>Active</span><strong id="statActive">0</strong></div>
+          <div class="stat-card"><span>Missing Documents</span><strong id="statMissing">0</strong></div>
+          <div class="stat-card"><span>Total Billed</span><strong id="statRevenue">$0</strong></div>
         </div>
+
+        <div class="toolbar">
+          <div class="toolbar-filters">
+            <input id="searchInput" placeholder="Search address, client..." oninput="renderDashboard()" style="width:250px;" />
+            <select id="typeFilter" onchange="renderDashboard()" style="width:180px;">
+              <option value="">All Types</option><option>DA</option><option>CDC</option><option>CC</option><option>OC</option><option>BASIX</option><option>BIC</option><option>Other</option>
+            </select>
+          </div>
+          <div class="view-toggle">
+            <button id="btnViewGrid" class="active" onclick="setDashboardView('grid')">Grid</button>
+            <button id="btnViewBoard" onclick="setDashboardView('board')">Pipeline</button>
+          </div>
+        </div>
+        
+        <div id="projectTableWrap"></div>
       </section>
 
+      <!-- PROJECT FILE VIEW -->
       <section id="projectView" class="hidden">
-        <div class="card no-print">
+        <div class="card" style="margin-bottom: 0; padding-bottom: 0; border-bottom: none; border-radius: var(--radius) var(--radius) 0 0;">
           <div class="section-title">
             <div>
               <h3 id="projectHeading">Project File</h3>
@@ -781,44 +250,38 @@
             </div>
             <div class="actions">
               <button class="btn" onclick="showDashboard()">Back</button>
-              <button class="btn" onclick="openProjectModal(currentProjectId)">Edit</button>
-              <button class="btn primary" onclick="printProjectReport()">Export PDF</button>
+              <button class="btn outline-primary" onclick="generateEmailChase()">✉ Chase Missing Docs</button>
+              <button class="btn" onclick="openProjectModal(currentProjectId)">Edit Details</button>
               <button class="btn danger" onclick="deleteCurrentProject()">Delete</button>
             </div>
           </div>
         </div>
 
-        <div class="tabs no-print">
+        <!-- Tabs -->
+        <div class="tabs" style="background: var(--card); padding: 0 24px; margin-top: 0; border-radius: 0 0 var(--radius) var(--radius); border-left: 1px solid var(--border); border-right: 1px solid var(--border); border-bottom: 1px solid var(--border); margin-bottom: 24px;">
           <button class="tab-btn active" data-tab="overview" onclick="switchTab('overview')">Overview</button>
           <button class="tab-btn" data-tab="documents" onclick="switchTab('documents')">Documents</button>
-          <button class="tab-btn" data-tab="consultants" onclick="switchTab('consultants')">Consultants</button>
-          <button class="tab-btn" data-tab="councilNotes" onclick="switchTab('councilNotes')">Council / Certifier Notes</button>
-          <button class="tab-btn" data-tab="dates" onclick="switchTab('dates')">Important Dates</button>
-          <button class="tab-btn" data-tab="templates" onclick="switchTab('templates')">Templates</button>
+          <button class="tab-btn" data-tab="councilNotes" onclick="switchTab('councilNotes')">Council Notes</button>
           <button class="tab-btn" data-tab="invoice" onclick="switchTab('invoice')">Invoice</button>
-          <button class="tab-btn" data-tab="files" onclick="switchTab('files')">Files / Photos</button>
-          <button class="tab-btn" data-tab="projectNotes" onclick="switchTab('projectNotes')">Notes</button>
+          <button class="tab-btn" data-tab="files" onclick="switchTab('files')">Files</button>
+          <button class="tab-btn" data-tab="projectNotes" onclick="switchTab('projectNotes')">Internal Notes</button>
         </div>
 
         <div id="projectTabContent"></div>
       </section>
 
+      <!-- CHECKLIST LIBRARY VIEW -->
       <section id="libraryView" class="hidden"></section>
-      <section id="templatesView" class="hidden"></section>
-      <section id="printReport" class="print-report"></section>
     </main>
   </div>
 
+  <!-- PROJECT MODAL -->
   <div id="projectModal" class="modal-backdrop">
     <div class="modal">
       <div class="modal-header">
-        <div>
-          <h3 id="modalTitle">Add Project</h3>
-          <p class="muted small-text">Create the basic project file first. The checklist will auto-load from the approval type.</p>
-        </div>
-        <button class="btn small" onclick="closeProjectModal()">Close</button>
+        <div><h3 id="modalTitle">Add Project</h3></div>
+        <button class="btn small" onclick="closeProjectModal()">✕ Close</button>
       </div>
-
       <form id="projectForm" onsubmit="saveProject(event)">
         <input type="hidden" id="projectId" />
         <div class="form-grid">
@@ -828,21 +291,16 @@
           <div class="field"><label>Council</label><select id="council" required></select></div>
           <div class="field full">
             <label>Site address</label>
-            <input id="siteAddress" required autocomplete="off" placeholder="Start typing the street, suburb or postcode..." oninput="showAddressSuggestions(this.value)" onfocus="showAddressSuggestions(this.value)" />
+            <input id="siteAddress" required autocomplete="off" placeholder="Start typing the street..." oninput="showAddressSuggestions(this.value)" onfocus="showAddressSuggestions(this.value)" />
             <div id="addressSuggestions" class="suggestions"></div>
             <div id="addressLookupStatus" class="address-status"></div>
           </div>
           <div class="field"><label>Lot / DP</label><input id="lotDp" placeholder="Lot 1 DP 123456" /></div>
-          <div class="field"><label>Project type</label><input id="projectType" placeholder="Alteration/addition, new dwelling, commercial fitout" /></div>
+          <div class="field"><label>Project type</label><input id="projectType" placeholder="Alteration/addition..." /></div>
           <div class="field"><label>Approval type</label><select id="approvalType" required><option>DA</option><option>CDC</option><option>CC</option><option>OC</option><option>BASIX</option><option>BIC</option><option>Other</option></select></div>
-          <div class="field"><label>Job status</label><select id="jobStatus"><option>New enquiry</option><option>Documents pending</option><option>Submitted</option><option>RFI</option><option>Certifier review</option><option>Approved</option><option>Final docs</option></select></div>
-          <div class="field"><label>Due date</label><input id="dueDate" type="date" /></div>
-          <div class="field"><label>Submission date</label><input id="submissionDate" type="date" /></div>
-          <div class="field"><label>Approval date</label><input id="approvalDate" type="date" /></div>
-          <div class="field"><label>Assigned staff</label><input id="assignedStaff" placeholder="Harsh" /></div>
-          <div class="field full"><label>Project notes</label><textarea id="projectNotes" placeholder="Main scope, client instructions, risk items..."></textarea></div>
+          <div class="field"><label>Project Status</label><select id="jobStatus"><option value="Active">Active</option><option value="Hold">Hold</option><option value="Completed">Completed</option></select></div>
         </div>
-        <div class="actions" style="justify-content:flex-end;margin-top:18px;">
+        <div class="actions" style="justify-content:flex-end; margin-top:24px;">
           <button type="button" class="btn" onclick="closeProjectModal()">Cancel</button>
           <button class="btn primary" type="submit">Save Project</button>
         </div>
@@ -851,848 +309,359 @@
   </div>
 
   <script>
-    const PORTAL_PASSWORD = 'Jogiharsh@1993';
-    const SUPABASE_URL = 'https://hdedxguhmilzlilybxgc.supabase.co';
-    const SUPABASE_ANON_KEY = 'sb_publishable_Fc0aE2unBnK4AQF4xKRHcg_xzGd_7tx';
-    const SUPABASE_TABLE = 'app_state';
+    // Note: The variables PORTAL_PASSWORD, SUPABASE_URL, and SUPABASE_ANON_KEY 
+    // are now securely loaded from your config.js file!
+
+    const SUPABASE_TABLE = 'app_state'; 
     const APP_STATE_ID = 'main';
-    const LOCAL_FALLBACK_KEY = 'projectApprovalsTracker.v3.localFallback';
-    const INVOICE_LOGO_SRC = './project-approvals-logo.png';
-    const BUSINESS_PROFILE = {
-      name: 'Project Approvals',
-      abn: 'ABN 16 696 716 980',
-      email: 'info@projectapprovals.com.au',
-      phone: '0414633507',
-      address: 'Quakershill NSW 2763',
-      paymentTerms: 'Payment due within 7 days of invoice date.',
-      bankDetails: 'PayID: info@projectapprovals.com.au\n\nBank: NAB\nAccount Name: Project Approvals\nBSB: 082-356\nAccount No: 308014097'
-    };
-    const INVOICE_SERVICE_OPTIONS = [
-      'CDC consulting service',
-      'DA application support',
-      'CC approval support',
-      'OC approval support',
-      'BASIX coordination',
-      'Council lodgement support',
-      'Site inspection consulting',
-      'General approval consulting'
-    ];
+    const LOCAL_FALLBACK_KEY = 'projectApprovalsTracker.v8.localFallback';
+    const LIBRARY_FALLBACK_KEY = 'projectApprovalsTracker.v8.library';
+    
+    const BUSINESS_PROFILE = { name: 'Project Approvals', abn: 'ABN 16 696 716 980', email: 'info@projectapprovals.com.au', phone: '0414633507', address: 'Quakershill NSW 2763', bankDetails: 'PayID: info@projectapprovals.com.au\nBank: NAB\nAccount Name: Project Approvals\nBSB: 082-356\nAccount No: 308014097' };
+    const INVOICE_SERVICE_OPTIONS = ['CDC consulting service','DA application support','CC approval support','OC approval support','BASIX coordination','Council lodgement support','Site inspection consulting','General approval consulting'];
 
     let projects = [];
     let currentProjectId = null;
     let activeTab = 'overview';
     let isCloudReady = false;
+    let currentView = 'grid';
+
+    // INDEXEDDB SETUP FOR LOCAL IMAGE CACHING
+    let localDB;
+    const request = indexedDB.open("PA_FilesDatabase", 1);
+    request.onupgradeneeded = (e) => { localDB = e.target.result; localDB.createObjectStore("files", { keyPath: "id" }); };
+    request.onsuccess = (e) => { localDB = e.target.result; };
+
+    let checklistLibrary = {
+      DA: ['Owner consent','Site survey','Architectural drawings','Statement of Environmental Effects','Cost estimate report'],
+      CDC: ['Design plans','Certificate of title','Building specifications','Structural plans','BASIX certificate'],
+      CC: ['Development consent','Construction drawings','Structural engineering plans','NCC/BCA compliance notes'],
+      OC: ['Final inspection record','Fire safety certificate','Compliance certificates','Waterproofing certificate'],
+      BASIX: ['Project details','Floor area','Window details','Insulation details','Hot water system'],
+      BIC: ['BIC application form','Site survey','Photos of existing works','Structural certificate'],
+      Other: ['Client instructions','Site photos','Consultant advice']
+    };
 
     function unlockPortal(event) {
       event.preventDefault();
-      const input = document.getElementById('portalPassword');
-      const error = document.getElementById('authError');
-      if (input.value === PORTAL_PASSWORD) {
+      // Verifies against the PORTAL_PASSWORD variable loaded from config.js
+      if (document.getElementById('portalPassword').value === PORTAL_PASSWORD) {
         sessionStorage.setItem('paPortalUnlocked', 'yes');
         document.body.classList.remove('locked');
         document.getElementById('authScreen').style.display = 'none';
-        document.querySelector('.app-shell').style.display = 'grid';
-        error.classList.remove('show');
-        input.value = '';
+        document.querySelector('.app-wrapper').style.display = 'flex';
       } else {
-        error.classList.add('show');
-        input.value = '';
-        input.focus();
+        document.getElementById('authError').classList.add('show');
       }
     }
 
     function checkPortalAuth() {
       if (sessionStorage.getItem('paPortalUnlocked') === 'yes') {
         document.body.classList.remove('locked');
-        const authScreen = document.getElementById('authScreen');
-        if (authScreen) authScreen.style.display = 'none';
-        const appShell = document.querySelector('.app-shell');
-        if (appShell) appShell.style.display = 'grid';
+        document.getElementById('authScreen').style.display = 'none';
+        document.querySelector('.app-wrapper').style.display = 'flex';
       }
     }
 
     function setSyncStatus(message, tone='warning') {
-      const el = document.getElementById('syncStatus');
-      if (!el) return;
-      el.textContent = message;
-      el.className = `sync-status${tone === 'warning' ? ' warning' : tone === 'error' ? ' error' : ''}`;
+      const dot = document.getElementById('syncDot');
+      if (dot) { dot.className = `sync-dot ${tone === 'warning' ? 'yellow' : tone === 'error' ? 'red' : 'green'}`; dot.title = message; }
     }
 
     function uid() { return 'id-' + Date.now() + '-' + Math.random().toString(16).slice(2); }
     function todayISO() { return new Date().toISOString().slice(0,10); }
     function esc(value='') { return String(value).replace(/[&<>"]/g, m => ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;'}[m])); }
-    function formatCurrency(amount) { return new Intl.NumberFormat('en-AU', { style: 'currency', currency: 'AUD' }).format(Number(amount || 0)); }
-    function nextInvoiceNumber() { return 'PA-' + new Date().toISOString().slice(0,10).replace(/-/g, '') + '-' + String(projects.length + 1).padStart(3, '0'); }
+    function formatCurrency(amount) { return new Intl.NumberFormat('en-AU', { style: 'currency', currency: 'AUD', maximumFractionDigits:2 }).format(Number(amount || 0)); }
     function looksCustomService(name='') { return !!name && !INVOICE_SERVICE_OPTIONS.includes(name); }
-    function addDays(dateString, days) {
-      const date = dateString ? new Date(dateString) : new Date();
-      date.setDate(date.getDate() + days);
-      return date.toISOString().slice(0, 10);
-    }
-    function defaultInvoice(project) {
-      return {
-        invoiceNumber: nextInvoiceNumber(),
-        issueDate: todayISO(),
-        dueDate: addDays(todayISO(), 7),
-        status: 'SENT',
-        lineItems: [
-          {
-            id: uid(),
-            serviceName: `${project?.approvalType || 'Approval'} consulting service`,
-            price: '',
-            useCustomService: looksCustomService(`${project?.approvalType || 'Approval'} consulting service`)
-          }
-        ],
-        notes: BUSINESS_PROFILE.bankDetails
-      };
+    function addDays(dateString, days) { const d = dateString ? new Date(dateString) : new Date(); d.setDate(d.getDate() + days); return d.toISOString().slice(0, 10); }
+
+    function getNextGlobalInvoiceNumber() {
+      let maxNumber = 999;
+      projects.forEach(p => { if (p.invoice?.invoiceNumber) { const match = p.invoice.invoiceNumber.match(/\d+$/); if (match) { const num = parseInt(match[0], 10); if (num > maxNumber) maxNumber = num; } } });
+      return `INV-${maxNumber + 1}`;
     }
 
-    function invoiceServiceEditor(item) {
-      const useCustom = item.useCustomService || looksCustomService(item.serviceName);
-      const selectedValue = useCustom ? '__custom__' : (item.serviceName || '');
-      return `<div class="invoice-service-picker">
-        <select onchange="updateInvoiceServiceChoice('${item.id}',this.value)">
-          <option value="">Select service</option>
-          ${INVOICE_SERVICE_OPTIONS.map(service => `<option value="${esc(service)}" ${selectedValue===service?'selected':''}>${esc(service)}</option>`).join('')}
-          <option value="__custom__" ${selectedValue==='__custom__'?'selected':''}>Enter new service</option>
-        </select>
-        ${useCustom ? `<input value="${esc(item.serviceName || '')}" onchange="updateInvoiceLine('${item.id}','serviceName',this.value)" placeholder="Enter new service name" />` : ''}
-      </div>`;
-    }
+    function defaultInvoice(project) { return { invoiceNumber: getNextGlobalInvoiceNumber(), issueDate: todayISO(), dueDate: addDays(todayISO(), 7), lineItems: [{ id: uid(), serviceName: `${project?.approvalType || 'Approval'} consulting service`, price: '' }], notes: BUSINESS_PROFILE.bankDetails }; }
 
-    function loadLocalFallback() {
-      try {
-        return JSON.parse(localStorage.getItem(LOCAL_FALLBACK_KEY) || '[]');
-      } catch {
-        return [];
-      }
-    }
-
-    function saveLocalFallback() {
-      localStorage.setItem(LOCAL_FALLBACK_KEY, JSON.stringify(projects));
-    }
-
-    function hasSupabaseConfig() {
-      return SUPABASE_URL && SUPABASE_ANON_KEY &&
-        !SUPABASE_URL.includes('PASTE_YOUR_') &&
-        !SUPABASE_ANON_KEY.includes('PASTE_YOUR_');
-    }
+    function loadLocalFallback() { try { const lib = localStorage.getItem(LIBRARY_FALLBACK_KEY); if (lib) checklistLibrary = JSON.parse(lib); return JSON.parse(localStorage.getItem(LOCAL_FALLBACK_KEY) || '[]'); } catch { return []; } }
+    function saveLocalFallback() { localStorage.setItem(LOCAL_FALLBACK_KEY, JSON.stringify(projects)); localStorage.setItem(LIBRARY_FALLBACK_KEY, JSON.stringify(checklistLibrary)); }
+    function hasSupabaseConfig() { return typeof SUPABASE_URL !== 'undefined' && SUPABASE_URL && !SUPABASE_URL.includes('PASTE_YOUR_'); }
 
     async function initSupabase() {
-      if (!hasSupabaseConfig()) {
-        projects = loadLocalFallback();
-        setSyncStatus('Paste Supabase URL and anon key', 'warning');
-        return;
-      }
-
+      if (!hasSupabaseConfig()) { projects = loadLocalFallback(); setSyncStatus('Local Storage Only (Missing Config)', 'warning'); return; }
       try {
-        isCloudReady = true;
-        setSyncStatus('Connecting to Supabase...', 'warning');
+        isCloudReady = true; setSyncStatus('Connecting...', 'warning');
         await loadProjectsFromCloud();
-        setSyncStatus('Cloud sync ready', 'success');
-      } catch (error) {
-        console.error(error);
-        projects = loadLocalFallback();
-        isCloudReady = false;
-        setSyncStatus('Supabase connection failed', 'error');
-      }
+        setSyncStatus('Cloud Synced', 'success');
+      } catch (error) { projects = loadLocalFallback(); isCloudReady = false; setSyncStatus('Sync Failed - Check RLS or Network', 'error'); }
     }
 
-    function supabaseHeaders(extra = {}) {
-      return {
-        apikey: SUPABASE_ANON_KEY,
-        Authorization: `Bearer ${SUPABASE_ANON_KEY}`,
-        ...extra
-      };
-    }
+    function supabaseHeaders(extra = {}) { return { apikey: SUPABASE_ANON_KEY, Authorization: `Bearer ${SUPABASE_ANON_KEY}`, ...extra }; }
 
     async function loadProjectsFromCloud() {
-      const response = await fetch(
-        `${SUPABASE_URL}/rest/v1/${SUPABASE_TABLE}?id=eq.${encodeURIComponent(APP_STATE_ID)}&select=projects`,
-        {
-          headers: supabaseHeaders()
-        }
-      );
-
-      if (!response.ok) {
-        throw new Error(`Supabase load failed: ${response.status}`);
-      }
-
+      const response = await fetch(`${SUPABASE_URL}/rest/v1/${SUPABASE_TABLE}?id=eq.${encodeURIComponent(APP_STATE_ID)}&select=projects,checklistLibrary`, { headers: supabaseHeaders() });
+      if (!response.ok) throw new Error(`Load failed`);
       const data = await response.json();
-      projects = Array.isArray(data?.[0]?.projects) ? data[0].projects : [];
+      if (data && data.length > 0) { projects = Array.isArray(data[0].projects) ? data[0].projects : []; if (data[0].checklistLibrary) checklistLibrary = data[0].checklistLibrary; }
       saveLocalFallback();
     }
 
     async function saveAll() {
       saveLocalFallback();
       if (!isCloudReady) return;
-
-      setSyncStatus('Saving to cloud...', 'warning');
-
-      const response = await fetch(`${SUPABASE_URL}/rest/v1/${SUPABASE_TABLE}`, {
-        method: 'POST',
-        headers: supabaseHeaders({
-          'Content-Type': 'application/json',
-          Prefer: 'resolution=merge-duplicates'
-        }),
-        body: JSON.stringify([
-          {
-            id: APP_STATE_ID,
-            projects,
-            updated_at: new Date().toISOString()
-          }
-        ])
-      });
-
-      if (!response.ok) {
-        console.error(await response.text());
-        setSyncStatus('Cloud save failed', 'error');
-        return;
-      }
-
-      setSyncStatus('All changes saved', 'success');
+      setSyncStatus('Saving...', 'warning');
+      const response = await fetch(`${SUPABASE_URL}/rest/v1/${SUPABASE_TABLE}`, { method: 'POST', headers: supabaseHeaders({ 'Content-Type': 'application/json', Prefer: 'resolution=merge-duplicates' }), body: JSON.stringify([{ id: APP_STATE_ID, projects, checklistLibrary, updated_at: new Date().toISOString() }]) });
+      if (!response.ok) { setSyncStatus('Save failed', 'error'); return; }
+      setSyncStatus('Cloud Synced', 'success');
     }
 
-    function queueSave() {
-      saveAll().catch(error => {
-        console.error(error);
-        setSyncStatus('Cloud save failed', 'error');
-      });
-    }
-
+    function queueSave() { saveAll().catch(e => setSyncStatus('Save failed', 'error')); }
     checkPortalAuth();
 
-    const nswCouncils = [
-      'Albury City Council','Armidale Regional Council','Ballina Shire Council','Balranald Shire Council','Bathurst Regional Council','Bayside Council','Bega Valley Shire Council','Bellingen Shire Council','Berrigan Shire Council','Blacktown City Council','Bland Shire Council','Blayney Shire Council','Blue Mountains City Council','Bogan Shire Council','Bourke Shire Council','Brewarrina Shire Council','Broken Hill City Council','Burwood Council','Byron Shire Council','Cabonne Council','Camden Council','Campbelltown City Council','Canada Bay Council','Canterbury-Bankstown Council','Carrathool Shire Council','Central Coast Council','Central Darling Shire Council','Cessnock City Council','Clarence Valley Council','Cobar Shire Council','Coffs Harbour City Council','Coolamon Shire Council','Coonamble Shire Council','Cootamundra-Gundagai Regional Council','Cowra Shire Council','Cumberland City Council','Dubbo Regional Council','Dungog Shire Council','Edward River Council','Eurobodalla Shire Council','Fairfield City Council','Federation Council','Forbes Shire Council','Georges River Council','Gilgandra Shire Council','Glen Innes Severn Council','Goulburn Mulwaree Council','Greater Hume Council','Griffith City Council','Gunnedah Shire Council','Gwydir Shire Council','Hawkesbury City Council','Hay Shire Council','Hilltops Council','Hornsby Shire Council','Hunters Hill Council','Inner West Council','Inverell Shire Council','Junee Shire Council','Kempsey Shire Council','Kiama Municipal Council','Ku-ring-gai Council','Kyogle Council','Lachlan Shire Council','Lake Macquarie City Council','Lane Cove Council','Leeton Shire Council','Lismore City Council','Lithgow City Council','Liverpool City Council','Liverpool Plains Shire Council','Lockhart Shire Council','Maitland City Council','Mid-Coast Council','Mid-Western Regional Council','Moree Plains Shire Council','Mosman Council','Murray River Council','Murrumbidgee Council','Muswellbrook Shire Council','Nambucca Valley Council','Narrabri Shire Council','Narrandera Shire Council','Narromine Shire Council','Newcastle City Council','North Sydney Council','Northern Beaches Council','Oberon Council','Orange City Council','Parkes Shire Council','Parramatta City Council','Penrith City Council','Port Macquarie-Hastings Council','Port Stephens Council','Queanbeyan-Palerang Regional Council','Randwick City Council','Richmond Valley Council','Ryde City Council','Shellharbour City Council','Shoalhaven City Council','Singleton Council','Snowy Monaro Regional Council','Snowy Valleys Council','Strathfield Council','Sutherland Shire Council','Sydney City Council','Tamworth Regional Council','Temora Shire Council','Tenterfield Shire Council','The Hills Shire Council','Tweed Shire Council','Upper Hunter Shire Council','Upper Lachlan Shire Council','Uralla Shire Council','Wagga Wagga City Council','Walcha Council','Walgett Shire Council','Warren Shire Council','Warrumbungle Shire Council','Waverley Council','Weddin Shire Council','Wentworth Shire Council','Willoughby City Council','Wingecarribee Shire Council','Wollondilly Shire Council','Wollongong City Council','Woollahra Municipal Council','Yass Valley Council','Other'
-    ];
-
-    const ADDRESS_API_URL = 'https://geocode.arcgis.com/arcgis/rest/services/World/GeocodeServer/suggest';
-    const NSW_SEARCH_EXTENT = '140.9993,-37.5051,153.6387,-28.1570';
-    let addressLookupTimer = null;
-    let addressLookupController = null;
-
-    const fallbackAddressSuggestions = [
-      '1 George Street, Sydney NSW 2000','10 Pitt Street, Sydney NSW 2000','25 Smith Street, Blacktown NSW 2148','3 Lake Avenue, Penrith NSW 2750','7 King Road, Camden NSW 2570','12 Railway Parade, Parramatta NSW 2150','18 Victoria Road, Ryde NSW 2112','22 Church Street, Wollongong NSW 2500','31 Pacific Highway, St Leonards NSW 2065','45 High Street, Maitland NSW 2320','58 Crown Street, Wollongong NSW 2500','63 Macquarie Street, Liverpool NSW 2170','71 Main Road, Cardiff NSW 2285','84 Elizabeth Street, Sydney NSW 2000','96 Oxford Street, Paddington NSW 2021','110 The Horsley Drive, Fairfield NSW 2165','125 Princes Highway, Kogarah NSW 2217','142 Windsor Road, Baulkham Hills NSW 2153','160 Great Western Highway, Parramatta NSW 2150','188 Military Road, Neutral Bay NSW 2089','Blacktown NSW 2148','Parramatta NSW 2150','Penrith NSW 2750','Liverpool NSW 2170','Campbelltown NSW 2560','Bankstown NSW 2200','Chatswood NSW 2067','Ryde NSW 2112','Hornsby NSW 2077','Sutherland NSW 2232','Wollongong NSW 2500','Newcastle NSW 2300','Gosford NSW 2250','Maitland NSW 2320','Coffs Harbour NSW 2450','Dubbo NSW 2830','Wagga Wagga NSW 2650','Albury NSW 2640','Orange NSW 2800','Bathurst NSW 2795'
-    ];
-
-    const checklistLibrary = {
-      DA: ['Owner consent','Site survey','Architectural drawings','Site plan','Floor plans','Elevations','Sections','Shadow diagrams','Statement of Environmental Effects','Cost estimate report','BASIX certificate, if applicable','Stormwater plan','Landscape plan, if required','Waste management plan','Heritage report, if required','Bushfire report, if required','Flood report, if required','Traffic/parking report, if required','Council DA checklist','NSW Planning Portal submission record'],
-      CDC: ['Design plans','Certificate of title','Site plan','Building specifications','Structural plans','BASIX certificate, if residential and applicable','Survey plan','Stormwater plan','Engineering details','Long service levy, if applicable','Home Building Compensation Fund certificate, if applicable','Principal certifier details','Neighbour notification records, if required'],
-      CC: ['Development consent','Approved DA plans','Construction drawings','Structural engineering plans','Stormwater engineering plans','Hydraulic plans, if required','Fire safety schedule, if required','NCC/BCA compliance notes','Specifications','BASIX commitments shown on plans','Long service levy receipt, if applicable','Builder details','Principal certifier appointment','Conditions of consent compliance checklist'],
-      OC: ['Development consent or CDC','Construction Certificate','Final inspection record','Fire safety certificate','Compliance certificates','Waterproofing certificate','Termite certificate','Structural certificate','Glazing certificate','Smoke alarm certificate','BASIX completion evidence','Plumbing/drainage approvals','Stormwater completion certificate','Survey/as-built plan, if required','Occupation Certificate application form','Fee receipt'],
-      BASIX: ['Project type','Dwelling type','Site address','Floor area','Roof area','Window details','Insulation details','Hot water system','Cooling/heating system','Rainwater tank size','Fixtures and fittings','Landscaping area','NatHERS certificate, if used','Final BASIX certificate upload'],
-      BIC: ['BIC application form','Site survey','Existing building plans','Unauthorised works description','Photos of existing works','Structural certificate, if required','Fire safety information, if required','Council inspection notes','Owner consent','Fee receipt','Response to council RFI'],
-      Other: ['Client instructions','Council request letter/email','Site photos','Relevant plans','Consultant advice','Next action record']
-    };
-
-    const docStatuses = ['Not required','Required','Requested','Received','Reviewed','Needs revision','Uploaded to portal','Approved'];
-    const taskStatuses = ['Pending','In progress','Waiting','Received','Completed'];
-
-    function makeDocs(type) {
-      return (checklistLibrary[type] || checklistLibrary.Other).map(name => ({ id: uid(), name, required: 'Yes', status: 'Required', responsible: suggestedResponsible(name), dueDate: '', notes: '', uploadedFile: '' }));
-    }
-
-    function suggestedResponsible(name) {
-      const n = name.toLowerCase();
-      if (n.includes('owner')) return 'Client';
-      if (n.includes('architect') || n.includes('plan') || n.includes('drawing') || n.includes('elevation') || n.includes('section')) return 'Architect';
-      if (n.includes('stormwater') || n.includes('structural') || n.includes('engineering')) return 'Engineer';
-      if (n.includes('basix') || n.includes('nathers')) return 'BASIX assessor';
-      if (n.includes('survey')) return 'Surveyor';
-      if (n.includes('certifier')) return 'Certifier';
-      if (n.includes('council') || n.includes('portal')) return 'Admin';
-      return 'Client/Consultant';
-    }
-
-    function missingDocs(project) { return (project.documents || []).filter(d => d.required !== 'No' && !['Received','Reviewed','Uploaded to portal','Approved','Not required'].includes(d.status)); }
-    function isDueSoon(date) { if (!date) return false; const diff = (new Date(date) - new Date(todayISO())) / 86400000; return diff <= 7; }
-    function approvalClass(type) { return (type || 'Other').toLowerCase(); }
-    function statusClass(status='') { const s = status.toLowerCase(); if (s.includes('rfi')) return 'status-rfi'; if (s.includes('pending')) return 'status-pending'; if (s.includes('approved')) return 'status-approved'; if (s.includes('revision')) return 'status-revision'; return 'status-new'; }
-
-    function populateCouncils() {
-      const select = document.getElementById('council');
-      select.innerHTML = '<option value="">Select council</option>' + nswCouncils.map(c => `<option>${esc(c)}</option>`).join('');
-    }
+    const nswCouncils = ['Albury City Council','Blacktown City Council','Camden Council','Campbelltown City Council','Fairfield City Council','Liverpool City Council','Parramatta City Council','Penrith City Council','Sydney City Council','The Hills Shire Council','Other'];
+    function populateCouncils() { document.getElementById('council').innerHTML = '<option value="">Select council</option>' + nswCouncils.map(c => `<option>${esc(c)}</option>`).join(''); }
 
     function showAddressSuggestions(value) {
       const box = document.getElementById('addressSuggestions');
-      const q = value.trim().toLowerCase();
-      if (!q) {
-        box.innerHTML = fallbackAddressSuggestions.slice(0, 8).map(addressButton).join('');
-        box.classList.add('show');
-        setAddressLookupStatus('');
-        return;
-      }
-
-      const localMatches = fallbackAddressSuggestions.filter(a => a.toLowerCase().includes(q)).slice(0, 5);
-      box.innerHTML = [
-        `<button type="button" class="suggestion" data-address="${esc(value)}">Use typed address: ${esc(value)}</button>`,
-        ...localMatches.map(addressButton)
-      ].join('');
+      if (!value.trim()) { box.classList.remove('show'); return; }
+      box.innerHTML = `<button type="button" class="suggestion" data-address="${esc(value)}">Use typed: ${esc(value)}</button>`;
       box.classList.add('show');
-      setAddressLookupStatus(q.length < 3 ? 'Type at least 3 characters to search live addresses.' : 'Searching address finder...');
-
-      clearTimeout(addressLookupTimer);
-      if (q.length < 3) return;
-      addressLookupTimer = setTimeout(() => fetchAddressSuggestions(value), 300);
     }
+    function selectAddress(address) { document.getElementById('siteAddress').value = address; document.getElementById('addressSuggestions').classList.remove('show'); }
+    document.addEventListener('click', e => { const option = e.target.closest('[data-address]'); if (option) selectAddress(option.dataset.address); else if (!e.target.closest('#addressSuggestions') && e.target.id !== 'siteAddress') document.getElementById('addressSuggestions').classList.remove('show'); });
 
-    async function fetchAddressSuggestions(value) {
-      if (addressLookupController) addressLookupController.abort();
-      addressLookupController = new AbortController();
-      const params = new URLSearchParams({
-        f: 'json',
-        text: value,
-        maxSuggestions: '8',
-        countryCode: 'AUS',
-        searchExtent: NSW_SEARCH_EXTENT
-      });
-
-      try {
-        const response = await fetch(`${ADDRESS_API_URL}?${params.toString()}`, { signal: addressLookupController.signal });
-        if (!response.ok) throw new Error('Address finder request failed');
-        const data = await response.json();
-        const liveResults = (data.suggestions || [])
-          .map(item => ({ text: item.text || '', source: 'Address finder API' }))
-          .filter(item => item.text && /NSW|New South Wales|Australia/i.test(item.text))
-          .slice(0, 8);
-
-        if (!liveResults.length) {
-          setAddressLookupStatus('No live matches found. You can still use the typed address.');
-          return;
-        }
-
-        const box = document.getElementById('addressSuggestions');
-        box.innerHTML = [
-          `<button type="button" class="suggestion" data-address="${esc(value)}">Use typed address: ${esc(value)}</button>`,
-          ...liveResults.map(addressButton)
-        ].join('');
-        box.classList.add('show');
-        setAddressLookupStatus('Live address results loaded.');
-      } catch (error) {
-        if (error.name === 'AbortError') return;
-        setAddressLookupStatus('Address finder API is unavailable. Showing local fallback suggestions.');
-      }
-    }
-
-    function addressButton(address) {
-      const item = typeof address === 'string' ? { text: address, source: '' } : address;
-      return `<button type="button" class="suggestion" data-address="${esc(item.text)}">${esc(item.text)}${item.source ? `<small>${esc(item.source)}</small>` : ''}</button>`;
-    }
-
-    function selectAddress(address) {
-      document.getElementById('siteAddress').value = address;
-      hideAddressSuggestions();
-    }
-
-    function hideAddressSuggestions() {
-      document.getElementById('addressSuggestions').classList.remove('show');
-    }
-
-    function setAddressLookupStatus(message) {
-      document.getElementById('addressLookupStatus').textContent = message;
-    }
-
-    document.addEventListener('click', event => {
-      const addressOption = event.target.closest('[data-address]');
-      if (addressOption) {
-        selectAddress(addressOption.dataset.address);
-        return;
-      }
-      if (!event.target.closest('#addressSuggestions') && event.target.id !== 'siteAddress') hideAddressSuggestions();
-    });
-
-    function showOnly(sectionId) {
-      ['dashboardView','projectView','libraryView','templatesView'].forEach(id => document.getElementById(id).classList.add('hidden'));
-      document.getElementById(sectionId).classList.remove('hidden');
-      document.querySelectorAll('.nav-btn').forEach(btn => btn.classList.remove('active'));
-    }
+    function showOnly(sectionId) { ['dashboardView','projectView','libraryView'].forEach(id => document.getElementById(id).classList.add('hidden')); document.getElementById(sectionId).classList.remove('hidden'); document.querySelectorAll('.nav-btn').forEach(btn => btn.classList.remove('active')); }
 
     function showDashboard() {
-      currentProjectId = null;
-      showOnly('dashboardView');
+      currentProjectId = null; showOnly('dashboardView');
       document.querySelectorAll('.nav-btn')[0].classList.add('active');
-      document.getElementById('pageTitle').textContent = 'Dashboard';
-      document.getElementById('pageSubtitle').textContent = 'Track DA, CDC, CC, OC, BASIX and BIC jobs in one place.';
       renderDashboard();
     }
 
-    function renderDashboard() {
-      const total = projects.length;
-      const missing = projects.reduce((sum,p) => sum + missingDocs(p).length, 0);
-      const urgent = projects.filter(p => isDueSoon(p.dueDate) || (p.documents || []).some(d => isDueSoon(d.dueDate))).length;
-      const rfi = projects.filter(p => String(p.status).toLowerCase().includes('rfi') || p.notesList?.some(n => /rfi|request/i.test(n.note))).length;
-      document.getElementById('statTotal').textContent = total;
-      document.getElementById('statMissing').textContent = missing;
-      document.getElementById('statUrgent').textContent = urgent;
-      document.getElementById('statRfi').textContent = rfi;
+    function setDashboardView(viewType) { currentView = viewType; document.getElementById('btnViewGrid').classList.toggle('active', viewType === 'grid'); document.getElementById('btnViewBoard').classList.toggle('active', viewType === 'board'); renderDashboard(); }
 
-      const q = document.getElementById('searchInput')?.value?.toLowerCase() || '';
-      const type = document.getElementById('typeFilter')?.value || '';
-      const status = document.getElementById('statusFilter')?.value || '';
-      const priority = document.getElementById('priorityFilter')?.value || '';
-      const rows = projects.filter(p => {
-        const hay = [p.clientName,p.siteAddress,p.council,p.status,p.projectType,p.approvalType].join(' ').toLowerCase();
-        if (q && !hay.includes(q)) return false;
-        if (type && p.approvalType !== type) return false;
-        if (status && p.status !== status) return false;
-        if (priority === 'urgent' && !(isDueSoon(p.dueDate) || (p.documents || []).some(d => isDueSoon(d.dueDate)))) return false;
-        if (priority === 'missing' && missingDocs(p).length === 0) return false;
-        if (priority === 'client' && !missingDocs(p).some(d => /client|owner/i.test(d.responsible))) return false;
-        if (priority === 'consultant' && !missingDocs(p).some(d => /engineer|architect|surveyor|assessor|consultant/i.test(d.responsible))) return false;
-        if (priority === 'council' && !/council|certifier|rfi|submitted/i.test(p.status)) return false;
-        return true;
-      });
+    function renderDashboard() {
+      const q = document.getElementById('searchInput')?.value?.toLowerCase() || ''; const type = document.getElementById('typeFilter')?.value || '';
+      const rows = projects.filter(p => { const hay = [p.clientName,p.siteAddress,p.council,p.status].join(' ').toLowerCase(); return (!q || hay.includes(q)) && (!type || p.approvalType === type); });
+
+      document.getElementById('statTotal').textContent = projects.length; document.getElementById('statActive').textContent = projects.filter(p=>p.status==='Active').length;
+      document.getElementById('statMissing').textContent = projects.reduce((sum, p) => sum + p.documents.filter(d=>d.required!=='No'&&!['Received','Approved'].includes(d.status)).length, 0);
+      document.getElementById('statRevenue').textContent = formatCurrency(projects.reduce((sum, p) => { if(p.invoice?.lineItems) { const sub = p.invoice.lineItems.reduce((s, i) => s + Number(i.price || 0), 0); return sum + sub + (sub*0.1); } return sum; }, 0));
 
       const wrap = document.getElementById('projectTableWrap');
-      if (!rows.length) {
-        wrap.innerHTML = `<div class="empty">No projects found. Click <strong>New Project</strong> to create your first approval job.</div>`;
-        return;
-      }
+      if (!rows.length) { wrap.innerHTML = `<div class="empty">No projects found.</div>`; return; }
 
-      wrap.innerHTML = `<div style="overflow:auto;"><table><thead><tr><th>Project</th><th>Type</th><th>Council</th><th>Status</th><th>Missing Docs</th><th>Due</th><th>Next Action</th></tr></thead><tbody>${rows.map(p => `<tr class="project-row" onclick="openProject('${p.id}')"><td><strong>${esc(p.siteAddress)}</strong><br><span class="muted small-text">${esc(p.clientName)}</span></td><td><span class="pill ${approvalClass(p.approvalType)}">${esc(p.approvalType)}</span></td><td>${esc(p.council)}</td><td><span class="pill ${statusClass(p.status)}">${esc(p.status)}</span></td><td>${missingDocs(p).length}</td><td>${p.dueDate ? esc(p.dueDate) : '-'}</td><td>${esc(nextAction(p))}</td></tr>`).join('')}</tbody></table></div>`;
-    }
+      const generateCard = (p) => {
+        const readyDocs = p.documents.filter(d=>d.status==='Approved'||d.status==='Received').length; const totalDocs = p.documents.filter(d=>d.required!=='No').length;
+        const color = p.status === 'Active' ? 'blue' : p.status === 'Hold' ? 'orange' : 'green';
+        return `<div class="project-card" onclick="openProject('${p.id}')"><div class="project-card-header"><span class="pill" style="background:var(--${color}-100, #eee);">${esc(p.status)}</span><span class="pill" style="background:#e0e7ff; color:#4338ca;">${esc(p.approvalType)}</span></div><div><h4>${esc(p.siteAddress)}</h4><p>${esc(p.clientName)} &middot; ${esc(p.council)}</p></div><div class="project-card-footer"><span style="font-size:12px; font-weight:600;">${readyDocs} / ${totalDocs} Docs</span></div></div>`;
+      };
 
-    function nextAction(project) {
-      const missing = missingDocs(project);
-      if (String(project.status).toLowerCase().includes('rfi')) return 'Respond to RFI / chase requested info';
-      if (missing.length) return 'Chase ' + missing[0].responsible + ' for ' + missing[0].name;
-      if (project.status === 'Submitted') return 'Monitor council/certifier response';
-      if (project.status === 'Approved') return 'Close out and save approval documents';
-      return 'Review project file';
+      if(currentView === 'grid') wrap.innerHTML = `<div class="project-grid">${rows.map(generateCard).join('')}</div>`;
+      else wrap.innerHTML = `<div class="pipeline-board"><div class="pipeline-col"><h3>Active <span>${rows.filter(p=>p.status==='Active').length}</span></h3><div class="pipeline-cards">${rows.filter(p=>p.status==='Active').map(generateCard).join('')}</div></div><div class="pipeline-col" style="background:#fffbeb;"><h3>Hold <span>${rows.filter(p=>p.status==='Hold').length}</span></h3><div class="pipeline-cards">${rows.filter(p=>p.status==='Hold').map(generateCard).join('')}</div></div><div class="pipeline-col" style="background:#f0fdf4;"><h3>Completed <span>${rows.filter(p=>p.status==='Completed').length}</span></h3><div class="pipeline-cards">${rows.filter(p=>p.status==='Completed').map(generateCard).join('')}</div></div></div>`;
     }
 
     function openProject(projectId) {
-      currentProjectId = projectId;
-      activeTab = 'overview';
-      const p = getCurrentProject();
-      showOnly('projectView');
-      document.getElementById('pageTitle').textContent = 'Project File';
-      document.getElementById('pageSubtitle').textContent = p.siteAddress;
-      document.getElementById('projectHeading').textContent = p.siteAddress;
-      document.getElementById('projectMeta').innerHTML = `${esc(p.clientName)} &middot; ${esc(p.council)} &middot; <span class="pill ${approvalClass(p.approvalType)}">${esc(p.approvalType)}</span> &middot; <span class="pill ${statusClass(p.status)}">${esc(p.status)}</span>`;
+      currentProjectId = projectId; activeTab = 'overview'; const p = getCurrentProject(); showOnly('projectView');
+      document.getElementById('projectHeading').textContent = 'File Hub';
+      document.getElementById('projectMeta').innerHTML = `<span class="pill" style="background:#e0e7ff; color:#4338ca;">${esc(p.approvalType)}</span> - ${esc(p.siteAddress)}`;
       document.querySelectorAll('.tab-btn').forEach(btn => btn.classList.toggle('active', btn.dataset.tab === activeTab));
       renderProjectTab();
     }
-
+    
     function getCurrentProject() { return projects.find(p => p.id === currentProjectId); }
-
-    function switchTab(tab) {
-      activeTab = tab;
-      document.querySelectorAll('.tab-btn').forEach(btn => btn.classList.toggle('active', btn.dataset.tab === tab));
-      renderProjectTab();
-    }
+    function switchTab(tab) { activeTab = tab; document.querySelectorAll('.tab-btn').forEach(btn => btn.classList.toggle('active', btn.dataset.tab === tab)); renderProjectTab(); }
 
     function renderProjectTab() {
-      const p = getCurrentProject();
-      if (!p) return;
-      p.documents ||= [];
-      p.consultants ||= [];
-      p.notesList ||= [];
-      p.files ||= [];
-      p.projectNotesList ||= [];
-      p.invoice ||= defaultInvoice(p);
+      const p = getCurrentProject(); if (!p) return;
+      p.documents ||= []; p.notesList ||= []; p.projectNotesList ||= []; p.invoice ||= defaultInvoice(p);
       const el = document.getElementById('projectTabContent');
-      if (activeTab === 'overview') el.innerHTML = overviewHtml(p);
-      if (activeTab === 'documents') el.innerHTML = documentsHtml(p);
-      if (activeTab === 'consultants') el.innerHTML = consultantsHtml(p);
-      if (activeTab === 'councilNotes') el.innerHTML = councilNotesHtml(p);
-      if (activeTab === 'dates') el.innerHTML = datesHtml(p);
-      if (activeTab === 'templates') el.innerHTML = templatesHtml(p);
-      if (activeTab === 'invoice') el.innerHTML = invoiceHtml(p);
-      if (activeTab === 'files') el.innerHTML = filesHtml(p);
-      if (activeTab === 'projectNotes') el.innerHTML = projectNotesHtml(p);
+      if (activeTab === 'overview') el.innerHTML = `<div class="grid two"><div class="card"><h3>Project Details</h3><table><tbody><tr><th>Client</th><td>${esc(p.clientName)}<br><span style="color:var(--muted);">${esc(p.clientEmail)}</span></td></tr><tr><th>Address</th><td>${esc(p.siteAddress)}</td></tr><tr><th>Council</th><td>${esc(p.council)}</td></tr><tr><th>Type</th><td>${esc(p.approvalType)}</td></tr><tr><th>Status</th><td>${esc(p.status)}</td></tr></tbody></table></div><div class="card"><h3>Snapshot</h3><div class="grid two"><div class="stat-card"><span>Total Docs</span><strong>${p.documents.length}</strong></div><div class="stat-card"><span>Ready Docs</span><strong>${p.documents.filter(d=>['Received','Approved'].includes(d.status)).length}</strong></div></div></div></div>`;
+      if (activeTab === 'documents') el.innerHTML = `<div class="card"><div class="section-title"><h3>Document Checklist</h3><button class="btn primary small" onclick="addDocumentPrompt()">+ Add Item</button></div><div style="overflow-x:auto;"><table><thead><tr><th>Document</th><th>Required</th><th>Status</th><th>Responsible</th><th></th></tr></thead><tbody>${p.documents.map(d => `<tr><td><input value="${esc(d.name)}" onchange="updateDoc('${d.id}','name',this.value)"></td><td><select onchange="updateDoc('${d.id}','required',this.value)"><option ${d.required==='Yes'?'selected':''}>Yes</option><option ${d.required==='No'?'selected':''}>No</option></select></td><td><select onchange="updateDoc('${d.id}','status',this.value)">${['Not required','Required','Requested','Received','Reviewed','Needs revision','Uploaded to portal','Approved'].map(s => `<option ${d.status===s?'selected':''}>${s}</option>`).join('')}</select></td><td><input value="${esc(d.responsible)}" onchange="updateDoc('${d.id}','responsible',this.value)"></td><td><button class="btn small danger" onclick="removeDoc('${d.id}')">Del</button></td></tr>`).join('')}</tbody></table></div></div>`;
+      if (activeTab === 'councilNotes') el.innerHTML = `<div class="card"><h3>Notes</h3><button class="btn primary small" onclick="addCouncilNote()">+ Add Note</button><br><br><table><tbody>${p.notesList.map(n => `<tr><td><input type="date" value="${esc(n.date)}" onchange="updateCouncilNote('${n.id}','date',this.value)"></td><td><textarea onchange="updateCouncilNote('${n.id}','note',this.value)">${esc(n.note)}</textarea></td><td><button class="btn small danger" onclick="removeCouncilNote('${n.id}')">Del</button></td></tr>`).join('')}</tbody></table></div>`;
+      if (activeTab === 'projectNotes') el.innerHTML = `<div class="card"><h3>Internal Notes</h3><button class="btn primary small" onclick="addProjectNote()">+ Add Note</button><br><br><div class="note-list">${p.projectNotesList.map(n => `<div class="note-card"><div style="flex:1;"><input value="${esc(n.title)}" placeholder="Title" onchange="updateProjectNote('${n.id}','title',this.value)" style="margin-bottom:8px;"><textarea onchange="updateProjectNote('${n.id}','body',this.value)">${esc(n.body)}</textarea></div><button class="btn danger small" onclick="removeProjectNote('${n.id}')" style="margin-left:12px;">Del</button></div>`).join('')}</div></div>`;
+      
+      if (activeTab === 'invoice') renderInvoiceTab(p, el);
+      if (activeTab === 'files') renderFilesTab(p, el);
     }
 
-    function overviewHtml(p) {
-      const received = p.documents.filter(d => ['Received','Reviewed','Uploaded to portal','Approved'].includes(d.status)).length;
-      const missing = missingDocs(p).length;
-      return `<div class="grid two"><div class="card"><div class="section-title"><div><h3>Project Details</h3><p>Main job information.</p></div></div><table><tbody><tr><th>Client</th><td>${esc(p.clientName)}<br><span class="muted">${esc(p.clientPhone)} ${esc(p.clientEmail)}</span></td></tr><tr><th>Address</th><td>${esc(p.siteAddress)}</td></tr><tr><th>Council</th><td>${esc(p.council)}</td></tr><tr><th>Lot/DP</th><td>${esc(p.lotDp || '-')}</td></tr><tr><th>Project Type</th><td>${esc(p.projectType || '-')}</td></tr><tr><th>Approval</th><td>${esc(p.approvalType)}</td></tr><tr><th>Status</th><td>${esc(p.status)}</td></tr><tr><th>Assigned</th><td>${esc(p.assignedStaff || '-')}</td></tr></tbody></table></div><div class="card"><div class="section-title"><div><h3>Current Snapshot</h3><p>Quick action view.</p></div></div><div class="grid two"><div class="stat-card"><span>Received / ready</span><strong>${received}</strong></div><div class="stat-card"><span>Missing / pending</span><strong>${missing}</strong></div></div><p><strong>Next action:</strong> ${esc(nextAction(p))}</p><p><strong>Project notes:</strong><br>${esc(p.projectNotes || 'No notes added yet.')}</p></div></div>`;
-    }
-
-    function documentsHtml(p) {
-      return `<div class="card"><div class="section-title"><div><h3>Document Checklist</h3><p>Track what is required, received, reviewed and uploaded.</p></div><button class="btn small primary" onclick="addDocumentPrompt()">Add Item</button></div><div style="overflow:auto;"><table><thead><tr><th>Document</th><th>Required</th><th>Status</th><th>Responsible</th><th>Due</th><th>Notes</th><th></th></tr></thead><tbody>${p.documents.map(d => `<tr><td><input value="${esc(d.name)}" onchange="updateDoc('${d.id}','name',this.value)"></td><td><select onchange="updateDoc('${d.id}','required',this.value)"><option ${d.required==='Yes'?'selected':''}>Yes</option><option ${d.required==='No'?'selected':''}>No</option><option ${d.required==='Usually'?'selected':''}>Usually</option><option ${d.required==='If applicable'?'selected':''}>If applicable</option></select></td><td><select onchange="updateDoc('${d.id}','status',this.value)">${docStatuses.map(s => `<option ${d.status===s?'selected':''}>${s}</option>`).join('')}</select></td><td><input value="${esc(d.responsible)}" onchange="updateDoc('${d.id}','responsible',this.value)"></td><td><input type="date" value="${esc(d.dueDate)}" onchange="updateDoc('${d.id}','dueDate',this.value)"></td><td><input value="${esc(d.notes)}" onchange="updateDoc('${d.id}','notes',this.value)"></td><td><button class="btn small danger" onclick="removeDoc('${d.id}')">Remove</button></td></tr>`).join('')}</tbody></table></div></div>`;
-    }
-
-    function consultantsHtml(p) {
-      return `<div class="card"><div class="section-title"><div><h3>Consultant Tracker</h3><p>Track tasks and generate reminder messages.</p></div><button class="btn small primary" onclick="addConsultant()">Add Task</button></div>${p.consultants.length ? `<div style="overflow:auto;"><table><thead><tr><th>Consultant</th><th>Contact</th><th>Task</th><th>Due</th><th>Status</th><th>Reminder</th><th></th></tr></thead><tbody>${p.consultants.map(c => `<tr><td><input value="${esc(c.name)}" onchange="updateConsultant('${c.id}','name',this.value)"></td><td><input value="${esc(c.contact)}" onchange="updateConsultant('${c.id}','contact',this.value)"></td><td><input value="${esc(c.task)}" onchange="updateConsultant('${c.id}','task',this.value)"></td><td><input type="date" value="${esc(c.dueDate)}" onchange="updateConsultant('${c.id}','dueDate',this.value)"></td><td><select onchange="updateConsultant('${c.id}','status',this.value)">${taskStatuses.map(s => `<option ${c.status===s?'selected':''}>${s}</option>`).join('')}</select></td><td><button class="btn small" onclick="copyReminder('${c.id}')">Copy</button></td><td><button class="btn small danger" onclick="removeConsultant('${c.id}')">Remove</button></td></tr>`).join('')}</tbody></table></div>` : `<div class="empty">No consultant tasks added yet.</div>`}</div>`;
-    }
-
-    function councilNotesHtml(p) {
-      return `<div class="card"><div class="section-title"><div><h3>Council / Certifier Notes</h3><p>Record calls, RFIs, conditions and next actions.</p></div><button class="btn small primary" onclick="addCouncilNote()">Add Note</button></div>${p.notesList.length ? `<div style="overflow:auto;"><table><thead><tr><th>Date</th><th>Contact</th><th>Note</th><th>Next Action</th><th></th></tr></thead><tbody>${p.notesList.map(n => `<tr><td><input type="date" value="${esc(n.date)}" onchange="updateCouncilNote('${n.id}','date',this.value)"></td><td><input value="${esc(n.contact)}" onchange="updateCouncilNote('${n.id}','contact',this.value)"></td><td><textarea onchange="updateCouncilNote('${n.id}','note',this.value)">${esc(n.note)}</textarea></td><td><input value="${esc(n.nextAction)}" onchange="updateCouncilNote('${n.id}','nextAction',this.value)"></td><td><button class="btn small danger" onclick="removeCouncilNote('${n.id}')">Remove</button></td></tr>`).join('')}</tbody></table></div>` : `<div class="empty">No council or certifier notes yet.</div>`}</div>`;
-    }
-
-    function projectNotesHtml(p) {
-      return `<div class="card"><div class="section-title"><div><h3>Notes</h3><p>Create multiple internal notes for this project.</p></div><button class="btn small primary" onclick="addProjectNote()">Add Note</button></div>${p.projectNotesList.length ? `<div class="note-list">${p.projectNotesList.map(n => `<div class="note-card"><div style="flex:1;"><div class="grid two"><div class="field"><label>Title</label><input value="${esc(n.title)}" onchange="updateProjectNote('${n.id}','title',this.value)"></div><div class="field"><label>Date</label><input type="date" value="${esc(n.date)}" onchange="updateProjectNote('${n.id}','date',this.value)"></div></div><div class="field" style="margin-top:10px;"><label>Note</label><textarea onchange="updateProjectNote('${n.id}','body',this.value)">${esc(n.body)}</textarea></div></div><button class="btn small danger" onclick="removeProjectNote('${n.id}')">Remove</button></div>`).join('')}</div>` : `<div class="empty">No project notes yet. Add as many notes as you need.</div>`}</div>`;
-    }
-
-    function datesHtml(p) {
-      return `<div class="card"><div class="section-title"><div><h3>Important Dates</h3><p>Keep lodgement, RFI and approval dates visible.</p></div></div><div class="form-grid"><div class="field"><label>Due date</label><input type="date" value="${esc(p.dueDate)}" onchange="updateProjectField('dueDate',this.value)"></div><div class="field"><label>Submission / lodgement date</label><input type="date" value="${esc(p.submissionDate)}" onchange="updateProjectField('submissionDate',this.value)"></div><div class="field"><label>Approval / determination date</label><input type="date" value="${esc(p.approvalDate)}" onchange="updateProjectField('approvalDate',this.value)"></div><div class="field"><label>Status</label><select onchange="updateProjectField('status',this.value)">${['New enquiry','Documents pending','Submitted','RFI','Certifier review','Approved','Final docs'].map(s => `<option ${p.status===s?'selected':''}>${s}</option>`).join('')}</select></div></div></div>`;
-    }
-
-    function templatesHtml(p) {
-      const missingList = missingDocs(p).map(d => '- ' + d.name + ' - ' + d.responsible).join('\n') || '- No missing documents currently listed.';
-      const templates = [
-        { title: 'Chase Client', text: `Hi ${p.clientName || '[Client]'},\n\nJust following up on the missing documents for ${p.siteAddress}.\n\nCould you please provide the below so we can continue preparing the ${p.approvalType} package?\n\n${missingList}\n\nThanks.` },
-        { title: 'Weekly Project Update', text: `Hi ${p.clientName || '[Client]'},\n\nProject update for ${p.siteAddress}:\n\nCurrent status: ${p.status}\nApproval pathway: ${p.approvalType}\nMissing documents: ${missingDocs(p).length}\nNext action: ${nextAction(p)}\n\nThanks.` }
-      ];
-      return `<div class="grid two">${templates.map((t,i) => `<div class="card"><div class="section-title"><div><h3>${esc(t.title)}</h3><p>Ready to copy and send.</p></div><button class="btn small" onclick="copyText('template-${i}')">Copy</button></div><div id="template-${i}" class="template-box">${esc(t.text)}</div></div>`).join('')}</div>`;
-    }
-
-    function filesHtml(p) {
-      return `<div class="card"><div class="section-title"><div><h3>Files / Photos</h3><p>Still browser-based in this version. Project records now save to Supabase.</p></div><input type="file" id="fileUpload" multiple onchange="addFiles(event)" /></div><div class="file-list">${p.files.length ? p.files.map(f => `<div class="file-item"><div><strong>${esc(f.name)}</strong><br><span class="muted small-text">${esc(f.type || 'file')} &middot; ${Math.round((f.size || 0)/1024)} KB</span></div><div class="actions"><a class="btn small" href="${f.data}" download="${esc(f.name)}">Download</a><button class="btn small danger" onclick="removeFile('${f.id}')">Remove</button></div></div>`).join('') : `<div class="empty">No files uploaded yet. For production, move these into Supabase Storage as a later step.</div>`}</div></div>`;
-    }
-
-    // ============ INVOICE WITH GST =============
-    function invoiceHtml(p) {
-      const invoice = p.invoice || defaultInvoice(p);
-      invoice.status ||= 'SENT';
-      invoice.lineItems ||= defaultInvoice(p).lineItems;
-      const subtotal = invoice.lineItems.reduce((sum, item) => sum + Number(item.price || 0), 0);
-      const gstAmount = subtotal * 0.1;
-      const total = subtotal + gstAmount;
-      const clientBlock = [p.clientName, p.clientEmail, p.clientPhone].filter(Boolean).join('\n');
-      const projectBlock = [p.siteAddress, p.council].filter(Boolean).join('\n');
-      const compactClass = invoice.lineItems.length <= 10 ? 'compact' : '';
-      return `<div class="invoice-shell">
-        <div class="card">
-          <div class="section-title">
-            <div>
+    function renderInvoiceTab(p, el) {
+      const inv = p.invoice;
+      const subtotal = inv.lineItems.reduce((sum, item) => sum + Number(item.price || 0), 0); const gst = subtotal * 0.1; const total = subtotal + gst;
+      el.innerHTML = `
+        <div class="invoice-shell">
+          <div class="card">
+            <div class="section-title">
               <h3>Invoice Builder</h3>
-              <p>Enter the service name and price. GST (10%) is added automatically.</p>
+              <button class="btn primary" onclick="downloadInvoicePDF()">⤓ Download PDF</button>
             </div>
-            <div class="actions">
-              <button class="btn" onclick="resetInvoiceDefaults()">Reset Defaults</button>
-              <button class="btn primary" onclick="printInvoice()">Print Invoice</button>
+            <div class="form-grid" style="margin-bottom: 32px;">
+              <div class="field"><label>Invoice No.</label><input value="${esc(inv.invoiceNumber)}" onchange="updateInvoiceField('invoiceNumber',this.value)" /></div>
+              <div class="field"><label>Issue Date</label><input type="date" value="${esc(inv.issueDate)}" onchange="updateInvoiceField('issueDate',this.value)" /></div>
+              <div class="field"><label>Due Date</label><input type="date" value="${esc(inv.dueDate)}" onchange="updateInvoiceField('dueDate',this.value)" /></div>
+              <div class="field full"><label>Payment Notes</label><textarea onchange="updateInvoiceField('notes',this.value)">${esc(inv.notes)}</textarea></div>
             </div>
-          </div>
-          <div class="form-grid">
-            <div class="field"><label>Invoice number</label><input value="${esc(invoice.invoiceNumber)}" onchange="updateInvoiceField('invoiceNumber',this.value)" /></div>
-            <div class="field"><label>Issue date</label><input type="date" value="${esc(invoice.issueDate)}" onchange="updateInvoiceField('issueDate',this.value)" /></div>
-            <div class="field"><label>Due date</label><input type="date" value="${esc(invoice.dueDate)}" onchange="updateInvoiceField('dueDate',this.value)" /></div>
-            <div class="field">
-              <label>Invoice Status</label>
-              <select onchange="updateInvoiceField('status',this.value)">
-                <option value="DRAFT" ${invoice.status==='DRAFT'?'selected':''}>DRAFT</option>
-                <option value="SENT" ${invoice.status==='SENT'?'selected':''}>SENT</option>
-                <option value="RECEIVED PAYMENT" ${invoice.status==='RECEIVED PAYMENT'?'selected':''}>RECEIVED PAYMENT</option>
-                <option value="OVERDUE" ${invoice.status==='OVERDUE'?'selected':''}>OVERDUE</option>
-                <option value="CANCELLED" ${invoice.status==='CANCELLED'?'selected':''}>CANCELLED</option>
-              </select>
-            </div>
-            <div class="field full"><label>Payment details</label><textarea onchange="updateInvoiceField('notes',this.value)">${esc(invoice.notes)}</textarea></div>
-          </div>
-          <div class="section-title" style="margin-top:18px;">
-            <div>
-              <h3>Invoice Services</h3>
-              <p>Add one or more services to the same invoice.</p>
-            </div>
-            <button class="btn small primary" onclick="addInvoiceLine()">Add Service</button>
-          </div>
-          <div style="overflow:auto;">
+            <div class="section-title"><h3>Services</h3><button class="btn small" onclick="addInvoiceLine()">+ Add Service</button></div>
             <table>
               <thead><tr><th>Service</th><th>Price</th><th></th></tr></thead>
-              <tbody>${invoice.lineItems.map(item => `<tr><td>${invoiceServiceEditor(item)}</td><td><input type="number" min="0" step="0.01" value="${esc(item.price)}" onchange="updateInvoiceLine('${item.id}','price',this.value)" placeholder="0.00" /></td><td><button class="btn small danger" onclick="removeInvoiceLine('${item.id}')">Remove</button></td></tr>`).join('')}</tbody>
+              <tbody>${inv.lineItems.map(item => `<tr><td><input value="${esc(item.serviceName)}" onchange="updateInvoiceLine('${item.id}','serviceName',this.value)" placeholder="Service Name"></td><td><input type="number" step="0.01" value="${esc(item.price)}" onchange="updateInvoiceLine('${item.id}','price',this.value)" /></td><td><button class="btn danger small" onclick="removeInvoiceLine('${item.id}')">Del</button></td></tr>`).join('')}</tbody>
             </table>
           </div>
-        </div>
-
-        <div class="invoice-preview">
-          <div class="invoice-sheet ${compactClass}">
-            <div class="invoice-body">
-              <div class="invoice-head">
-                <div class="invoice-company">
-                  <h2>${esc(BUSINESS_PROFILE.name)}</h2>
-                  <p>${esc(BUSINESS_PROFILE.address)}\n${esc(BUSINESS_PROFILE.email)}\n${esc(BUSINESS_PROFILE.phone)}\n${esc(BUSINESS_PROFILE.abn)}</p>
-                </div>
-                <div class="invoice-logo-wrap"><img class="invoice-logo" src="${INVOICE_LOGO_SRC}" alt="Project Approvals logo" /></div>
-              </div>
-              <div class="invoice-divider"></div>
-              <div class="invoice-parties">
-                <div class="invoice-party">
-                  <h4>Bill To</h4>
-                  <p>${esc(clientBlock || 'Client details will appear here.')}</p>
-                </div>
-                <div class="invoice-party">
-                  <h4>Project</h4>
-                  <p>${esc(projectBlock || 'Project details will appear here.')}</p>
-                </div>
-                <div class="invoice-dates">
-                  <h4>Invoice Details</h4>
-                  <div class="invoice-date-row"><span>Status</span><strong class="pill ${invoice.status === 'RECEIVED PAYMENT' ? 'cdc' : invoice.status === 'OVERDUE' ? 'status-revision' : 'basix'}">${esc(invoice.status || 'SENT')}</strong></div>
-                  <div class="invoice-date-row"><span>Invoice No</span><strong>${esc(invoice.invoiceNumber || '-')}</strong></div>
-                  <div class="invoice-date-row"><span>Invoice Date</span><strong>${esc(invoice.issueDate || '-')}</strong></div>
-                  <div class="invoice-date-row"><span>Due Date</span><strong>${esc(invoice.dueDate || '-')}</strong></div>
-                </div>
-              </div>
-              <div style="overflow:auto;">
-                <table class="invoice-table">
-                  <thead>
-                    <tr><th>Description</th><th>Amount</th></tr>
-                  </thead>
-                  <tbody>
-                    ${invoice.lineItems.map(item => `<tr><td><div class="invoice-line-title">${esc(item.serviceName || '-')}</div></td><td>${formatCurrency(item.price || 0)}</td></tr>`).join('')}
-                    <!-- GST Line -->
-                    <tr><td><strong>GST (10%)</strong></td><td>${formatCurrency(gstAmount)}</td></tr>
-                  </tbody>
-                </table>
-              </div>
-              <div class="invoice-bottom">
-                <div class="invoice-payment">
-                  <p>${esc(invoice.notes || BUSINESS_PROFILE.bankDetails)}</p>
-                </div>
-                <div class="invoice-totals">
-                  <div class="invoice-total-row"><span>Subtotal</span><strong>${formatCurrency(subtotal)}</strong></div>
-                  <div class="invoice-total-row"><span>GST (10%)</span><strong>${formatCurrency(gstAmount)}</strong></div>
-                  <div class="invoice-total-row grand"><span>Total</span><strong>${formatCurrency(total)}</strong></div>
-                </div>
-              </div>
-            </div>
+          
+          <div class="invoice-preview">
+            <div class="invoice-header"><div><h2>${esc(BUSINESS_PROFILE.name)}</h2><p>${esc(BUSINESS_PROFILE.address)}<br>${esc(BUSINESS_PROFILE.abn)}</p></div></div>
+            <div class="invoice-meta"><div><h4>Bill To</h4><p>${esc(p.clientName)}<br>${esc(p.clientEmail)}</p></div><div><h4>Project</h4><p>${esc(p.siteAddress)}<br>${esc(p.council)}</p></div><div><h4>Details</h4><div class="invoice-meta-row"><span>Invoice No:</span> <strong>${esc(inv.invoiceNumber)}</strong></div><div class="invoice-meta-row"><span>Issue Date:</span> <strong>${esc(inv.issueDate)}</strong></div><div class="invoice-meta-row"><span>Due Date:</span> <strong>${esc(inv.dueDate)}</strong></div></div></div>
+            <table class="invoice-table-rendered"><thead><tr><th>Description</th><th>Amount</th></tr></thead><tbody>${inv.lineItems.map(item => `<tr><td><strong>${esc(item.serviceName)}</strong></td><td>${formatCurrency(item.price)}</td></tr>`).join('')}</tbody></table>
+            <div class="invoice-footer"><div class="invoice-notes">${esc(inv.notes)}</div><div class="invoice-summary"><div class="summary-row"><span>Subtotal:</span> <strong>${formatCurrency(subtotal)}</strong></div><div class="summary-row"><span>GST (10%):</span> <strong>${formatCurrency(gst)}</strong></div><div class="summary-row grand"><span>Total:</span> <strong>${formatCurrency(total)}</strong></div></div></div>
           </div>
-        </div>
-      </div>`;
+        </div>`;
     }
 
-    // ============ END INVOICE WITH GST =============
-
-    function openProjectModal(id='') {
-      document.getElementById('projectForm').reset();
-      populateCouncils();
-      document.getElementById('projectId').value = id || '';
-      document.getElementById('modalTitle').textContent = id ? 'Edit Project' : 'Add Project';
-      if (id) {
-        const p = projects.find(x => x.id === id);
-        ['clientName','clientPhone','clientEmail','siteAddress','council','lotDp','projectType','approvalType','jobStatus','dueDate','submissionDate','approvalDate','assignedStaff','projectNotes'].forEach(key => {
-          const map = { jobStatus: 'status' };
-          const el = document.getElementById(key);
-          if (key === 'council' && p.council && !nswCouncils.includes(p.council)) el.insertAdjacentHTML('beforeend', `<option>${esc(p.council)}</option>`);
-          el.value = p[map[key] || key] || '';
-        });
-      }
-      document.getElementById('projectModal').classList.add('show');
-    }
-
-    function closeProjectModal() { document.getElementById('projectModal').classList.remove('show'); }
-
-    function saveProject(event) {
-      event.preventDefault();
-      const id = document.getElementById('projectId').value;
-      const data = {
-        clientName: clientName.value, clientPhone: clientPhone.value, clientEmail: clientEmail.value, siteAddress: siteAddress.value,
-        council: council.value, lotDp: lotDp.value, projectType: projectType.value, approvalType: approvalType.value,
-        status: jobStatus.value, dueDate: dueDate.value, submissionDate: submissionDate.value, approvalDate: approvalDate.value,
-        assignedStaff: assignedStaff.value, projectNotes: projectNotes.value
-      };
-      if (id) {
-        const p = projects.find(x => x.id === id);
-        const typeChanged = p.approvalType !== data.approvalType;
-        Object.assign(p, data);
-        p.projectNotesList ||= [];
-        p.invoice ||= defaultInvoice(p);
-        if (typeChanged && confirm('Approval type changed. Replace the current checklist with the new preset checklist?')) p.documents = makeDocs(data.approvalType);
-      } else {
-        const newProject = { id: uid(), createdAt: todayISO(), ...data, documents: makeDocs(data.approvalType), consultants: [], notesList: [], projectNotesList: [], files: [] };
-        newProject.invoice = defaultInvoice(newProject);
-        projects.unshift(newProject);
-      }
-      queueSave();
-      closeProjectModal();
-      id ? openProject(id) : showDashboard();
-    }
-
-    function updateProjectField(field,value) { const p=getCurrentProject(); p[field]=value; queueSave(); openProject(p.id); switchTab(activeTab); }
-    function updateDoc(id, field, value) { const p=getCurrentProject(); const d=p.documents.find(x=>x.id===id); d[field]=value; queueSave(); renderProjectTab(); }
-    function removeDoc(id) { const p=getCurrentProject(); p.documents=p.documents.filter(d=>d.id!==id); queueSave(); renderProjectTab(); }
-    function addDocumentPrompt() { const name=prompt('Document name'); if(!name) return; const p=getCurrentProject(); p.documents.push({ id: uid(), name, required:'Yes', status:'Required', responsible:'Client/Consultant', dueDate:'', notes:'', uploadedFile:'' }); queueSave(); renderProjectTab(); }
-
-    function addConsultant() { const p=getCurrentProject(); p.consultants ||= []; p.consultants.push({ id: uid(), name:'', contact:'', task:'', dueDate:'', status:'Pending' }); queueSave(); renderProjectTab(); }
-    function updateConsultant(id, field, value) { const p=getCurrentProject(); const c=p.consultants.find(x=>x.id===id); c[field]=value; queueSave(); }
-    function removeConsultant(id) { const p=getCurrentProject(); p.consultants=p.consultants.filter(c=>c.id!==id); queueSave(); renderProjectTab(); }
-    function copyReminder(id) { const p=getCurrentProject(); const c=p.consultants.find(x=>x.id===id); const msg=`Hi ${c.name || '[Name]'}, just following up on the ${c.task || '[document/task]'} for ${p.siteAddress}. Could you please confirm when this will be ready, as we need it for the approval submission?`; navigator.clipboard.writeText(msg); alert('Reminder copied.'); }
-
-    function addCouncilNote() { const p=getCurrentProject(); p.notesList ||= []; p.notesList.push({ id: uid(), date: todayISO(), contact:'', note:'', nextAction:'' }); queueSave(); renderProjectTab(); }
-    function updateCouncilNote(id, field, value) { const p=getCurrentProject(); const n=p.notesList.find(x=>x.id===id); n[field]=value; queueSave(); }
-    function removeCouncilNote(id) { const p=getCurrentProject(); p.notesList=p.notesList.filter(n=>n.id!==id); queueSave(); renderProjectTab(); }
-
-    function addProjectNote() { const p=getCurrentProject(); p.projectNotesList ||= []; p.projectNotesList.unshift({ id: uid(), date: todayISO(), title:'', body:'' }); queueSave(); renderProjectTab(); }
-    function updateProjectNote(id, field, value) { const p=getCurrentProject(); const n=p.projectNotesList.find(x=>x.id===id); n[field]=value; queueSave(); }
-    function removeProjectNote(id) { const p=getCurrentProject(); p.projectNotesList=p.projectNotesList.filter(n=>n.id!==id); queueSave(); renderProjectTab(); }
-
-    function updateInvoiceField(field, value) { const p=getCurrentProject(); p.invoice ||= defaultInvoice(p); p.invoice[field]=value; queueSave(); renderProjectTab(); }
-    function normalizeInvoiceLines(p) {
-      p.invoice ||= defaultInvoice(p);
-      p.invoice.lineItems ||= defaultInvoice(p).lineItems;
-      p.invoice.lineItems.forEach(item => {
-        item.serviceName ||= '';
-        item.price ||= '';
-        item.useCustomService = item.useCustomService ?? looksCustomService(item.serviceName);
-        delete item.serviceDescription;
-      });
-    }
-    function updateInvoiceLine(id, field, value) { const p=getCurrentProject(); normalizeInvoiceLines(p); const item=p.invoice.lineItems.find(x=>x.id===id); if (!item) return; item[field]=value; if (field === 'serviceName') item.useCustomService = looksCustomService(value); queueSave(); renderProjectTab(); }
-    function updateInvoiceServiceChoice(id, value) { const p=getCurrentProject(); normalizeInvoiceLines(p); const item=p.invoice.lineItems.find(x=>x.id===id); if (!item) return; if (value === '__custom__') { item.useCustomService = true; item.serviceName = item.serviceName && !looksCustomService(item.serviceName) ? '' : item.serviceName; } else { item.useCustomService = false; item.serviceName = value; } queueSave(); renderProjectTab(); }
-    function addInvoiceLine() { const p=getCurrentProject(); normalizeInvoiceLines(p); p.invoice.lineItems.push({ id: uid(), serviceName:'', price:'', useCustomService:false }); queueSave(); renderProjectTab(); }
-    function removeInvoiceLine(id) { const p=getCurrentProject(); normalizeInvoiceLines(p); p.invoice.lineItems = (p.invoice.lineItems || []).filter(item => item.id !== id); if (!p.invoice.lineItems.length) p.invoice.lineItems.push({ id: uid(), serviceName:'', price:'', useCustomService:false }); queueSave(); renderProjectTab(); }
-    function resetInvoiceDefaults() { const p=getCurrentProject(); p.invoice = defaultInvoice(p); queueSave(); renderProjectTab(); }
-
-    function addFiles(event) {
-      const p = getCurrentProject(); p.files ||= [];
-      [...event.target.files].forEach(file => {
-        const reader = new FileReader();
-        reader.onload = e => { p.files.push({ id: uid(), name: file.name, type: file.type, size: file.size, data: e.target.result }); queueSave(); renderProjectTab(); };
-        reader.readAsDataURL(file);
-      });
-    }
-    function removeFile(id) { const p=getCurrentProject(); p.files=p.files.filter(f=>f.id!==id); queueSave(); renderProjectTab(); }
-
-    function copyText(id) { navigator.clipboard.writeText(document.getElementById(id).textContent); alert('Copied.'); }
-
-    function showChecklistLibrary() {
-      showOnly('libraryView');
-      document.querySelectorAll('.nav-btn')[2].classList.add('active');
-      document.getElementById('pageTitle').textContent = 'Checklist Library';
-      document.getElementById('pageSubtitle').textContent = 'Preset approval checklists used when creating a project.';
-      document.getElementById('libraryView').innerHTML = `<div class="grid two">${Object.entries(checklistLibrary).map(([type,items]) => `<div class="card"><div class="section-title"><div><h3>${type}</h3><p>${items.length} checklist items</p></div><span class="pill ${approvalClass(type)}">${type}</span></div><ul>${items.map(i => `<li>${esc(i)}</li>`).join('')}</ul></div>`).join('')}</div>`;
-    }
-
-    function showTemplatesOnly() {
-      showOnly('templatesView');
-      document.querySelectorAll('.nav-btn')[3].classList.add('active');
-      document.getElementById('pageTitle').textContent = 'Message Templates';
-      document.getElementById('pageSubtitle').textContent = 'General chasing and update messages.';
-      const fake = { clientName:'[Client]', siteAddress:'[Project address]', approvalType:'[DA/CDC/CC/OC]', status:'[Status]', documents:[] };
-      document.getElementById('templatesView').innerHTML = templatesHtml(fake);
-    }
-
-    function printProjectReport() {
-      const p = getCurrentProject();
-      const completed = p.documents.filter(d => ['Received','Reviewed','Uploaded to portal','Approved'].includes(d.status));
-      const missing = missingDocs(p);
-      document.getElementById('printReport').innerHTML = `<h1 class="print-title">Project Approval Status Report</h1><p class="print-subtitle">Generated ${new Date().toLocaleDateString()} &middot; Project Approvals</p><div class="card"><h3>Project Details</h3><table><tbody><tr><th>Client</th><td>${esc(p.clientName)}</td></tr><tr><th>Site Address</th><td>${esc(p.siteAddress)}</td></tr><tr><th>Council</th><td>${esc(p.council)}</td></tr><tr><th>Approval Pathway</th><td>${esc(p.approvalType)}</td></tr><tr><th>Current Status</th><td>${esc(p.status)}</td></tr><tr><th>Next Step</th><td>${esc(nextAction(p))}</td></tr></tbody></table></div><div class="card"><h3>Completed Documents</h3>${reportList(completed, 'No completed documents yet.')}</div><div class="card"><h3>Missing Documents</h3>${reportList(missing, 'No missing documents currently listed.')}</div><div class="card"><h3>Consultant Tasks</h3>${reportConsultants(p)}</div><div class="card"><h3>Council / Certifier Notes</h3>${reportNotes(p)}</div><div class="card"><h3>Project Notes</h3>${reportProjectNotes(p)}</div>`;
-      window.print();
-    }
-
-    // ============ PRINT INVOICE WITH GST =============
-    function printInvoice() {
+    // PERFECT PDF GENERATION (Using absolute sizing isolated from the screen)
+    function downloadInvoicePDF() {
       const p = getCurrentProject();
       p.invoice ||= defaultInvoice(p);
       const invoice = p.invoice;
-      normalizeInvoiceLines(p);
       const subtotal = invoice.lineItems.reduce((sum, item) => sum + Number(item.price || 0), 0);
-      const gstAmount = subtotal * 0.1;
-      const total = subtotal + gstAmount;
-      const clientBlock = [p.clientName, p.clientEmail, p.clientPhone].filter(Boolean).join('<br>');
-      const projectBlock = [p.siteAddress, p.council].filter(Boolean).join('<br>');
-      const compactClass = invoice.lineItems.length <= 10 ? 'compact' : '';
-      document.getElementById('printReport').innerHTML = `
-        <div class="invoice-preview" style="box-shadow:none;border-color:#ddd;padding:12px;">
-          <div class="invoice-sheet ${compactClass}">
-            <div class="invoice-body">
-              <div class="invoice-head">
-                <div class="invoice-company">
-                  <h2>${esc(BUSINESS_PROFILE.name)}</h2>
-                  <p>${esc(BUSINESS_PROFILE.address)}<br>${esc(BUSINESS_PROFILE.email)}<br>${esc(BUSINESS_PROFILE.phone)}<br>${esc(BUSINESS_PROFILE.abn)}</p>
-                </div>
-                <div class="invoice-logo-wrap"><img class="invoice-logo" src="${INVOICE_LOGO_SRC}" alt="Project Approvals logo" /></div>
-              </div>
-              <div class="invoice-divider"></div>
-              <div class="invoice-parties">
-                <div class="invoice-party"><h4>Bill To</h4><p>${clientBlock || 'Client details will appear here.'}</p></div>
-                <div class="invoice-party"><h4>Project</h4><p>${projectBlock || 'Project details will appear here.'}</p></div>
-                <div class="invoice-dates">
-                  <h4>Invoice Details</h4>
-                  <div class="invoice-date-row"><span>Status</span><strong class="pill ${invoice.status === 'RECEIVED PAYMENT' ? 'cdc' : invoice.status === 'OVERDUE' ? 'status-revision' : 'basix'}">${esc(invoice.status || 'SENT')}</strong></div>
-                  <div class="invoice-date-row"><span>Invoice No</span><strong>${esc(invoice.invoiceNumber || '-')}</strong></div>
-                  <div class="invoice-date-row"><span>Invoice Date</span><strong>${esc(invoice.issueDate || '-')}</strong></div>
-                  <div class="invoice-date-row"><span>Due Date</span><strong>${esc(invoice.dueDate || '-')}</strong></div>
-                </div>
-              </div>
-              <div style="overflow:auto;">
-                <table class="invoice-table">
-                  <thead><tr><th>Description</th><th>Amount</th></tr></thead>
-                  <tbody>
-                    ${invoice.lineItems.map(item => `<tr><td><div class="invoice-line-title">${esc(item.serviceName || '-')}</div></td><td>${formatCurrency(item.price || 0)}</td></tr>`).join('')}
-                    <tr><td><strong>GST (10%)</strong></td><td>${formatCurrency(gstAmount)}</td></tr>
-                  </tbody>
-                </table>
-              </div>
-              <div class="invoice-bottom">
-                <div class="invoice-payment"><p>${esc(invoice.notes || BUSINESS_PROFILE.bankDetails)}</p></div>
-                <div class="invoice-totals">
-                  <div class="invoice-total-row"><span>Subtotal</span><strong>${formatCurrency(subtotal)}</strong></div>
-                  <div class="invoice-total-row"><span>GST (10%)</span><strong>${formatCurrency(gstAmount)}</strong></div>
-                  <div class="invoice-total-row grand"><span>Total</span><strong>${formatCurrency(total)}</strong></div>
-                </div>
-              </div>
-            </div>
+      const gst = subtotal * 0.1;
+      const total = subtotal + gst;
+
+      // 1. Create a perfectly sized off-screen container for rendering
+      const offscreenDiv = document.createElement('div');
+      
+      // Strict width constraint ensuring it matches the A4 aspect ratio before screenshot
+      offscreenDiv.style.width = '800px'; 
+      offscreenDiv.style.position = 'absolute';
+      offscreenDiv.style.left = '-9999px';
+      offscreenDiv.style.top = '0';
+      offscreenDiv.style.padding = '40px';
+      offscreenDiv.style.background = '#ffffff';
+      offscreenDiv.style.color = '#000000';
+      offscreenDiv.style.fontFamily = 'Helvetica, Arial, sans-serif';
+
+      offscreenDiv.innerHTML = `
+        <div style="display:flex; justify-content:space-between; margin-bottom:40px;">
+          <div><h2 style="margin:0; font-size:26px;">${esc(BUSINESS_PROFILE.name)}</h2><p style="margin:4px 0 0; color:#555; font-size:14px;">${esc(BUSINESS_PROFILE.address)}<br>${esc(BUSINESS_PROFILE.abn)}</p></div>
+        </div>
+        <div style="display:flex; justify-content:space-between; margin-bottom:40px; padding-bottom:20px; border-bottom:1px solid #ccc;">
+          <div style="flex:1;"><h4 style="margin:0 0 8px; color:#555; text-transform:uppercase; font-size:12px;">Bill To</h4><p style="margin:0; font-size:14px;">${esc(p.clientName)}<br>${esc(p.clientEmail)}</p></div>
+          <div style="flex:1;"><h4 style="margin:0 0 8px; color:#555; text-transform:uppercase; font-size:12px;">Project</h4><p style="margin:0; font-size:14px;">${esc(p.siteAddress)}<br>${esc(p.council)}</p></div>
+          <div style="flex:1; text-align:right;"><h4 style="margin:0 0 8px; color:#555; text-transform:uppercase; font-size:12px;">Invoice Details</h4><p style="margin:0; font-size:14px;">No: <strong>${esc(invoice.invoiceNumber)}</strong><br>Date: <strong>${esc(invoice.issueDate)}</strong><br>Due: <strong>${esc(invoice.dueDate)}</strong></p></div>
+        </div>
+        <table style="width:100%; border-collapse:collapse; margin-bottom:40px; font-size:14px;">
+          <thead><tr style="border-bottom:2px solid #ddd; text-align:left;"><th style="padding:12px;">Description</th><th style="padding:12px; text-align:right;">Amount</th></tr></thead>
+          <tbody>${invoice.lineItems.map(i => `<tr><td style="padding:12px; border-bottom:1px solid #eee;"><strong>${esc(i.serviceName)}</strong></td><td style="padding:12px; border-bottom:1px solid #eee; text-align:right;">${formatCurrency(i.price)}</td></tr>`).join('')}</tbody>
+        </table>
+        <div style="display:flex; justify-content:space-between; align-items:flex-end; font-size:14px;">
+          <div style="width:55%; white-space:pre-wrap; color:#555;">${esc(invoice.notes)}</div>
+          <div style="width:35%;">
+            <div style="display:flex; justify-content:space-between; padding:4px 0;"><span>Subtotal:</span><strong>${formatCurrency(subtotal)}</strong></div>
+            <div style="display:flex; justify-content:space-between; padding:4px 0;"><span>GST (10%):</span><strong>${formatCurrency(gst)}</strong></div>
+            <div style="display:flex; justify-content:space-between; padding:12px 0; border-top:2px solid #ccc; font-size:18px; font-weight:bold; margin-top:8px;"><span>Total:</span><span>${formatCurrency(total)}</span></div>
           </div>
-        </div>`;
-      window.print();
-    }
-    // ============ END PRINT INVOICE WITH GST =============
+        </div>
+      `;
 
-    function reportList(items, empty) { return items.length ? `<table><thead><tr><th>Document</th><th>Status</th><th>Responsible</th><th>Due</th></tr></thead><tbody>${items.map(d => `<tr><td>${esc(d.name)}</td><td>${esc(d.status)}</td><td>${esc(d.responsible)}</td><td>${esc(d.dueDate || '-')}</td></tr>`).join('')}</tbody></table>` : `<p>${empty}</p>`; }
-    function reportConsultants(p) { return p.consultants?.length ? `<table><thead><tr><th>Consultant</th><th>Task</th><th>Due</th><th>Status</th></tr></thead><tbody>${p.consultants.map(c => `<tr><td>${esc(c.name)}</td><td>${esc(c.task)}</td><td>${esc(c.dueDate || '-')}</td><td>${esc(c.status)}</td></tr>`).join('')}</tbody></table>` : '<p>No consultant tasks added.</p>'; }
-    function reportNotes(p) { return p.notesList?.length ? `<table><thead><tr><th>Date</th><th>Contact</th><th>Note</th><th>Next Action</th></tr></thead><tbody>${p.notesList.map(n => `<tr><td>${esc(n.date)}</td><td>${esc(n.contact)}</td><td>${esc(n.note)}</td><td>${esc(n.nextAction)}</td></tr>`).join('')}</tbody></table>` : '<p>No council notes added.</p>'; }
-    function reportProjectNotes(p) { return p.projectNotesList?.length ? `<table><thead><tr><th>Date</th><th>Title</th><th>Note</th></tr></thead><tbody>${p.projectNotesList.map(n => `<tr><td>${esc(n.date)}</td><td>${esc(n.title || '-')}</td><td>${esc(n.body)}</td></tr>`).join('')}</tbody></table>` : '<p>No project notes added.</p>'; }
+      // 2. Append to body so html2pdf can access it
+      document.body.appendChild(offscreenDiv);
 
-    function deleteCurrentProject() {
-      if (!confirm('Delete this project?')) return;
-      projects = projects.filter(p => p.id !== currentProjectId);
-      queueSave();
-      showDashboard();
-    }
-
-    function seedDemoData() {
-      if (projects.length && !confirm('This will add demo projects. Continue?')) return;
-      const demo = [
-        { clientName:'John Smith', clientPhone:'', clientEmail:'', siteAddress:'25 Smith Street, Blacktown NSW 2148', council:'Blacktown City Council', lotDp:'', projectType:'Secondary dwelling', approvalType:'CDC', status:'Documents pending', dueDate:'', submissionDate:'', approvalDate:'', assignedStaff:'Harsh', projectNotes:'Prepare CDC package and chase missing engineering items.' },
-        { clientName:'Rachael Lee', clientPhone:'', clientEmail:'', siteAddress:'7 King Road, Camden NSW 2570', council:'Camden Council', lotDp:'', projectType:'Mezzanine kitchenette approval', approvalType:'BIC', status:'RFI', dueDate:'', submissionDate:'', approvalDate:'', assignedStaff:'Harsh', projectNotes:'Council requested additional information after inspection.' },
-        { clientName:'Aakash Patel', clientPhone:'', clientEmail:'', siteAddress:'3 Lake Avenue, Penrith NSW 2750', council:'Penrith City Council', lotDp:'', projectType:'Alterations/additions', approvalType:'DA', status:'Documents pending', dueDate:'', submissionDate:'', approvalDate:'', assignedStaff:'Harsh', projectNotes:'Waiting on owner consent and stormwater concept.' }
-      ].map(d => {
-        const project = { id: uid(), createdAt: todayISO(), ...d, documents: makeDocs(d.approvalType), consultants: [], notesList: [], projectNotesList: [], files: [] };
-        project.invoice = defaultInvoice(project);
-        return project;
-      });
-      projects = [...demo, ...projects];
-      queueSave();
-      renderDashboard();
-    }
-
-    function exportData() {
-      const blob = new Blob([JSON.stringify(projects, null, 2)], { type: 'application/json' });
-      const a = document.createElement('a');
-      a.href = URL.createObjectURL(blob);
-      a.download = 'project-approvals-backup.json';
-      a.click();
-      URL.revokeObjectURL(a.href);
-    }
-
-    function importData(event) {
-      const file = event.target.files[0];
-      if (!file) return;
-      const reader = new FileReader();
-      reader.onload = e => {
-        try {
-          const data = JSON.parse(e.target.result);
-          if (!Array.isArray(data)) throw new Error('Invalid file');
-          projects = data;
-          queueSave();
-          showDashboard();
-          alert('Data restored.');
-        } catch {
-          alert('Could not import this file.');
-        }
+      const filename = `${invoice.invoiceNumber}_${p.clientName.replace(/\s+/g, '_')}.pdf`;
+      const opt = {
+        margin:       10, 
+        filename:     filename,
+        image:        { type: 'jpeg', quality: 0.98 },
+        html2canvas:  { scale: 2 }, 
+        jsPDF:        { unit: 'mm', format: 'a4', orientation: 'portrait' }
       };
-      reader.readAsText(file);
+
+      // 3. Generate PDF and immediately remove the hidden container
+      html2pdf().set(opt).from(offscreenDiv).save().then(() => {
+        document.body.removeChild(offscreenDiv);
+      });
     }
 
-    async function bootstrap() {
-      populateCouncils();
-      await initSupabase();
-      showDashboard();
+    /* LOCAL IMAGE CACHING (INDEXEDDB FILES TAB) */
+    function renderFilesTab(p, el) {
+      el.innerHTML = `<div class="card"><h3>Project Files (Saved Locally)</h3><p style="font-size:13px; color:var(--muted);">Files are securely saved to your browser's hard drive to keep cloud sync incredibly fast.</p><input type="file" multiple onchange="saveFileToIDB(event, '${p.id}')" style="margin-bottom:16px;" /><div id="filesContainer" class="file-list">Loading files...</div></div>`;
+      loadFilesFromIDB(p.id);
+    }
+    
+    function loadFilesFromIDB(projectId) {
+      if (!localDB) { document.getElementById('filesContainer').innerHTML = "Storage not ready."; return; }
+      const tx = localDB.transaction("files", "readonly");
+      const req = tx.objectStore("files").getAll();
+      req.onsuccess = e => {
+        const files = e.target.result.filter(f => f.projectId === projectId);
+        document.getElementById('filesContainer').innerHTML = files.length ? files.map(f => `<div class="file-item"><div><strong>${esc(f.name)}</strong></div><div class="actions"><a class="btn small" href="${f.data}" download="${esc(f.name)}">Download</a><button class="btn danger small" onclick="deleteFileFromIDB('${f.id}', '${projectId}')">Del</button></div></div>`).join('') : '<div style="color:var(--muted)">No files uploaded yet.</div>';
+      };
+    }
+    
+    function saveFileToIDB(event, projectId) {
+      if (!localDB) return alert("Storage not ready.");
+      const tx = localDB.transaction("files", "readwrite");
+      [...event.target.files].forEach(file => {
+        const r = new FileReader();
+        r.onload = e => { tx.objectStore("files").put({ id: uid(), projectId, name: file.name, data: e.target.result }); tx.oncomplete = () => loadFilesFromIDB(projectId); };
+        r.readAsDataURL(file);
+      });
+    }
+    function deleteFileFromIDB(fileId, projectId) { const tx = localDB.transaction("files", "readwrite"); tx.objectStore("files").delete(fileId); tx.oncomplete = () => loadFilesFromIDB(projectId); }
+
+    /* CSV EXPORT */
+    function exportToCSV() {
+      const headers = ['Project ID', 'Client Name', 'Address', 'Council', 'Approval Type', 'Status', 'Total Docs', 'Missing Docs'];
+      const rows = projects.map(p => {
+         const missing = p.documents.filter(d=>d.required!=='No'&&!['Received','Approved'].includes(d.status)).length;
+         return [p.id, `"${p.clientName}"`, `"${p.siteAddress}"`, `"${p.council}"`, p.approvalType, p.status, p.documents.length, missing].join(',');
+      });
+      const csv = [headers.join(','), ...rows].join('\n');
+      const blob = new Blob([csv], { type: 'text/csv' });
+      const a = document.createElement('a'); a.href = URL.createObjectURL(blob); a.download = 'project-approvals.csv'; a.click();
     }
 
+    /* EMAIL GENERATION */
+    function generateEmailChase() {
+      const p = getCurrentProject();
+      if(!p || !p.clientEmail) { alert('No client email address saved for this project.'); return; }
+      
+      const missing = p.documents.filter(d => d.required !== 'No' && !['Received','Approved'].includes(d.status));
+      if(!missing.length) { alert('No documents are currently missing for this project!'); return; }
+      
+      const missingList = missing.map(d => '- ' + d.name).join('%0D%0A');
+      const subject = `Missing Documents for ${p.siteAddress}`;
+      const body = `Hi ${p.clientName},%0D%0A%0D%0AWe are currently missing the following documents for your project at ${p.siteAddress}:%0D%0A%0D%0A${missingList}%0D%0A%0D%0APlease provide these at your earliest convenience so we can proceed.%0D%0A%0D%0AThanks,`;
+      
+      window.location.href = `mailto:${p.clientEmail}?subject=${subject}&body=${body}`;
+    }
+
+    // Modal Logic
+    function openProjectModal(id='') { document.getElementById('projectForm').reset(); populateCouncils(); document.getElementById('projectId').value = id || ''; document.getElementById('modalTitle').textContent = id ? 'Edit Project' : 'Add Project'; if (id) { const p = projects.find(x => x.id === id); ['clientName','clientPhone','clientEmail','siteAddress','council','lotDp','projectType','approvalType','jobStatus'].forEach(key => { const el = document.getElementById(key); if (el) el.value = p[key==='jobStatus'?'status':key] || ''; }); } else { document.getElementById('jobStatus').value = 'Active'; } document.getElementById('projectModal').classList.add('show'); }
+    function closeProjectModal() { document.getElementById('projectModal').classList.remove('show'); }
+    function saveProject(event) { event.preventDefault(); const id = document.getElementById('projectId').value; const data = { clientName: clientName.value, clientPhone: clientPhone.value, clientEmail: clientEmail.value, siteAddress: siteAddress.value, council: council.value, lotDp: lotDp.value, projectType: projectType.value, approvalType: approvalType.value, status: jobStatus.value }; if (id) { Object.assign(projects.find(x => x.id === id), data); } else { const newProject = { id: uid(), createdAt: todayISO(), updatedAt: new Date().toISOString(), ...data, documents: (checklistLibrary[data.approvalType] || checklistLibrary.Other).map(name => ({ id: uid(), name, required: 'Yes', status: 'Required', responsible: 'Client/Consultant' })), notesList: [], projectNotesList: [] }; newProject.invoice = defaultInvoice(newProject); projects.unshift(newProject); } queueSave(); closeProjectModal(); id ? openProject(id) : showDashboard(); }
+
+    function updateDoc(id, field, value) { const p=getCurrentProject(); p.documents.find(x=>x.id===id)[field]=value; queueSave(); }
+    function removeDoc(id) { const p=getCurrentProject(); p.documents=p.documents.filter(d=>d.id!==id); queueSave(); renderProjectTab(); }
+    function addDocumentPrompt() { const name=prompt('Doc name'); if(!name) return; const p=getCurrentProject(); p.documents.push({ id: uid(), name, required:'Yes', status:'Required', responsible:'Client' }); queueSave(); renderProjectTab(); }
+    function addCouncilNote() { const p=getCurrentProject(); p.notesList.push({ id: uid(), date: todayISO(), note:'' }); queueSave(); renderProjectTab(); }
+    function updateCouncilNote(id, f, v) { const p=getCurrentProject(); p.notesList.find(x=>x.id===id)[f]=v; queueSave(); }
+    function removeCouncilNote(id) { const p=getCurrentProject(); p.notesList=p.notesList.filter(n=>n.id!==id); queueSave(); renderProjectTab(); }
+    function addProjectNote() { const p=getCurrentProject(); p.projectNotesList.push({ id: uid(), title:'', body:'' }); queueSave(); renderProjectTab(); }
+    function updateProjectNote(id, f, v) { const p=getCurrentProject(); p.projectNotesList.find(x=>x.id===id)[f]=v; queueSave(); }
+    function removeProjectNote(id) { const p=getCurrentProject(); p.projectNotesList=p.projectNotesList.filter(n=>n.id!==id); queueSave(); renderProjectTab(); }
+    function updateInvoiceField(field, value) { const p=getCurrentProject(); p.invoice[field]=value; queueSave(); renderProjectTab(); }
+    function updateInvoiceLine(id, field, value) { const p=getCurrentProject(); p.invoice.lineItems.find(x=>x.id===id)[field]=value; queueSave(); renderProjectTab(); }
+    function addInvoiceLine() { const p=getCurrentProject(); p.invoice.lineItems.push({ id: uid(), serviceName:'', price:'' }); queueSave(); renderProjectTab(); }
+    function removeInvoiceLine(id) { const p=getCurrentProject(); p.invoice.lineItems = p.invoice.lineItems.filter(i => i.id !== id); queueSave(); renderProjectTab(); }
+
+    function showChecklistLibrary() { showOnly('libraryView'); document.querySelectorAll('.nav-btn')[2].classList.add('active'); renderLibraryUI(); }
+    function renderLibraryUI() { const container = document.getElementById('libraryView'); let html = `<div class="topbar"><h2>Checklist Library Editor</h2></div><div class="grid two">`; for (const [type, items] of Object.entries(checklistLibrary)) { html += `<div class="card checklist-category"><h3>${type}</h3><div class="checklist-list">${items.map((item, index) => `<div class="checklist-item"><span>${esc(item)}</span><button class="btn danger small" onclick="removeLibraryItem('${type}', ${index})">✕</button></div>`).join('')}</div><div style="display:flex;gap:8px;margin-top:12px;"><input type="text" id="addInput_${type}" placeholder="New document name..." /><button class="btn primary small" onclick="addLibraryItem('${type}')">Add</button></div></div>`; } html += `</div>`; container.innerHTML = html; }
+    function addLibraryItem(type) { const val = document.getElementById(`addInput_${type}`).value.trim(); if(val) { checklistLibrary[type].push(val); queueSave(); renderLibraryUI(); } }
+    function removeLibraryItem(type, index) { if(confirm('Remove this item?')) { checklistLibrary[type].splice(index, 1); queueSave(); renderLibraryUI(); } }
+    function deleteCurrentProject() { if (!confirm('Delete project?')) return; projects = projects.filter(p => p.id !== currentProjectId); queueSave(); showDashboard(); }
+    function exportData() { const a = document.createElement('a'); a.href = URL.createObjectURL(new Blob([JSON.stringify({ projects, checklistLibrary }, null, 2)], { type: 'application/json' })); a.download = 'backup.json'; a.click(); URL.revokeObjectURL(a.href); }
+    function importData(e) { const r = new FileReader(); r.onload = ev => { try { const loaded = JSON.parse(ev.target.result); if(loaded.projects && loaded.checklistLibrary) { projects = loaded.projects; checklistLibrary = loaded.checklistLibrary; } else { projects = loaded; } queueSave(); showDashboard(); alert('Restored.'); } catch { alert('Error.'); } }; r.readAsText(e.target.files[0]); }
+    
+    async function bootstrap() { populateCouncils(); await initSupabase(); showDashboard(); }
     bootstrap();
   </script>
 </body>

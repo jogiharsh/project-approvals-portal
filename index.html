@@ -8,7 +8,7 @@
   <!-- html2pdf library for perfectly scaled PDF Invoices -->
   <script src="https://cdnjs.cloudflare.com/ajax/libs/html2pdf.js/0.10.1/html2pdf.bundle.min.js"></script>
   
-  <!-- Load your private config file -->
+  <!-- Load your private config file (MUST be in the same folder) -->
   <script src="config.js"></script>
 
   <style>
@@ -221,7 +221,6 @@
             <p id="pageSubtitle">Track DA, CDC, CC, OC, BASIX and BIC jobs.</p>
           </div>
           <div class="actions">
-            <!-- Export to CSV Feature -->
             <button class="btn" onclick="exportToCSV()">⤓ Export CSV</button>
             <button class="btn primary" onclick="openProjectModal()">+ New Project</button>
           </div>
@@ -260,7 +259,6 @@
             </div>
             <div class="actions">
               <button class="btn" onclick="showDashboard()">Back</button>
-              <!-- One-click Email Generator -->
               <button class="btn outline-primary" onclick="generateEmailChase()">✉ Chase Missing Docs</button>
               <button class="btn" onclick="openProjectModal(currentProjectId)">Edit Details</button>
               <button class="btn danger" onclick="deleteCurrentProject()">Delete</button>
@@ -274,7 +272,6 @@
           <button class="tab-btn" data-tab="documents" onclick="switchTab('documents')">Documents</button>
           <button class="tab-btn" data-tab="councilNotes" onclick="switchTab('councilNotes')">Council Notes</button>
           <button class="tab-btn" data-tab="invoice" onclick="switchTab('invoice')">Invoice</button>
-          <!-- Local Image Caching Tab -->
           <button class="tab-btn" data-tab="files" onclick="switchTab('files')">Files</button>
           <button class="tab-btn" data-tab="projectNotes" onclick="switchTab('projectNotes')">Internal Notes</button>
         </div>
@@ -323,13 +320,13 @@
   </div>
 
   <script>
-    // Note: The variables PORTAL_PASSWORD, SUPABASE_URL, and SUPABASE_ANON_KEY 
-    // are securely loaded from your config.js file!
-
+    // ==========================================
+    // SUPABASE COMMUNICATION (RESTORED EXACTLY FROM INDEX_2.HTML)
+    // ==========================================
     const SUPABASE_TABLE = 'app_state'; 
     const APP_STATE_ID = 'main';
-    const LOCAL_FALLBACK_KEY = 'projectApprovalsTracker.v9.localFallback';
-    const LIBRARY_FALLBACK_KEY = 'projectApprovalsTracker.v9.library';
+    const LOCAL_FALLBACK_KEY = 'projectApprovalsTracker.v10.localFallback';
+    const LIBRARY_FALLBACK_KEY = 'projectApprovalsTracker.v10.library';
     
     const BUSINESS_PROFILE = { name: 'Project Approvals', abn: 'ABN 16 696 716 980', email: 'info@projectapprovals.com.au', phone: '0414633507', address: 'Quakershill NSW 2763', bankDetails: 'PayID: info@projectapprovals.com.au\nBank: NAB\nAccount Name: Project Approvals\nBSB: 082-356\nAccount No: 308014097' };
     const INVOICE_SERVICE_OPTIONS = ['CDC consulting service','DA application support','CC approval support','OC approval support','BASIX coordination','Council lodgement support','Site inspection consulting','General approval consulting'];
@@ -358,7 +355,6 @@
 
     function unlockPortal(event) {
       event.preventDefault();
-      // Verifies against the PORTAL_PASSWORD variable loaded from config.js
       if (document.getElementById('portalPassword').value === PORTAL_PASSWORD) {
         sessionStorage.setItem('paPortalUnlocked', 'yes');
         document.body.classList.remove('locked');
@@ -397,66 +393,83 @@
 
     function defaultInvoice(project) { return { invoiceNumber: getNextGlobalInvoiceNumber(), issueDate: todayISO(), dueDate: addDays(todayISO(), 7), lineItems: [{ id: uid(), serviceName: `${project?.approvalType || 'Approval'} consulting service`, price: '' }], notes: BUSINESS_PROFILE.bankDetails }; }
 
-    function loadLocalFallback() { try { const lib = localStorage.getItem(LIBRARY_FALLBACK_KEY); if (lib) checklistLibrary = JSON.parse(lib); return JSON.parse(localStorage.getItem(LOCAL_FALLBACK_KEY) || '[]'); } catch { return []; } }
-    function saveLocalFallback() { localStorage.setItem(LOCAL_FALLBACK_KEY, JSON.stringify(projects)); localStorage.setItem(LIBRARY_FALLBACK_KEY, JSON.stringify(checklistLibrary)); }
-    function hasSupabaseConfig() { return typeof SUPABASE_URL !== 'undefined' && SUPABASE_URL && !SUPABASE_URL.includes('PASTE_YOUR_'); }
-
-    async function initSupabase() {
-      if (!hasSupabaseConfig()) { projects = loadLocalFallback(); setSyncStatus('Local Storage Only (Missing Config)', 'warning'); return; }
-      try {
-        isCloudReady = true; setSyncStatus('Connecting...', 'warning');
-        await loadProjectsFromCloud();
-        setSyncStatus('Cloud Synced', 'success');
-      } catch (error) { 
-        projects = loadLocalFallback(); isCloudReady = false; 
-        setSyncStatus('Sync Failed - Check Console', 'error'); 
-      }
+    function loadLocalFallback() { 
+      try { 
+        const lib = localStorage.getItem(LIBRARY_FALLBACK_KEY); 
+        if (lib) checklistLibrary = JSON.parse(lib); 
+        return JSON.parse(localStorage.getItem(LOCAL_FALLBACK_KEY) || '[]'); 
+      } catch { return []; } 
+    }
+    
+    function saveLocalFallback() { 
+      localStorage.setItem(LOCAL_FALLBACK_KEY, JSON.stringify(projects)); 
+      localStorage.setItem(LIBRARY_FALLBACK_KEY, JSON.stringify(checklistLibrary)); 
+    }
+    
+    function hasSupabaseConfig() { 
+      return typeof SUPABASE_URL !== 'undefined' && typeof SUPABASE_ANON_KEY !== 'undefined' && SUPABASE_URL && SUPABASE_ANON_KEY && !SUPABASE_URL.includes('PASTE_YOUR_'); 
     }
 
-    function supabaseHeaders(extra = {}) { return { apikey: SUPABASE_ANON_KEY, Authorization: `Bearer ${SUPABASE_ANON_KEY}`, ...extra }; }
+    function supabaseHeaders(extra = {}) { 
+      return { 
+        apikey: SUPABASE_ANON_KEY, 
+        Authorization: `Bearer ${SUPABASE_ANON_KEY}`, 
+        ...extra 
+      }; 
+    }
 
+    // Identical exact load function from index_2.html
     async function loadProjectsFromCloud() {
-      // Changed select=projects,checklistLibrary to select=* to completely avoid PostgREST Case Sensitivity bugs
-      const response = await fetch(`${SUPABASE_URL}/rest/v1/${SUPABASE_TABLE}?id=eq.${encodeURIComponent(APP_STATE_ID)}&select=*`, { headers: supabaseHeaders() });
-      if (!response.ok) {
-         const err = await response.text();
-         console.error("Supabase Load Error:", err);
-         throw new Error(`Load failed: ${err}`);
-      }
+      const response = await fetch(
+        `${SUPABASE_URL}/rest/v1/${SUPABASE_TABLE}?id=eq.${encodeURIComponent(APP_STATE_ID)}&select=projects`,
+        { headers: supabaseHeaders() }
+      );
+      if (!response.ok) throw new Error(`Supabase load failed: ${response.status}`);
       const data = await response.json();
-      if (data && data.length > 0) { 
-        projects = Array.isArray(data[0].projects) ? data[0].projects : []; 
-        if (data[0].checklistLibrary) checklistLibrary = data[0].checklistLibrary; 
-        else if (data[0].checklistlibrary) checklistLibrary = data[0].checklistlibrary; 
-      }
+      projects = Array.isArray(data?.[0]?.projects) ? data[0].projects : [];
       saveLocalFallback();
     }
 
+    // Identical exact save function from index_2.html
     async function saveAll() {
       saveLocalFallback();
       if (!isCloudReady) return;
       setSyncStatus('Saving...', 'warning');
       
-      const payload = {
-        id: APP_STATE_ID, 
-        projects, 
-        checklistLibrary, 
-        updated_at: new Date().toISOString()
-      };
-      
-      const response = await fetch(`${SUPABASE_URL}/rest/v1/${SUPABASE_TABLE}`, { 
-        method: 'POST', 
-        headers: supabaseHeaders({ 'Content-Type': 'application/json', Prefer: 'resolution=merge-duplicates' }), 
-        body: JSON.stringify([payload]) 
+      const response = await fetch(`${SUPABASE_URL}/rest/v1/${SUPABASE_TABLE}`, {
+        method: 'POST',
+        headers: supabaseHeaders({
+          'Content-Type': 'application/json',
+          Prefer: 'resolution=merge-duplicates'
+        }),
+        body: JSON.stringify([{ id: APP_STATE_ID, projects, updated_at: new Date().toISOString() }])
       });
       
       if (!response.ok) { 
-        const err = await response.text();
-        console.error("Supabase Save Error:", err);
-        setSyncStatus('Save failed (See Console)', 'error'); 
+        console.error(await response.text());
+        setSyncStatus('Save failed', 'error'); 
         return; 
       }
       setSyncStatus('Cloud Synced', 'success');
+    }
+
+    async function initSupabase() {
+      if (!hasSupabaseConfig()) { 
+        projects = loadLocalFallback(); 
+        setSyncStatus('Missing config file', 'warning'); 
+        return; 
+      }
+      try {
+        isCloudReady = true; 
+        setSyncStatus('Connecting...', 'warning');
+        await loadProjectsFromCloud();
+        setSyncStatus('Cloud Synced', 'success');
+      } catch (error) { 
+        console.error(error);
+        projects = loadLocalFallback(); 
+        isCloudReady = false; 
+        setSyncStatus('Sync Failed', 'error'); 
+      }
     }
 
     function queueSave() { saveAll().catch(e => { console.error(e); setSyncStatus('Save failed', 'error'); }); }
@@ -550,14 +563,6 @@
               <thead><tr><th>Service</th><th>Price</th><th></th></tr></thead>
               <tbody>${inv.lineItems.map(item => `<tr><td><input value="${esc(item.serviceName)}" onchange="updateInvoiceLine('${item.id}','serviceName',this.value)" placeholder="Service Name"></td><td><input type="number" step="0.01" value="${esc(item.price)}" onchange="updateInvoiceLine('${item.id}','price',this.value)" /></td><td><button class="btn danger small" onclick="removeInvoiceLine('${item.id}')">Del</button></td></tr>`).join('')}</tbody>
             </table>
-          </div>
-          
-          <!-- Visual Preview for the screen ONLY -->
-          <div class="invoice-preview" id="invoicePDFTarget">
-            <div class="invoice-header"><div><h2>${esc(BUSINESS_PROFILE.name)}</h2><p>${esc(BUSINESS_PROFILE.address)}<br>${esc(BUSINESS_PROFILE.abn)}</p></div></div>
-            <div class="invoice-meta"><div><h4>Bill To</h4><p>${esc(p.clientName)}<br>${esc(p.clientEmail)}</p></div><div><h4>Project</h4><p>${esc(p.siteAddress)}<br>${esc(p.council)}</p></div><div><h4>Details</h4><div class="invoice-meta-row"><span>Invoice No:</span> <strong>${esc(inv.invoiceNumber)}</strong></div><div class="invoice-meta-row"><span>Issue Date:</span> <strong>${esc(inv.issueDate)}</strong></div><div class="invoice-meta-row"><span>Due Date:</span> <strong>${esc(inv.dueDate)}</strong></div></div></div>
-            <table class="invoice-table-rendered"><thead><tr><th>Description</th><th>Amount</th></tr></thead><tbody>${inv.lineItems.map(item => `<tr><td><strong>${esc(item.serviceName)}</strong></td><td>${formatCurrency(item.price)}</td></tr>`).join('')}</tbody></table>
-            <div class="invoice-footer"><div class="invoice-notes">${esc(inv.notes)}</div><div class="invoice-summary"><div class="summary-row"><span>Subtotal:</span> <strong>${formatCurrency(subtotal)}</strong></div><div class="summary-row"><span>GST (10%):</span> <strong>${formatCurrency(gst)}</strong></div><div class="summary-row grand"><span>Total:</span> <strong>${formatCurrency(total)}</strong></div></div></div>
           </div>
         </div>`;
     }
@@ -694,12 +699,13 @@
     function removeInvoiceLine(id) { const p=getCurrentProject(); p.invoice.lineItems = p.invoice.lineItems.filter(i => i.id !== id); queueSave(); renderProjectTab(); }
 
     function showChecklistLibrary() { showOnly('libraryView'); document.querySelectorAll('.nav-btn')[2].classList.add('active'); renderLibraryUI(); }
-    function renderLibraryUI() { const container = document.getElementById('libraryView'); let html = `<div class="topbar"><h2>Checklist Library Editor</h2></div><div class="grid two">`; for (const [type, items] of Object.entries(checklistLibrary)) { html += `<div class="card checklist-category"><h3>${type}</h3><div class="checklist-list">${items.map((item, index) => `<div class="checklist-item"><span>${esc(item)}</span><button class="btn danger small" onclick="removeLibraryItem('${type}', ${index})">✕</button></div>`).join('')}</div><div style="display:flex;gap:8px;margin-top:12px;"><input type="text" id="addInput_${type}" placeholder="New document name..." /><button class="btn primary small" onclick="addLibraryItem('${type}')">Add</button></div></div>`; } html += `</div>`; container.innerHTML = html; }
-    function addLibraryItem(type) { const val = document.getElementById(`addInput_${type}`).value.trim(); if(val) { checklistLibrary[type].push(val); queueSave(); renderLibraryUI(); } }
-    function removeLibraryItem(type, index) { if(confirm('Remove this item?')) { checklistLibrary[type].splice(index, 1); queueSave(); renderLibraryUI(); } }
+    function renderLibraryUI() { const container = document.getElementById('libraryView'); let html = `<div class="topbar"><h2>Checklist Library Editor</h2><p>Saved locally to your browser.</p></div><div class="grid two">`; for (const [type, items] of Object.entries(checklistLibrary)) { html += `<div class="card checklist-category"><h3>${type}</h3><div class="checklist-list">${items.map((item, index) => `<div class="checklist-item"><span>${esc(item)}</span><button class="btn danger small" onclick="removeLibraryItem('${type}', ${index})">✕</button></div>`).join('')}</div><div style="display:flex;gap:8px;margin-top:12px;"><input type="text" id="addInput_${type}" placeholder="New document name..." /><button class="btn primary small" onclick="addLibraryItem('${type}')">Add</button></div></div>`; } html += `</div>`; container.innerHTML = html; }
+    function addLibraryItem(type) { const val = document.getElementById(`addInput_${type}`).value.trim(); if(val) { checklistLibrary[type].push(val); saveLocalFallback(); renderLibraryUI(); } }
+    function removeLibraryItem(type, index) { if(confirm('Remove this item?')) { checklistLibrary[type].splice(index, 1); saveLocalFallback(); renderLibraryUI(); } }
+    
     function deleteCurrentProject() { if (!confirm('Delete project?')) return; projects = projects.filter(p => p.id !== currentProjectId); queueSave(); showDashboard(); }
-    function exportData() { const a = document.createElement('a'); a.href = URL.createObjectURL(new Blob([JSON.stringify({ projects, checklistLibrary }, null, 2)], { type: 'application/json' })); a.download = 'backup.json'; a.click(); URL.revokeObjectURL(a.href); }
-    function importData(e) { const r = new FileReader(); r.onload = ev => { try { const loaded = JSON.parse(ev.target.result); if(loaded.projects && loaded.checklistLibrary) { projects = loaded.projects; checklistLibrary = loaded.checklistLibrary; } else { projects = loaded; } queueSave(); showDashboard(); alert('Restored.'); } catch { alert('Error.'); } }; r.readAsText(e.target.files[0]); }
+    function exportData() { const a = document.createElement('a'); a.href = URL.createObjectURL(new Blob([JSON.stringify(projects, null, 2)], { type: 'application/json' })); a.download = 'project-tracker-backup.json'; a.click(); URL.revokeObjectURL(a.href); }
+    function importData(e) { const r = new FileReader(); r.onload = ev => { try { const loaded = JSON.parse(ev.target.result); projects = Array.isArray(loaded) ? loaded : loaded.projects || []; queueSave(); showDashboard(); alert('Restored.'); } catch { alert('Error.'); } }; r.readAsText(e.target.files[0]); }
     
     async function bootstrap() { populateCouncils(); await initSupabase(); showDashboard(); }
     bootstrap();

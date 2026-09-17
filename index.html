@@ -5,10 +5,8 @@
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
   <title>Project Approvals - NSW Tracker</title>
   
-  <!-- OFFICIAL SUPABASE SDK -->
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/html2pdf.js/0.10.1/html2pdf.bundle.min.js"></script>
   <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
-  
-  <!-- Load your private config file -->
   <script src="config.js"></script>
 
   <style>
@@ -16,6 +14,7 @@
       --bg: #f8fafc; --card: #ffffff; --text: #0f172a; --muted: #64748b; --border: #e2e8f0;
       --primary: #4f46e5; --primary-hover: #4338ca; --primary-soft: #e0e7ff;
       --danger: #dc2626; --danger-soft: #fef2f2; --success: #16a34a;
+      --warning: #d97706; --warning-soft: #fffbeb;
       --shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.05), 0 2px 4px -2px rgba(0, 0, 0, 0.05);
       --radius: 8px;
     }
@@ -49,7 +48,6 @@
     .topbar p { margin: 4px 0 0; color: var(--muted); font-size: 14px; }
     .actions { display: flex; gap: 8px; flex-wrap: wrap; }
 
-    /* Buttons */
     .btn { background: #fff; border: 1px solid var(--border); color: var(--text); padding: 8px 16px; border-radius: var(--radius); font-size: 14px; font-weight: 500; cursor: pointer; transition: all 0.2s; display: inline-flex; align-items: center; gap: 6px; }
     .btn:hover { background: var(--bg); border-color: #cbd5e1; }
     .btn.primary { background: var(--primary); border-color: var(--primary); color: #fff; }
@@ -60,7 +58,6 @@
     .btn.outline-primary { color: var(--primary); border-color: var(--primary-soft); }
     .btn.outline-primary:hover { background: var(--primary-soft); }
 
-    /* Grids & Cards */
     .grid { display: grid; gap: 20px; }
     .grid.stats { grid-template-columns: repeat(4, 1fr); margin-bottom: 24px; }
     .grid.two { grid-template-columns: repeat(2, 1fr); }
@@ -68,8 +65,8 @@
     .stat-card { background: var(--card); border: 1px solid var(--border); border-radius: var(--radius); padding: 20px; display: flex; flex-direction: column; }
     .stat-card span { color: var(--muted); font-size: 13px; font-weight: 500; text-transform: uppercase; letter-spacing: 0.5px; }
     .stat-card strong { font-size: 32px; font-weight: 300; margin-top: 8px; color: var(--text); }
+    .stat-card.alert strong { color: var(--danger); font-weight: 600; }
 
-    /* Dashboard Layouts */
     .toolbar { display: flex; justify-content: space-between; align-items: center; gap: 12px; margin-bottom: 24px; background: var(--card); padding: 12px; border-radius: var(--radius); border: 1px solid var(--border); }
     .toolbar-filters { display: flex; gap: 12px; flex: 1; }
     .view-toggle { display: flex; background: var(--bg); border-radius: var(--radius); padding: 4px; border: 1px solid var(--border); }
@@ -89,8 +86,8 @@
     .project-card h4 { margin: 0; font-size: 15px; font-weight: 600; color: var(--text); line-height: 1.3; }
     .project-card p { margin: 0; font-size: 13px; color: var(--muted); }
     .project-card-footer { margin-top: auto; padding-top: 12px; border-top: 1px solid var(--border); display: flex; justify-content: space-between; align-items: center; }
+    .next-action-text { font-size: 12px; color: var(--primary); font-weight: 600; background: var(--primary-soft); padding: 4px 8px; border-radius: 4px; display: inline-block; margin-top: 8px;}
 
-    /* Forms */
     .field { display: flex; flex-direction: column; position: relative; }
     .field label { font-size: 12px; font-weight: 600; color: var(--text); margin-bottom: 6px; text-transform: uppercase; }
     input, select, textarea { width: 100%; border: 1px solid var(--border); background: #fff; padding: 8px 12px; border-radius: var(--radius); font-size: 14px; outline: none; transition: border-color 0.2s; }
@@ -103,20 +100,18 @@
     .suggestion:hover { background: var(--bg); }
     .address-status { font-size: 11px; color: var(--muted); margin-top: 4px; min-height: 16px; }
 
-    /* Tables */
     table { width: 100%; border-collapse: collapse; font-size: 14px; }
     th, td { text-align: left; padding: 12px 16px; border-bottom: 1px solid var(--border); }
     th { background: #fdfdfd; color: var(--muted); font-size: 12px; font-weight: 600; text-transform: uppercase; }
     tr:hover td { background: var(--bg); }
 
-    /* Pills */
     .pill { display: inline-block; padding: 4px 10px; border-radius: 99px; font-size: 11px; font-weight: 600; text-transform: uppercase; letter-spacing: 0.5px; }
     .status-active { background: #e0e7ff; color: #4338ca; }
     .status-hold { background: #fffbeb; color: #d97706; }
     .status-completed { background: #f0fdf4; color: #16a34a; }
+    .status-overdue { background: var(--danger-soft); color: var(--danger); }
     .hidden { display: none !important; }
 
-    /* Tabs */
     .tabs { display: flex; border-bottom: 1px solid var(--border); margin: 24px 0; overflow-x: auto; }
     .tab-btn { background: transparent; border: none; padding: 12px 24px; font-size: 14px; font-weight: 500; color: var(--muted); cursor: pointer; border-bottom: 2px solid transparent; margin-bottom: -1px; }
     .tab-btn:hover { color: var(--text); }
@@ -126,7 +121,6 @@
     .section-title h3 { margin: 0; font-size: 18px; font-weight: 600; }
     .empty { text-align: center; padding: 60px 20px; background: var(--bg); border-radius: var(--radius); color: var(--muted); border: 1px dashed var(--border); }
 
-    /* Modal */
     .modal-backdrop { position: fixed; inset: 0; background: rgba(15, 23, 42, 0.6); backdrop-filter: blur(4px); display: none; align-items: center; justify-content: center; z-index: 100; padding: 24px; }
     .modal-backdrop.show { display: flex; }
     .modal { background: var(--card); width: 100%; max-width: 700px; max-height: 90vh; overflow-y: auto; border-radius: var(--radius); box-shadow: 0 20px 25px -5px rgba(0,0,0,0.1); padding: 32px; }
@@ -135,7 +129,6 @@
     .form-grid { display: grid; grid-template-columns: repeat(2, 1fr); gap: 16px; }
     .full { grid-column: 1 / -1; }
 
-    /* Auth Screen */
     .auth-screen { position: fixed; inset: 0; background: var(--bg); display: flex; align-items: center; justify-content: center; z-index: 9999; }
     .auth-card { background: #fff; padding: 40px; width: 100%; max-width: 400px; border-radius: var(--radius); box-shadow: var(--shadow); border: 1px solid var(--border); text-align: center; }
     .auth-card .brand-mark { margin: 0 auto 20px; width: 48px; height: 48px; font-size: 20px; border-radius: 8px; }
@@ -151,6 +144,7 @@
     .invoice-meta-row { display: flex; justify-content: space-between; font-size: 14px; margin-bottom: 4px; }
     .invoice-table-rendered { width: 100%; border-collapse: collapse; margin-bottom: 40px; }
     .invoice-table-rendered th, .invoice-table-rendered td { padding: 12px; border: 1px solid var(--border); }
+    .invoice-table-rendered th { background: var(--bg); font-size: 12px; text-transform: uppercase; color: var(--muted); }
     .invoice-table-rendered td:last-child, .invoice-table-rendered th:last-child { text-align: right; width: 140px; }
     .invoice-footer { display: flex; justify-content: space-between; align-items: flex-end; }
     .invoice-notes { font-size: 14px; white-space: pre-wrap; color: var(--muted); }
@@ -158,7 +152,6 @@
     .summary-row { display: flex; justify-content: space-between; padding: 8px 0; font-size: 14px; }
     .summary-row.grand { font-size: 18px; font-weight: 700; border-top: 2px solid var(--border); margin-top: 8px; padding-top: 12px; }
 
-    /* Checklist Editable Library */
     .checklist-list { display: flex; flex-direction: column; gap: 8px; margin-top: 12px; }
     .checklist-item { display: flex; justify-content: space-between; align-items: center; background: #fff; padding: 8px 12px; border: 1px solid var(--border); border-radius: var(--radius); font-size: 14px; }
 
@@ -166,11 +159,9 @@
     .file-item { background: var(--bg); padding: 16px; border-radius: var(--radius); border: 1px solid var(--border); display: flex; justify-content: space-between; align-items: center; }
 
     .print-report { display: none; }
-
-    /* NATIVE BROWSER PRINT STYLES */
     @media print {
       body { background: #fff; color: #000; }
-      .top-nav, .tabs, .no-print, .modal-backdrop, #dashboardView, #projectView, .actions, .status-banner { display: none !important; }
+      .top-nav, .tabs, .no-print, .modal-backdrop, #dashboardView, #projectView, #libraryView, #financeView, .actions, .status-banner { display: none !important; }
       .app-wrapper { display: block; }
       main.content-container { padding: 0; max-width: none; }
       .print-report { display: block; padding: 24px; }
@@ -205,9 +196,10 @@
           <div><h1>Project Approvals</h1></div>
         </div>
         <nav class="main-menu">
-          <button class="nav-btn active" onclick="showDashboard()">Dashboard</button>
+          <button class="nav-btn active" id="navDashboard" onclick="showDashboard()">Dashboard</button>
+          <button class="nav-btn" id="navFinances" onclick="showFinances()">Finances</button>
           <button class="nav-btn" onclick="openProjectModal()">Add Project</button>
-          <button class="nav-btn" onclick="showChecklistLibrary()">Library</button>
+          <button class="nav-btn" id="navLibrary" onclick="showChecklistLibrary()">Library</button>
           <button class="nav-btn" onclick="exportData()">Backup</button>
           <input id="importFile" type="file" accept="application/json" class="hidden" onchange="importData(event)" />
           <button class="nav-btn" onclick="document.getElementById('importFile').click()">Restore</button>
@@ -220,6 +212,7 @@
     </header>
 
     <main class="content-container">
+      
       <!-- DASHBOARD VIEW -->
       <section id="dashboardView">
         <div class="topbar no-print">
@@ -228,7 +221,6 @@
             <p id="pageSubtitle">Track DA, CDC, CC, OC, BASIX and BIC jobs.</p>
           </div>
           <div class="actions">
-            <!-- Export to CSV Feature -->
             <button class="btn" onclick="exportToCSV()">⤓ Export CSV</button>
             <button class="btn primary" onclick="openProjectModal()">+ New Project</button>
           </div>
@@ -236,9 +228,9 @@
 
         <div class="grid stats">
           <div class="stat-card"><span>Total Projects</span><strong id="statTotal">0</strong></div>
-          <div class="stat-card"><span>Active</span><strong id="statActive">0</strong></div>
+          <div class="stat-card"><span>Active Jobs</span><strong id="statActive">0</strong></div>
           <div class="stat-card"><span>Missing Documents</span><strong id="statMissing">0</strong></div>
-          <div class="stat-card"><span>Total Billed</span><strong id="statRevenue">$0</strong></div>
+          <div class="stat-card alert"><span>Unpaid Invoices</span><strong id="statUnpaid">$0</strong></div>
         </div>
 
         <div class="toolbar">
@@ -257,6 +249,23 @@
         <div id="projectTableWrap"></div>
       </section>
 
+      <!-- FINANCES VIEW (NEW) -->
+      <section id="financeView" class="hidden">
+        <div class="topbar no-print">
+          <div>
+            <h2>Financial Ledger</h2>
+            <p>Track all outstanding and paid invoices across all projects.</p>
+          </div>
+        </div>
+        <div class="grid two" style="margin-bottom: 24px;">
+           <div class="stat-card alert"><span>Total Outstanding (Unpaid)</span><strong id="financeUnpaid">$0</strong></div>
+           <div class="stat-card" style="border-color:#16a34a;"><span>Total Collected (Paid)</span><strong id="financePaid" style="color:#16a34a;">$0</strong></div>
+        </div>
+        <div class="card">
+           <div id="financeTableWrap"></div>
+        </div>
+      </section>
+
       <!-- PROJECT FILE VIEW -->
       <section id="projectView" class="hidden">
         <div class="card no-print" style="margin-bottom: 0; padding-bottom: 0; border-bottom: none; border-radius: var(--radius) var(--radius) 0 0;">
@@ -269,14 +278,12 @@
               <button class="btn" onclick="showDashboard()">Back</button>
               <button class="btn outline-primary" onclick="generateEmailChase()">✉ Chase Missing Docs</button>
               <button class="btn" onclick="openProjectModal(currentProjectId)">Edit Details</button>
-              <!-- Restored original browser print functionality for project report -->
-              <button class="btn primary" onclick="printProjectReport()">Export PDF / Print</button>
+              <button class="btn primary" onclick="printProjectReport()">Print Report</button>
               <button class="btn danger" onclick="deleteCurrentProject()">Delete</button>
             </div>
           </div>
         </div>
 
-        <!-- Tabs -->
         <div class="tabs no-print" style="background: var(--card); padding: 0 24px; margin-top: 0; border-radius: 0 0 var(--radius) var(--radius); border-left: 1px solid var(--border); border-right: 1px solid var(--border); border-bottom: 1px solid var(--border); margin-bottom: 24px;">
           <button class="tab-btn active" data-tab="overview" onclick="switchTab('overview')">Overview</button>
           <button class="tab-btn" data-tab="documents" onclick="switchTab('documents')">Documents</button>
@@ -332,12 +339,13 @@
 
   <script>
     // ==========================================
-    // SUPABASE COMMUNICATION 
+    // APP CONFIGURATION
     // ==========================================
     const SUPABASE_TABLE = 'app_state'; 
     const APP_STATE_ID = 'main';
-    const LOCAL_FALLBACK_KEY = 'projectApprovalsTracker.v20.localFallback';
-    const LIBRARY_FALLBACK_KEY = 'projectApprovalsTracker.v20.library';
+    const STORAGE_BUCKET = 'project_files'; // NEW Cloud Storage Bucket
+    const LOCAL_FALLBACK_KEY = 'projectApprovalsTracker.v21.localFallback';
+    const LIBRARY_FALLBACK_KEY = 'projectApprovalsTracker.v21.library';
     
     const BUSINESS_PROFILE = { name: 'Project Approvals', abn: 'ABN 16 696 716 980', email: 'info@projectapprovals.com.au', phone: '0414633507', address: 'Quakershill NSW 2763', bankDetails: 'PayID: info@projectapprovals.com.au\nBank: NAB\nAccount Name: Project Approvals\nBSB: 082-356\nAccount No: 308014097' };
     const INVOICE_SERVICE_OPTIONS = ['CDC consulting service','DA application support','CC approval support','OC approval support','BASIX coordination','Council lodgement support','Site inspection consulting','General approval consulting'];
@@ -348,11 +356,6 @@
     let isCloudReady = false;
     let currentView = 'grid';
     let supabaseClient = null;
-
-    let localDB;
-    const request = indexedDB.open("PA_FilesDatabase", 1);
-    request.onupgradeneeded = (e) => { localDB = e.target.result; localDB.createObjectStore("files", { keyPath: "id" }); };
-    request.onsuccess = (e) => { localDB = e.target.result; };
 
     let checklistLibrary = {
       DA: ['Owner consent','Site survey','Architectural drawings','Statement of Environmental Effects','Cost estimate report'],
@@ -396,7 +399,6 @@
     function looksCustomService(name='') { return !!name && !INVOICE_SERVICE_OPTIONS.includes(name); }
     function addDays(dateString, days) { const d = dateString ? new Date(dateString) : new Date(); d.setDate(d.getDate() + days); return d.toISOString().slice(0, 10); }
 
-    // === UNIQUE INVOICE NUMBER GENERATOR ===
     function generateUniqueInvoiceNumber() {
       const d = new Date();
       const datePart = d.getFullYear() + String(d.getMonth() + 1).padStart(2, '0') + String(d.getDate()).padStart(2, '0');
@@ -410,9 +412,22 @@
         issueDate: todayISO(), 
         dueDate: addDays(todayISO(), 7), 
         hasGST: true, 
+        status: 'SENT',
         lineItems: [{ id: uid(), serviceName: `${project?.approvalType || 'Approval'} consulting service`, price: '' }], 
         notes: BUSINESS_PROFILE.bankDetails 
       }; 
+    }
+
+    // Helper to calculate what needs to happen next based on data
+    function determineNextAction(project) {
+       if (project.status === 'Hold') return 'On Hold';
+       if (project.status === 'Completed') return 'Archived';
+       
+       const missing = project.documents?.filter(d => d.required !== 'No' && !['Received','Approved'].includes(d.status)) || [];
+       if (missing.length > 0) {
+          return `Chase ${missing[0].responsible} for ${missing[0].name}`;
+       }
+       return 'Ready for Review / Council';
     }
 
     function loadLocalFallback() { try { const lib = localStorage.getItem(LIBRARY_FALLBACK_KEY); if (lib) checklistLibrary = JSON.parse(lib); return JSON.parse(localStorage.getItem(LOCAL_FALLBACK_KEY) || '[]'); } catch { return []; } }
@@ -424,16 +439,18 @@
     }
     function hasSupabaseConfig() { return typeof SUPABASE_URL !== 'undefined' && typeof SUPABASE_ANON_KEY !== 'undefined' && SUPABASE_URL && SUPABASE_ANON_KEY && !SUPABASE_URL.includes('PASTE_YOUR_'); }
 
-    // === RETROACTIVE INVOICE UPGRADER ===
     function upgradeOldInvoices() {
       let changed = false;
       projects.forEach(p => {
         if (!p.invoice) {
           p.invoice = defaultInvoice(p);
           changed = true;
-        } else if (!p.invoice.invoiceNumber || p.invoice.invoiceNumber.length < 12 || p.invoice.invoiceNumber.startsWith("INV-10")) {
-          p.invoice.invoiceNumber = generateUniqueInvoiceNumber();
-          changed = true;
+        } else {
+           if (!p.invoice.status) { p.invoice.status = 'SENT'; changed = true; }
+           if (!p.invoice.invoiceNumber || p.invoice.invoiceNumber.length < 12 || p.invoice.invoiceNumber.startsWith("INV-10")) {
+             p.invoice.invoiceNumber = generateUniqueInvoiceNumber();
+             changed = true;
+           }
         }
       });
       if (changed) { saveLocalFallback(); }
@@ -494,20 +511,29 @@
     function selectAddress(address) { document.getElementById('siteAddress').value = address; document.getElementById('addressSuggestions').classList.remove('show'); }
     document.addEventListener('click', e => { const option = e.target.closest('[data-address]'); if (option) selectAddress(option.dataset.address); else if (!e.target.closest('#addressSuggestions') && e.target.id !== 'siteAddress') document.getElementById('addressSuggestions').classList.remove('show'); });
 
-    function showOnly(sectionId) { ['dashboardView','projectView','libraryView'].forEach(id => document.getElementById(id).classList.add('hidden')); document.getElementById(sectionId).classList.remove('hidden'); document.querySelectorAll('.nav-btn').forEach(btn => btn.classList.remove('active')); }
+    function showOnly(sectionId) { 
+       ['dashboardView','projectView','libraryView','financeView'].forEach(id => document.getElementById(id).classList.add('hidden')); 
+       document.getElementById(sectionId).classList.remove('hidden'); 
+       document.querySelectorAll('.nav-btn').forEach(btn => btn.classList.remove('active')); 
+    }
 
-    function showDashboard() { currentProjectId = null; showOnly('dashboardView'); document.querySelectorAll('.nav-btn')[0].classList.add('active'); renderDashboard(); }
+    function showDashboard() { currentProjectId = null; showOnly('dashboardView'); document.getElementById('navDashboard').classList.add('active'); renderDashboard(); }
     function setDashboardView(viewType) { currentView = viewType; document.getElementById('btnViewGrid').classList.toggle('active', viewType === 'grid'); document.getElementById('btnViewBoard').classList.toggle('active', viewType === 'board'); renderDashboard(); }
 
     function renderDashboard() {
+      // Sort projects so recently created/edited sit at the top
+      projects.sort((a, b) => new Date(b.createdAt || 0) - new Date(a.createdAt || 0));
+
       const q = document.getElementById('searchInput')?.value?.toLowerCase() || ''; const type = document.getElementById('typeFilter')?.value || '';
       const rows = projects.filter(p => { const hay = [p.clientName,p.siteAddress,p.council,p.status].join(' ').toLowerCase(); return (!q || hay.includes(q)) && (!type || p.approvalType === type); });
 
-      document.getElementById('statTotal').textContent = projects.length; document.getElementById('statActive').textContent = projects.filter(p=>p.status==='Active').length;
-      document.getElementById('statMissing').textContent = projects.reduce((sum, p) => sum + p.documents.filter(d=>d.required!=='No'&&!['Received','Approved'].includes(d.status)).length, 0);
+      document.getElementById('statTotal').textContent = projects.length; 
+      document.getElementById('statActive').textContent = projects.filter(p=>p.status==='Active').length;
+      document.getElementById('statMissing').textContent = projects.reduce((sum, p) => sum + (p.documents?.filter(d=>d.required!=='No'&&!['Received','Approved'].includes(d.status)).length || 0), 0);
       
-      document.getElementById('statRevenue').textContent = formatCurrency(projects.reduce((sum, p) => { 
-        if(p.invoice?.lineItems) { 
+      // Calculate ONLY Unpaid/Outstanding Invoices for Dashboard
+      document.getElementById('statUnpaid').textContent = formatCurrency(projects.reduce((sum, p) => { 
+        if(p.invoice?.lineItems && p.invoice.status !== 'RECEIVED PAYMENT' && p.invoice.status !== 'CANCELLED') { 
           const sub = p.invoice.lineItems.reduce((s, i) => s + Number(i.price || 0), 0); 
           const applyGST = p.invoice.hasGST !== false;
           return sum + sub + (applyGST ? sub * 0.1 : 0); 
@@ -519,13 +545,85 @@
       if (!rows.length) { wrap.innerHTML = `<div class="empty">No projects found.</div>`; return; }
 
       const generateCard = (p) => {
-        const readyDocs = p.documents.filter(d=>d.status==='Approved'||d.status==='Received').length; const totalDocs = p.documents.filter(d=>d.required!=='No').length;
+        const readyDocs = p.documents?.filter(d=>d.status==='Approved'||d.status==='Received').length || 0; 
+        const totalDocs = p.documents?.filter(d=>d.required!=='No').length || 0;
         const color = p.status === 'Active' ? 'blue' : p.status === 'Hold' ? 'orange' : 'green';
-        return `<div class="project-card" onclick="openProject('${p.id}')"><div class="project-card-header"><span class="pill" style="background:var(--${color}-100, #eee);">${esc(p.status)}</span><span class="pill" style="background:#e0e7ff; color:#4338ca;">${esc(p.approvalType)}</span></div><div><h4>${esc(p.siteAddress)}</h4><p>${esc(p.clientName)} &middot; ${esc(p.council)}</p></div><div class="project-card-footer"><span style="font-size:12px; font-weight:600;">${readyDocs} / ${totalDocs} Docs</span></div></div>`;
+        const actionText = determineNextAction(p);
+
+        return `<div class="project-card" onclick="openProject('${p.id}')">
+           <div class="project-card-header"><span class="pill" style="background:var(--${color}-100, #eee);">${esc(p.status)}</span><span class="pill" style="background:#e0e7ff; color:#4338ca;">${esc(p.approvalType)}</span></div>
+           <div><h4>${esc(p.siteAddress)}</h4><p>${esc(p.clientName)} &middot; ${esc(p.council)}</p></div>
+           <div class="next-action-text">${esc(actionText)}</div>
+           <div class="project-card-footer"><span style="font-size:12px; font-weight:600;">${readyDocs} / ${totalDocs} Docs Ready</span></div>
+        </div>`;
       };
 
       if(currentView === 'grid') wrap.innerHTML = `<div class="project-grid">${rows.map(generateCard).join('')}</div>`;
       else wrap.innerHTML = `<div class="pipeline-board"><div class="pipeline-col"><h3>Active <span>${rows.filter(p=>p.status==='Active').length}</span></h3><div class="pipeline-cards">${rows.filter(p=>p.status==='Active').map(generateCard).join('')}</div></div><div class="pipeline-col" style="background:#fffbeb;"><h3>Hold <span>${rows.filter(p=>p.status==='Hold').length}</span></h3><div class="pipeline-cards">${rows.filter(p=>p.status==='Hold').map(generateCard).join('')}</div></div><div class="pipeline-col" style="background:#f0fdf4;"><h3>Completed <span>${rows.filter(p=>p.status==='Completed').length}</span></h3><div class="pipeline-cards">${rows.filter(p=>p.status==='Completed').map(generateCard).join('')}</div></div></div>`;
+    }
+
+    // === GLOBAL FINANCES LOGIC ===
+    function showFinances() {
+      showOnly('financeView');
+      document.getElementById('navFinances').classList.add('active');
+      
+      let allInvoices = [];
+      let unpaidTotal = 0;
+      let paidTotal = 0;
+
+      projects.forEach(p => {
+         if (p.invoice && p.invoice.lineItems) {
+            const sub = p.invoice.lineItems.reduce((s, i) => s + Number(i.price || 0), 0);
+            const applyGST = p.invoice.hasGST !== false;
+            const total = sub + (applyGST ? sub * 0.1 : 0);
+            const isPaid = p.invoice.status === 'RECEIVED PAYMENT';
+            const isCancelled = p.invoice.status === 'CANCELLED';
+
+            if (!isCancelled) {
+               if (isPaid) paidTotal += total;
+               else unpaidTotal += total;
+            }
+
+            allInvoices.push({
+               projectId: p.id,
+               projectName: p.siteAddress,
+               client: p.clientName,
+               invoiceNo: p.invoice.invoiceNumber,
+               issueDate: p.invoice.issueDate,
+               status: p.invoice.status || 'SENT',
+               total: total
+            });
+         }
+      });
+
+      // Sort by Issue Date Descending
+      allInvoices.sort((a,b) => new Date(b.issueDate || 0) - new Date(a.issueDate || 0));
+
+      document.getElementById('financeUnpaid').textContent = formatCurrency(unpaidTotal);
+      document.getElementById('financePaid').textContent = formatCurrency(paidTotal);
+
+      const wrap = document.getElementById('financeTableWrap');
+      if (allInvoices.length === 0) {
+         wrap.innerHTML = `<div class="empty">No invoices generated yet.</div>`;
+         return;
+      }
+
+      wrap.innerHTML = `<div style="overflow-x:auto;"><table>
+        <thead><tr><th>Invoice No</th><th>Date</th><th>Project</th><th>Client</th><th>Status</th><th style="text-align:right;">Amount</th></tr></thead>
+        <tbody>
+          ${allInvoices.map(inv => {
+             const statusColor = inv.status === 'RECEIVED PAYMENT' ? 'status-completed' : inv.status === 'OVERDUE' ? 'status-overdue' : inv.status === 'CANCELLED' ? '' : 'status-hold';
+             return `<tr style="cursor:pointer;" onclick="openProject('${inv.projectId}'); switchTab('invoice');">
+               <td><strong>${esc(inv.invoiceNo)}</strong></td>
+               <td>${esc(inv.issueDate)}</td>
+               <td>${esc(inv.projectName)}</td>
+               <td>${esc(inv.client)}</td>
+               <td><span class="pill ${statusColor}">${esc(inv.status)}</span></td>
+               <td style="text-align:right; font-weight:600;">${formatCurrency(inv.total)}</td>
+             </tr>`;
+          }).join('')}
+        </tbody>
+      </table></div>`;
     }
 
     function openProject(projectId) {
@@ -541,16 +639,17 @@
 
     function renderProjectTab() {
       const p = getCurrentProject(); if (!p) return;
-      p.documents ||= []; p.notesList ||= []; p.projectNotesList ||= []; p.invoice ||= defaultInvoice(p);
+      p.documents ||= []; p.notesList ||= []; p.projectNotesList ||= []; p.invoice ||= defaultInvoice(p); p.cloudFiles ||= [];
       const el = document.getElementById('projectTabContent');
-      if (activeTab === 'overview') el.innerHTML = `<div class="grid two"><div class="card"><h3>Project Details</h3><table><tbody><tr><th>Client</th><td>${esc(p.clientName)}<br><span style="color:var(--muted);">${esc(p.clientEmail)}</span></td></tr><tr><th>Address</th><td>${esc(p.siteAddress)}</td></tr><tr><th>Council</th><td>${esc(p.council)}</td></tr><tr><th>Type</th><td>${esc(p.approvalType)}</td></tr><tr><th>Status</th><td>${esc(p.status)}</td></tr></tbody></table></div><div class="card"><h3>Snapshot</h3><div class="grid two"><div class="stat-card"><span>Total Docs</span><strong>${p.documents.length}</strong></div><div class="stat-card"><span>Ready Docs</span><strong>${p.documents.filter(d=>['Received','Approved'].includes(d.status)).length}</strong></div></div></div></div>`;
-      if (activeTab === 'documents') el.innerHTML = `<div class="card"><div class="section-title"><h3>Document Checklist</h3><button class="btn primary small" onclick="addDocumentPrompt()">+ Add Item</button></div><div style="overflow-x:auto;"><table><thead><tr><th>Document</th><th>Required</th><th>Status</th><th>Responsible</th><th></th></tr></thead><tbody>${p.documents.map(d => `<tr><td><input value="${esc(d.name)}" onchange="updateDoc('${d.id}','name',this.value)"></td><td><select onchange="updateDoc('${d.id}','required',this.value)"><option ${d.required==='Yes'?'selected':''}>Yes</option><option ${d.required==='No'?'selected':''}>No</option></select></td><td><select onchange="updateDoc('${d.id}','status',this.value)">${['Not required','Required','Requested','Received','Reviewed','Needs revision','Uploaded to portal','Approved'].map(s => `<option ${d.status===s?'selected':''}>${s}</option>`).join('')}</select></td><td><input value="${esc(d.responsible)}" onchange="updateDoc('${d.id}','responsible',this.value)"></td><td><button class="btn small danger" onclick="removeDoc('${d.id}')">Del</button></td></tr>`).join('')}</tbody></table></div></div>`;
+      if (activeTab === 'overview') el.innerHTML = `<div class="grid two"><div class="card"><h3>Project Details</h3><table><tbody><tr><th>Client</th><td>${esc(p.clientName)}<br><span style="color:var(--muted);">${esc(p.clientEmail)}</span></td></tr><tr><th>Address</th><td>${esc(p.siteAddress)}</td></tr><tr><th>Council</th><td>${esc(p.council)}</td></tr><tr><th>Type</th><td>${esc(p.approvalType)}</td></tr><tr><th>Status</th><td>${esc(p.status)}</td></tr></tbody></table></div><div class="card"><h3>Snapshot</h3><div class="grid two"><div class="stat-card"><span>Total Docs</span><strong>${p.documents.length}</strong></div><div class="stat-card"><span>Ready Docs</span><strong>${p.documents.filter(d=>['Received','Approved'].includes(d.status)).length}</strong></div></div><br><p><strong>Next Action:</strong> ${determineNextAction(p)}</p></div></div>`;
+      if (activeTab === 'documents') el.innerHTML = `<div class="card"><div class="section-title"><h3>Document Checklist</h3><button class="btn primary small" onclick="addDocumentPrompt()">+ Add Item</button></div><div style="overflow-x:auto;"><table><thead><tr><th>Document</th><th>Required</th><th>Status</th><th>Responsible</th><th></th></tr></thead><tbody>${p.documents.map(d => `<tr><td><input value="${esc(d.name)}" onchange="updateDoc('${d.id}','name',this.value)"></td><td><select onchange="updateDoc('${d.id}','required',this.value)"><option ${d.required==='Yes'?'selected':''}>Yes</option><option${d.required==='No'?'selected':''}>No</option></select></td><td><select onchange="updateDoc('${d.id}','status',this.value)">${['Not required','Required','Requested','Received','Reviewed','Needs revision','Uploaded to portal','Approved'].map(s => `<option ${d.status===s?'selected':''}>${s}</option>`).join('')}</select></td><td><input value="${esc(d.responsible)}" onchange="updateDoc('${d.id}','responsible',this.value)"></td><td><button class="btn small danger" onclick="removeDoc('${d.id}')">Del</button></td></tr>`).join('')}</tbody></table></div></div>`;
       if (activeTab === 'councilNotes') el.innerHTML = `<div class="card"><h3>Notes</h3><button class="btn primary small" onclick="addCouncilNote()">+ Add Note</button><br><br><table><tbody>${p.notesList.map(n => `<tr><td><input type="date" value="${esc(n.date)}" onchange="updateCouncilNote('${n.id}','date',this.value)"></td><td><textarea onchange="updateCouncilNote('${n.id}','note',this.value)">${esc(n.note)}</textarea></td><td><button class="btn small danger" onclick="removeCouncilNote('${n.id}')">Del</button></td></tr>`).join('')}</tbody></table></div>`;
       if (activeTab === 'projectNotes') el.innerHTML = `<div class="card"><h3>Internal Notes</h3><button class="btn primary small" onclick="addProjectNote()">+ Add Note</button><br><br><div class="note-list">${p.projectNotesList.map(n => `<div class="note-card"><div style="flex:1;"><input value="${esc(n.title)}" placeholder="Title" onchange="updateProjectNote('${n.id}','title',this.value)" style="margin-bottom:8px;"><textarea onchange="updateProjectNote('${n.id}','body',this.value)">${esc(n.body)}</textarea></div><button class="btn danger small" onclick="removeProjectNote('${n.id}')" style="margin-left:12px;">Del</button></div>`).join('')}</div></div>`;
       if (activeTab === 'invoice') renderInvoiceTab(p, el);
       if (activeTab === 'files') renderFilesTab(p, el);
     }
 
+    // === INVOICE TAB RENDERING ===
     function renderInvoiceTab(p, el) {
       const inv = p.invoice;
       const subtotal = inv.lineItems.reduce((sum, item) => sum + Number(item.price || 0), 0); 
@@ -568,13 +667,22 @@
           <div class="card">
             <div class="section-title">
               <h3>Invoice Builder</h3>
-              <!-- RESTORED NATIVE PRINT BUTTON -->
               <button class="btn primary" onclick="printInvoice()">🖨 Print Invoice / PDF</button>
             </div>
             <div class="form-grid" style="margin-bottom: 32px;">
               <div class="field"><label>Invoice No.</label><input value="${esc(inv.invoiceNumber)}" onchange="updateInvoiceField('invoiceNumber',this.value)" /></div>
               <div class="field"><label>Issue Date</label><input type="date" value="${esc(inv.issueDate)}" onchange="updateInvoiceField('issueDate',this.value)" /></div>
               <div class="field"><label>Due Date</label><input type="date" value="${esc(inv.dueDate)}" onchange="updateInvoiceField('dueDate',this.value)" /></div>
+              <div class="field">
+                <label>Status</label>
+                <select onchange="updateInvoiceField('status', this.value)">
+                  <option value="DRAFT" ${inv.status==='DRAFT'?'selected':''}>DRAFT</option>
+                  <option value="SENT" ${inv.status==='SENT'?'selected':''}>SENT</option>
+                  <option value="RECEIVED PAYMENT" ${inv.status==='RECEIVED PAYMENT'?'selected':''}>RECEIVED PAYMENT</option>
+                  <option value="OVERDUE" ${inv.status==='OVERDUE'?'selected':''}>OVERDUE</option>
+                  <option value="CANCELLED" ${inv.status==='CANCELLED'?'selected':''}>CANCELLED</option>
+                </select>
+              </div>
               <div class="field">
                 <label>Include GST (10%)</label>
                 <select onchange="updateInvoiceField('hasGST', this.value === 'true')">
@@ -607,7 +715,7 @@
         </div>`;
     }
 
-    // === RESTORED NATIVE BROWSER PRINT ENGINE FOR PROJECT REPORT ===
+    // === NATIVE PRINT ENGINE (RESTORED) ===
     function printProjectReport() {
       const p = getCurrentProject();
       const completed = p.documents.filter(d => ['Received','Reviewed','Uploaded to portal','Approved'].includes(d.status));
@@ -631,7 +739,6 @@
       window.print();
     }
 
-    // === RESTORED NATIVE BROWSER PRINT ENGINE FOR INVOICE ===
     function printInvoice() {
       const p = getCurrentProject();
       p.invoice ||= defaultInvoice(p);
@@ -674,38 +781,59 @@
       `;
       window.print();
     }
-
-    // Print Helpers
     function reportList(items, empty) { return items.length ? `<table style="width:100%;text-align:left;border-collapse:collapse;"><thead><tr><th style="padding:8px;border-bottom:1px solid #ccc;">Document</th><th style="padding:8px;border-bottom:1px solid #ccc;">Status</th><th style="padding:8px;border-bottom:1px solid #ccc;">Responsible</th></tr></thead><tbody>${items.map(d => `<tr><td style="padding:8px;border-bottom:1px solid #eee;">${esc(d.name)}</td><td style="padding:8px;border-bottom:1px solid #eee;">${esc(d.status)}</td><td style="padding:8px;border-bottom:1px solid #eee;">${esc(d.responsible)}</td></tr>`).join('')}</tbody></table>` : `<p>${empty}</p>`; }
     function reportNotes(p) { return p.notesList?.length ? `<table style="width:100%;text-align:left;border-collapse:collapse;"><thead><tr><th style="padding:8px;border-bottom:1px solid #ccc;">Date</th><th style="padding:8px;border-bottom:1px solid #ccc;">Note</th></tr></thead><tbody>${p.notesList.map(n => `<tr><td style="padding:8px;border-bottom:1px solid #eee;">${esc(n.date)}</td><td style="padding:8px;border-bottom:1px solid #eee;">${esc(n.note)}</td></tr>`).join('')}</tbody></table>` : '<p>No notes added.</p>'; }
-    function reportProjectNotes(p) { return p.projectNotesList?.length ? `<table style="width:100%;text-align:left;border-collapse:collapse;"><thead><tr><th style="padding:8px;border-bottom:1px solid #ccc;">Title</th><th style="padding:8px;border-bottom:1px solid #ccc;">Note</th></tr></thead><tbody>${p.projectNotesList.map(n => `<tr><td style="padding:8px;border-bottom:1px solid #eee;">${esc(n.title || '-')}</td><td style="padding:8px;border-bottom:1px solid #eee;">${esc(n.body)}</td></tr>`).join('')}</tbody></table>` : '<p>No project notes added.</p>'; }
+    function reportProjectNotes(p) { return p.projectNotesList?.length ? `<table style="width:100%;text-align:left;border-collapse:collapse;"><thead><tr><th style="padding:8px;border-bottom:1px solid #ccc;">Title</th><th style="padding:8px;border-bottom:1px solid #ccc;">Note</th></tr></thead><tbody>${p.projectNotesList.map(n => `<tr><td style="padding:8px;border-bottom:1px solid #eee;">${esc(n.title \vert{}\vert{} '-')}</td><td style="padding:8px;border-bottom:1px solid #eee;">${esc(n.body)}</td></tr>`).join('')}</tbody></table>` : '<p>No project notes added.</p>'; }
 
-    /* LOCAL IMAGE CACHING */
-    function renderFilesTab(p, el) {
-      el.innerHTML = `<div class="card"><h3>Project Files (Saved Locally)</h3><p style="font-size:13px; color:var(--muted);">Files are securely saved to your browser's hard drive to keep cloud sync incredibly fast.</p><input type="file" multiple onchange="saveFileToIDB(event, '${p.id}')" style="margin-bottom:16px;" /><div id="filesContainer" class="file-list">Loading files...</div></div>`;
-      loadFilesFromIDB(p.id);
+    // === TRUE CLOUD STORAGE LOGIC (SUPABASE) ===
+    async function renderFilesTab(p, el) {
+      el.innerHTML = `<div class="card"><h3>Project Files (Cloud Storage)</h3><p style="font-size:13px; color:var(--muted);">Files upload directly to your secure Supabase cloud bucket.</p><input type="file" multiple onchange="uploadFilesToCloud(event, '${p.id}')" style="margin-bottom:16px;" /><div id="filesContainer" class="file-list">Loading files...</div></div>`;
+      
+      const files = p.cloudFiles || [];
+      const wrap = document.getElementById('filesContainer');
+      
+      if (files.length === 0) {
+         wrap.innerHTML = `<div style="color:var(--muted)">No files uploaded yet.</div>`;
+         return;
+      }
+      wrap.innerHTML = files.map(f => `<div class="file-item"><div><strong>${esc(f.name)}</strong></div><div class="actions"><a class="btn small" href="${esc(f.url)}" target="_blank">Download</a><button class="btn danger small" onclick="deleteFileFromCloud('${f.id}', '${f.path}')">Del</button></div></div>`).join('');
     }
-    function loadFilesFromIDB(projectId) {
-      if (!localDB) { document.getElementById('filesContainer').innerHTML = "Storage not ready."; return; }
-      const tx = localDB.transaction("files", "readonly");
-      const req = tx.objectStore("files").getAll();
-      req.onsuccess = e => {
-        const files = e.target.result.filter(f => f.projectId === projectId);
-        document.getElementById('filesContainer').innerHTML = files.length ? files.map(f => `<div class="file-item"><div><strong>${esc(f.name)}</strong></div><div class="actions"><a class="btn small" href="${f.data}" download="${esc(f.name)}">Download</a><button class="btn danger small" onclick="deleteFileFromIDB('${f.id}', '${projectId}')">Del</button></div></div>`).join('') : '<div style="color:var(--muted)">No files uploaded yet.</div>';
-      };
-    }
-    function saveFileToIDB(event, projectId) {
-      if (!localDB) return alert("Storage not ready.");
-      const tx = localDB.transaction("files", "readwrite");
-      [...event.target.files].forEach(file => {
-        const r = new FileReader();
-        r.onload = e => { tx.objectStore("files").put({ id: uid(), projectId, name: file.name, data: e.target.result }); tx.oncomplete = () => loadFilesFromIDB(projectId); };
-        r.readAsDataURL(file);
-      });
-    }
-    function deleteFileFromIDB(fileId, projectId) { const tx = localDB.transaction("files", "readwrite"); tx.objectStore("files").delete(fileId); tx.oncomplete = () => loadFilesFromIDB(projectId); }
+    
+    async function uploadFilesToCloud(event, projectId) {
+       if (!supabaseClient) return alert("Connect to Supabase first.");
+       const p = getCurrentProject();
+       p.cloudFiles ||= [];
+       const files = event.target.files;
+       if (files.length === 0) return;
 
-    /* CSV EXPORT */
+       setSyncStatus('Uploading files...', 'warning');
+       for(let file of files) {
+          const fileExt = file.name.split('.').pop();
+          const uniquePath = `${projectId}/${uid()}.${fileExt}`;
+          
+          const { data, error } = await supabaseClient.storage.from(STORAGE_BUCKET).upload(uniquePath, file);
+          if (error) {
+             console.error("Upload error:", error);
+             alert("Error uploading: " + file.name + ". Did you create the public 'project_files' bucket in Supabase?");
+          } else {
+             const { data: urlData } = supabaseClient.storage.from(STORAGE_BUCKET).getPublicUrl(uniquePath);
+             p.cloudFiles.push({ id: uid(), name: file.name, path: uniquePath, url: urlData.publicUrl });
+          }
+       }
+       queueSave();
+       renderProjectTab();
+    }
+    
+    async function deleteFileFromCloud(fileId, path) {
+       if (!confirm("Permanently delete this file from the cloud?")) return;
+       const p = getCurrentProject();
+       setSyncStatus('Deleting file...', 'warning');
+       await supabaseClient.storage.from(STORAGE_BUCKET).remove([path]);
+       p.cloudFiles = p.cloudFiles.filter(f => f.id !== fileId);
+       queueSave();
+       renderProjectTab();
+    }
+
     function exportToCSV() {
       const headers = ['Project ID', 'Client Name', 'Address', 'Council', 'Approval Type', 'Status', 'Total Docs', 'Missing Docs'];
       const rows = projects.map(p => {
@@ -717,7 +845,6 @@
       const a = document.createElement('a'); a.href = URL.createObjectURL(blob); a.download = 'project-approvals.csv'; a.click();
     }
 
-    /* EMAIL GENERATION */
     function generateEmailChase() {
       const p = getCurrentProject();
       if(!p || !p.clientEmail) { alert('No client email address saved for this project.'); return; }
@@ -733,7 +860,7 @@
     // Modal Logic
     function openProjectModal(id='') { document.getElementById('projectForm').reset(); populateCouncils(); document.getElementById('projectId').value = id || ''; document.getElementById('modalTitle').textContent = id ? 'Edit Project' : 'Add Project'; if (id) { const p = projects.find(x => x.id === id); ['clientName','clientPhone','clientEmail','siteAddress','council','lotDp','projectType','approvalType','jobStatus'].forEach(key => { const el = document.getElementById(key); if (el) el.value = p[key==='jobStatus'?'status':key] || ''; }); } else { document.getElementById('jobStatus').value = 'Active'; } document.getElementById('projectModal').classList.add('show'); }
     function closeProjectModal() { document.getElementById('projectModal').classList.remove('show'); }
-    function saveProject(event) { event.preventDefault(); const id = document.getElementById('projectId').value; const data = { clientName: clientName.value, clientPhone: clientPhone.value, clientEmail: clientEmail.value, siteAddress: siteAddress.value, council: council.value, lotDp: lotDp.value, projectType: projectType.value, approvalType: approvalType.value, status: jobStatus.value }; if (id) { Object.assign(projects.find(x => x.id === id), data); } else { const newProject = { id: uid(), createdAt: todayISO(), updatedAt: new Date().toISOString(), ...data, documents: (checklistLibrary[data.approvalType] || checklistLibrary.Other).map(name => ({ id: uid(), name, required: 'Yes', status: 'Required', responsible: 'Client/Consultant' })), notesList: [], projectNotesList: [] }; newProject.invoice = defaultInvoice(newProject); projects.unshift(newProject); } queueSave(); closeProjectModal(); id ? openProject(id) : showDashboard(); }
+    function saveProject(event) { event.preventDefault(); const id = document.getElementById('projectId').value; const data = { clientName: clientName.value, clientPhone: clientPhone.value, clientEmail: clientEmail.value, siteAddress: siteAddress.value, council: council.value, lotDp: lotDp.value, projectType: projectType.value, approvalType: approvalType.value, status: jobStatus.value }; if (id) { Object.assign(projects.find(x => x.id === id), data); } else { const newProject = { id: uid(), createdAt: todayISO(), updatedAt: new Date().toISOString(), ...data, documents: (checklistLibrary[data.approvalType] || checklistLibrary.Other).map(name => ({ id: uid(), name, required: 'Yes', status: 'Required', responsible: 'Client/Consultant' })), notesList: [], projectNotesList: [], cloudFiles: [] }; newProject.invoice = defaultInvoice(newProject); projects.unshift(newProject); } queueSave(); closeProjectModal(); id ? openProject(id) : showDashboard(); }
 
     function updateDoc(id, field, value) { const p=getCurrentProject(); p.documents.find(x=>x.id===id)[field]=value; queueSave(); }
     function removeDoc(id) { const p=getCurrentProject(); p.documents=p.documents.filter(d=>d.id!==id); queueSave(); renderProjectTab(); }
@@ -749,8 +876,8 @@
     function addInvoiceLine() { const p=getCurrentProject(); p.invoice.lineItems.push({ id: uid(), serviceName:'', price:'' }); queueSave(); renderProjectTab(); }
     function removeInvoiceLine(id) { const p=getCurrentProject(); p.invoice.lineItems = p.invoice.lineItems.filter(i => i.id !== id); queueSave(); renderProjectTab(); }
 
-    function showChecklistLibrary() { showOnly('libraryView'); document.querySelectorAll('.nav-btn')[2].classList.add('active'); renderLibraryUI(); }
-    function renderLibraryUI() { const container = document.getElementById('libraryView'); let html = `<div class="topbar"><h2>Checklist Library Editor</h2><p>Saved locally to your browser.</p></div><div class="grid two">`; for (const [type, items] of Object.entries(checklistLibrary)) { html += `<div class="card checklist-category"><h3>${type}</h3><div class="checklist-list">${items.map((item, index) => `<div class="checklist-item"><span>${esc(item)}</span><button class="btn danger small" onclick="removeLibraryItem('${type}', ${index})">✕</button></div>`).join('')}</div><div style="display:flex;gap:8px;margin-top:12px;"><input type="text" id="addInput_${type}" placeholder="New document name..." /><button class="btn primary small" onclick="addLibraryItem('${type}')">Add</button></div></div>`; } html += `</div>`; container.innerHTML = html; }
+    function showChecklistLibrary() { showOnly('libraryView'); document.getElementById('navLibrary').classList.add('active'); renderLibraryUI(); }
+    function renderLibraryUI() { const container = document.getElementById('libraryView'); let html = `<div class="topbar"><h2>Checklist Library Editor</h2><p>Saved locally to your browser.</p></div><div class="grid two">`; for (const [type, items] of Object.entries(checklistLibrary)) { html += `<div class="card checklist-category"><h3>${type}</h3><div class="checklist-list">${items.map((item, index) => `<div class="checklist-item"><span>${esc(item)}</span><button class="btn danger small" onclick="removeLibraryItem('${type}',${index})">✕</button></div>`).join('')}</div><div style="display:flex;gap:8px;margin-top:12px;"><input type="text" id="addInput_${type}" placeholder="New document name..." /><button class="btn primary small" onclick="addLibraryItem('${type}')">Add</button></div></div>`; } html += `</div>`; container.innerHTML = html; }
     function addLibraryItem(type) { const val = document.getElementById(`addInput_${type}`).value.trim(); if(val) { checklistLibrary[type].push(val); saveLocalFallback(); renderLibraryUI(); } }
     function removeLibraryItem(type, index) { if(confirm('Remove this item?')) { checklistLibrary[type].splice(index, 1); saveLocalFallback(); renderLibraryUI(); } }
     

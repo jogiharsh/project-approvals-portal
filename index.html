@@ -8,7 +8,10 @@
   <!-- html2pdf library for perfectly scaled PDF Invoices -->
   <script src="https://cdnjs.cloudflare.com/ajax/libs/html2pdf.js/0.10.1/html2pdf.bundle.min.js"></script>
   
-  <!-- Load your private config file (MUST be in the same folder) -->
+  <!-- NEW: Official Supabase JS SDK (Required for sb_publishable keys) -->
+  <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+  
+  <!-- Load your private config file -->
   <script src="config.js"></script>
 
   <style>
@@ -221,6 +224,7 @@
             <p id="pageSubtitle">Track DA, CDC, CC, OC, BASIX and BIC jobs.</p>
           </div>
           <div class="actions">
+            <!-- Export to CSV Feature -->
             <button class="btn" onclick="exportToCSV()">⤓ Export CSV</button>
             <button class="btn primary" onclick="openProjectModal()">+ New Project</button>
           </div>
@@ -259,6 +263,7 @@
             </div>
             <div class="actions">
               <button class="btn" onclick="showDashboard()">Back</button>
+              <!-- One-click Email Generator -->
               <button class="btn outline-primary" onclick="generateEmailChase()">✉ Chase Missing Docs</button>
               <button class="btn" onclick="openProjectModal(currentProjectId)">Edit Details</button>
               <button class="btn danger" onclick="deleteCurrentProject()">Delete</button>
@@ -272,6 +277,7 @@
           <button class="tab-btn" data-tab="documents" onclick="switchTab('documents')">Documents</button>
           <button class="tab-btn" data-tab="councilNotes" onclick="switchTab('councilNotes')">Council Notes</button>
           <button class="tab-btn" data-tab="invoice" onclick="switchTab('invoice')">Invoice</button>
+          <!-- Local Image Caching Tab -->
           <button class="tab-btn" data-tab="files" onclick="switchTab('files')">Files</button>
           <button class="tab-btn" data-tab="projectNotes" onclick="switchTab('projectNotes')">Internal Notes</button>
         </div>
@@ -321,7 +327,7 @@
 
   <script>
     // ==========================================
-    // SUPABASE COMMUNICATION (RESTORED EXACTLY FROM INDEX_2.HTML)
+    // SUPABASE COMMUNICATION (Using Official SDK)
     // ==========================================
     const SUPABASE_TABLE = 'app_state'; 
     const APP_STATE_ID = 'main';
@@ -336,6 +342,7 @@
     let activeTab = 'overview';
     let isCloudReady = false;
     let currentView = 'grid';
+    let supabaseClient = null;
 
     // INDEXEDDB SETUP FOR LOCAL IMAGE CACHING
     let localDB;
@@ -410,44 +417,38 @@
       return typeof SUPABASE_URL !== 'undefined' && typeof SUPABASE_ANON_KEY !== 'undefined' && SUPABASE_URL && SUPABASE_ANON_KEY && !SUPABASE_URL.includes('PASTE_YOUR_'); 
     }
 
-    function supabaseHeaders(extra = {}) { 
-      return { 
-        apikey: SUPABASE_ANON_KEY, 
-        Authorization: `Bearer ${SUPABASE_ANON_KEY}`, 
-        ...extra 
-      }; 
-    }
-
-    // Identical exact load function from index_2.html
     async function loadProjectsFromCloud() {
-      const response = await fetch(
-        `${SUPABASE_URL}/rest/v1/${SUPABASE_TABLE}?id=eq.${encodeURIComponent(APP_STATE_ID)}&select=projects`,
-        { headers: supabaseHeaders() }
-      );
-      if (!response.ok) throw new Error(`Supabase load failed: ${response.status}`);
-      const data = await response.json();
-      projects = Array.isArray(data?.[0]?.projects) ? data[0].projects : [];
+      const { data, error } = await supabaseClient
+        .from(SUPABASE_TABLE)
+        .select('projects') // Safely select only the projects column to match your DB exactly
+        .eq('id', APP_STATE_ID);
+
+      if (error) throw new Error(error.message);
+      
+      if (data && data.length > 0) {
+        projects = Array.isArray(data[0].projects) ? data[0].projects : [];
+      }
       saveLocalFallback();
     }
 
-    // Identical exact save function from index_2.html
     async function saveAll() {
       saveLocalFallback();
-      if (!isCloudReady) return;
+      if (!isCloudReady || !supabaseClient) return;
       setSyncStatus('Saving...', 'warning');
       
-      const response = await fetch(`${SUPABASE_URL}/rest/v1/${SUPABASE_TABLE}`, {
-        method: 'POST',
-        headers: supabaseHeaders({
-          'Content-Type': 'application/json',
-          Prefer: 'resolution=merge-duplicates'
-        }),
-        body: JSON.stringify([{ id: APP_STATE_ID, projects, updated_at: new Date().toISOString() }])
-      });
+      const payload = { 
+        id: APP_STATE_ID, 
+        projects: projects, 
+        updated_at: new Date().toISOString() 
+      };
+
+      const { error } = await supabaseClient
+        .from(SUPABASE_TABLE)
+        .upsert(payload);
       
-      if (!response.ok) { 
-        console.error(await response.text());
-        setSyncStatus('Save failed', 'error'); 
+      if (error) { 
+        console.error("Supabase Save Error:", error.message);
+        setSyncStatus('Save failed (See Console)', 'error'); 
         return; 
       }
       setSyncStatus('Cloud Synced', 'success');
@@ -460,12 +461,15 @@
         return; 
       }
       try {
+        // Initialize the Official SDK with your keys
+        supabaseClient = window.supabase.createClient(SUPABASE_URL, SUPABASE_ANON_KEY);
         isCloudReady = true; 
         setSyncStatus('Connecting...', 'warning');
+        
         await loadProjectsFromCloud();
         setSyncStatus('Cloud Synced', 'success');
       } catch (error) { 
-        console.error(error);
+        console.error("Init Error:", error);
         projects = loadLocalFallback(); 
         isCloudReady = false; 
         setSyncStatus('Sync Failed', 'error'); 

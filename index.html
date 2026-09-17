@@ -28,7 +28,7 @@
     button, input, select, textarea { font: inherit; }
 
     /* Layout */
-    .app-wrapper { display: flex; flex-direction: column; min-height: 100vh; display: none; }
+    .app-wrapper { display: flex; flex-direction: column; min-height: 100vh; display: none; background: var(--bg); position: relative; z-index: 1; }
     .top-nav { background: #ffffff; border-bottom: 1px solid var(--border); position: sticky; top: 0; z-index: 50; }
     .nav-container { max-width: 1400px; margin: 0 auto; padding: 0 24px; display: flex; align-items: center; justify-content: space-between; height: 64px; }
     .brand { display: flex; align-items: center; gap: 12px; }
@@ -154,6 +154,7 @@
     .invoice-meta-row { display: flex; justify-content: space-between; font-size: 14px; margin-bottom: 4px; }
     .invoice-table-rendered { width: 100%; border-collapse: collapse; margin-bottom: 40px; }
     .invoice-table-rendered th, .invoice-table-rendered td { padding: 12px; border: 1px solid var(--border); }
+    .invoice-table-rendered th { background: var(--bg); font-size: 12px; text-transform: uppercase; color: var(--muted); }
     .invoice-table-rendered td:last-child, .invoice-table-rendered th:last-child { text-align: right; width: 140px; }
     .invoice-footer { display: flex; justify-content: space-between; align-items: flex-end; }
     .invoice-notes { font-size: 14px; white-space: pre-wrap; color: var(--muted); }
@@ -167,15 +168,6 @@
 
     .file-list { display: grid; gap: 12px; }
     .file-item { background: var(--bg); padding: 16px; border-radius: var(--radius); border: 1px solid var(--border); display: flex; justify-content: space-between; align-items: center; }
-
-    @media print {
-      body { background: #fff; color: #000; }
-      .top-nav, .tabs, .no-print, .modal-backdrop, #dashboardView, #projectView, .actions { display: none !important; }
-      .app-wrapper { display: block; }
-      main.content-container { padding: 0; max-width: none; }
-      .print-report { display: block; }
-      .invoice-preview { box-shadow: none; border: none; padding: 0; }
-    }
   </style>
 </head>
 <body class="locked">
@@ -285,8 +277,6 @@
 
       <!-- CHECKLIST LIBRARY VIEW -->
       <section id="libraryView" class="hidden"></section>
-      
-      <section id="printReport" class="print-report"></section>
     </main>
   </div>
 
@@ -327,14 +317,10 @@
     // ==========================================
     // SUPABASE COMMUNICATION 
     // ==========================================
-    
-    // Note: The variables PORTAL_PASSWORD, SUPABASE_URL, and SUPABASE_ANON_KEY 
-    // are securely loaded from your config.js file!
-
     const SUPABASE_TABLE = 'app_state'; 
     const APP_STATE_ID = 'main';
-    const LOCAL_FALLBACK_KEY = 'projectApprovalsTracker.v12.localFallback';
-    const LIBRARY_FALLBACK_KEY = 'projectApprovalsTracker.v12.library';
+    const LOCAL_FALLBACK_KEY = 'projectApprovalsTracker.v14.localFallback';
+    const LIBRARY_FALLBACK_KEY = 'projectApprovalsTracker.v14.library';
     
     const BUSINESS_PROFILE = { name: 'Project Approvals', abn: 'ABN 16 696 716 980', email: 'info@projectapprovals.com.au', phone: '0414633507', address: 'Quakershill NSW 2763', bankDetails: 'PayID: info@projectapprovals.com.au\nBank: NAB\nAccount Name: Project Approvals\nBSB: 082-356\nAccount No: 308014097' };
     const INVOICE_SERVICE_OPTIONS = ['CDC consulting service','DA application support','CC approval support','OC approval support','BASIX coordination','Council lodgement support','Site inspection consulting','General approval consulting'];
@@ -393,22 +379,25 @@
     function looksCustomService(name='') { return !!name && !INVOICE_SERVICE_OPTIONS.includes(name); }
     function addDays(dateString, days) { const d = dateString ? new Date(dateString) : new Date(); d.setDate(d.getDate() + days); return d.toISOString().slice(0, 10); }
 
-    function getNextGlobalInvoiceNumber() {
-      let maxNumber = 999;
-      projects.forEach(p => { if (p.invoice?.invoiceNumber) { const match = p.invoice.invoiceNumber.match(/\d+$/); if (match) { const num = parseInt(match[0], 10); if (num > maxNumber) maxNumber = num; } } });
-      return `INV-${maxNumber + 1}`;
+    // === UNIQUE INVOICE NUMBER GENERATOR ===
+    function generateUniqueInvoiceNumber() {
+      const d = new Date();
+      const datePart = d.getFullYear() + String(d.getMonth() + 1).padStart(2, '0') + String(d.getDate()).padStart(2, '0');
+      const randomPart = Math.random().toString(36).substring(2, 6).toUpperCase();
+      return `INV-${datePart}-${randomPart}`;
     }
 
-    function defaultInvoice(project) { 
-  return { 
-    invoiceNumber: getNextGlobalInvoiceNumber(), 
-    issueDate: todayISO(), 
-    dueDate: addDays(todayISO(), 7), 
-    hasGST: true, // <-- NEW SETTING
-    lineItems: [{ id: uid(), serviceName: `${project?.approvalType || 'Approval'} consulting service`, price: '' }], 
-    notes: BUSINESS_PROFILE.bankDetails 
-  }; 
-}
+    function defaultInvoice(project) { 
+      return { 
+        invoiceNumber: generateUniqueInvoiceNumber(), 
+        issueDate: todayISO(), 
+        dueDate: addDays(todayISO(), 7), 
+        hasGST: true, 
+        lineItems: [{ id: uid(), serviceName: `${project?.approvalType || 'Approval'} consulting service`, price: '' }], 
+        notes: BUSINESS_PROFILE.bankDetails 
+      }; 
+    }
+
     function loadLocalFallback() { try { const lib = localStorage.getItem(LIBRARY_FALLBACK_KEY); if (lib) checklistLibrary = JSON.parse(lib); return JSON.parse(localStorage.getItem(LOCAL_FALLBACK_KEY) || '[]'); } catch { return []; } }
     function saveLocalFallback() { 
       try {
@@ -472,34 +461,33 @@
     function setDashboardView(viewType) { currentView = viewType; document.getElementById('btnViewGrid').classList.toggle('active', viewType === 'grid'); document.getElementById('btnViewBoard').classList.toggle('active', viewType === 'board'); renderDashboard(); }
 
     function renderDashboard() {
-  const q = document.getElementById('searchInput')?.value?.toLowerCase() || ''; const type = document.getElementById('typeFilter')?.value || '';
-  const rows = projects.filter(p => { const hay = [p.clientName,p.siteAddress,p.council,p.status].join(' ').toLowerCase(); return (!q || hay.includes(q)) && (!type || p.approvalType === type); });
+      const q = document.getElementById('searchInput')?.value?.toLowerCase() || ''; const type = document.getElementById('typeFilter')?.value || '';
+      const rows = projects.filter(p => { const hay = [p.clientName,p.siteAddress,p.council,p.status].join(' ').toLowerCase(); return (!q || hay.includes(q)) && (!type || p.approvalType === type); });
 
-  document.getElementById('statTotal').textContent = projects.length; document.getElementById('statActive').textContent = projects.filter(p=>p.status==='Active').length;
-  document.getElementById('statMissing').textContent = projects.reduce((sum, p) => sum + p.documents.filter(d=>d.required!=='No'&&!['Received','Approved'].includes(d.status)).length, 0);
-  
-  // Updated Revenue Calculation for GST Toggle
-  document.getElementById('statRevenue').textContent = formatCurrency(projects.reduce((sum, p) => { 
-    if(p.invoice?.lineItems) { 
-      const sub = p.invoice.lineItems.reduce((s, i) => s + Number(i.price || 0), 0); 
-      const applyGST = p.invoice.hasGST !== false;
-      return sum + sub + (applyGST ? sub * 0.1 : 0); 
-    } 
-    return sum; 
-  }, 0));
+      document.getElementById('statTotal').textContent = projects.length; document.getElementById('statActive').textContent = projects.filter(p=>p.status==='Active').length;
+      document.getElementById('statMissing').textContent = projects.reduce((sum, p) => sum + p.documents.filter(d=>d.required!=='No'&&!['Received','Approved'].includes(d.status)).length, 0);
+      
+      document.getElementById('statRevenue').textContent = formatCurrency(projects.reduce((sum, p) => { 
+        if(p.invoice?.lineItems) { 
+          const sub = p.invoice.lineItems.reduce((s, i) => s + Number(i.price || 0), 0); 
+          const applyGST = p.invoice.hasGST !== false;
+          return sum + sub + (applyGST ? sub * 0.1 : 0); 
+        } 
+        return sum; 
+      }, 0));
 
-  const wrap = document.getElementById('projectTableWrap');
-  if (!rows.length) { wrap.innerHTML = `<div class="empty">No projects found.</div>`; return; }
+      const wrap = document.getElementById('projectTableWrap');
+      if (!rows.length) { wrap.innerHTML = `<div class="empty">No projects found.</div>`; return; }
 
-  const generateCard = (p) => {
-    const readyDocs = p.documents.filter(d=>d.status==='Approved'||d.status==='Received').length; const totalDocs = p.documents.filter(d=>d.required!=='No').length;
-    const color = p.status === 'Active' ? 'blue' : p.status === 'Hold' ? 'orange' : 'green';
-    return `<div class="project-card" onclick="openProject('${p.id}')"><div class="project-card-header"><span class="pill" style="background:var(--${color}-100, #eee);">${esc(p.status)}</span><span class="pill" style="background:#e0e7ff; color:#4338ca;">${esc(p.approvalType)}</span></div><div><h4>${esc(p.siteAddress)}</h4><p>${esc(p.clientName)} &middot; ${esc(p.council)}</p></div><div class="project-card-footer"><span style="font-size:12px; font-weight:600;">${readyDocs} / ${totalDocs} Docs</span></div></div>`;
-  };
+      const generateCard = (p) => {
+        const readyDocs = p.documents.filter(d=>d.status==='Approved'||d.status==='Received').length; const totalDocs = p.documents.filter(d=>d.required!=='No').length;
+        const color = p.status === 'Active' ? 'blue' : p.status === 'Hold' ? 'orange' : 'green';
+        return `<div class="project-card" onclick="openProject('${p.id}')"><div class="project-card-header"><span class="pill" style="background:var(--${color}-100, #eee);">${esc(p.status)}</span><span class="pill" style="background:#e0e7ff; color:#4338ca;">${esc(p.approvalType)}</span></div><div><h4>${esc(p.siteAddress)}</h4><p>${esc(p.clientName)} &middot; ${esc(p.council)}</p></div><div class="project-card-footer"><span style="font-size:12px; font-weight:600;">${readyDocs} / ${totalDocs} Docs</span></div></div>`;
+      };
 
-  if(currentView === 'grid') wrap.innerHTML = `<div class="project-grid">${rows.map(generateCard).join('')}</div>`;
-  else wrap.innerHTML = `<div class="pipeline-board"><div class="pipeline-col"><h3>Active <span>${rows.filter(p=>p.status==='Active').length}</span></h3><div class="pipeline-cards">${rows.filter(p=>p.status==='Active').map(generateCard).join('')}</div></div><div class="pipeline-col" style="background:#fffbeb;"><h3>Hold <span>${rows.filter(p=>p.status==='Hold').length}</span></h3><div class="pipeline-cards">${rows.filter(p=>p.status==='Hold').map(generateCard).join('')}</div></div><div class="pipeline-col" style="background:#f0fdf4;"><h3>Completed <span>${rows.filter(p=>p.status==='Completed').length}</span></h3><div class="pipeline-cards">${rows.filter(p=>p.status==='Completed').map(generateCard).join('')}</div></div></div>`;
-}
+      if(currentView === 'grid') wrap.innerHTML = `<div class="project-grid">${rows.map(generateCard).join('')}</div>`;
+      else wrap.innerHTML = `<div class="pipeline-board"><div class="pipeline-col"><h3>Active <span>${rows.filter(p=>p.status==='Active').length}</span></h3><div class="pipeline-cards">${rows.filter(p=>p.status==='Active').map(generateCard).join('')}</div></div><div class="pipeline-col" style="background:#fffbeb;"><h3>Hold <span>${rows.filter(p=>p.status==='Hold').length}</span></h3><div class="pipeline-cards">${rows.filter(p=>p.status==='Hold').map(generateCard).join('')}</div></div><div class="pipeline-col" style="background:#f0fdf4;"><h3>Completed <span>${rows.filter(p=>p.status==='Completed').length}</span></h3><div class="pipeline-cards">${rows.filter(p=>p.status==='Completed').map(generateCard).join('')}</div></div></div>`;
+    }
 
     function openProject(projectId) {
       currentProjectId = projectId; activeTab = 'overview'; const p = getCurrentProject(); showOnly('projectView');
@@ -525,105 +513,136 @@
     }
 
     function renderInvoiceTab(p, el) {
-  const inv = p.invoice;
-  const subtotal = inv.lineItems.reduce((sum, item) => sum + Number(item.price || 0), 0); 
-  const applyGST = inv.hasGST !== false; // Check if GST is toggled off
-  const gst = applyGST ? subtotal * 0.1 : 0; 
-  const total = subtotal + gst;
-  
-  el.innerHTML = `
-    <div class="invoice-shell">
-      <div class="card">
-        <div class="section-title">
-          <h3>Invoice Builder</h3>
-          <button class="btn primary" onclick="downloadInvoicePDF()">⤓ Download PDF</button>
-        </div>
-        <div class="form-grid" style="margin-bottom: 32px;">
-          <div class="field"><label>Invoice No.</label><input value="${esc(inv.invoiceNumber)}" onchange="updateInvoiceField('invoiceNumber',this.value)" /></div>
-          <div class="field"><label>Issue Date</label><input type="date" value="${esc(inv.issueDate)}" onchange="updateInvoiceField('issueDate',this.value)" /></div>
-          <div class="field"><label>Due Date</label><input type="date" value="${esc(inv.dueDate)}" onchange="updateInvoiceField('dueDate',this.value)" /></div>
-          <div class="field">
-            <label>Include GST (10%)</label>
-            <select onchange="updateInvoiceField('hasGST', this.value === 'true')">
-              <option value="true" ${applyGST ? 'selected' : ''}>Yes, include GST</option>
-              <option value="false" ${!applyGST ? 'selected' : ''}>No GST</option>
-            </select>
+      const inv = p.invoice;
+      const subtotal = inv.lineItems.reduce((sum, item) => sum + Number(item.price || 0), 0); 
+      const applyGST = inv.hasGST !== false; 
+      const gst = applyGST ? subtotal * 0.1 : 0; 
+      const total = subtotal + gst;
+
+      // Extract GST Row cleanly to prevent template literal parsing errors
+      let gstHtmlRow = '';
+      if (applyGST) {
+        gstHtmlRow = `<div class="summary-row"><span>GST (10%):</span> <strong>${formatCurrency(gst)}</strong></div>`;
+      }
+
+      el.innerHTML = `
+        <div class="invoice-shell">
+          <div class="card">
+            <div class="section-title">
+              <h3>Invoice Builder</h3>
+              <button class="btn primary" onclick="downloadInvoicePDF()">⤓ Download PDF</button>
+            </div>
+            <div class="form-grid" style="margin-bottom: 32px;">
+              <div class="field"><label>Invoice No.</label><input value="${esc(inv.invoiceNumber)}" onchange="updateInvoiceField('invoiceNumber',this.value)" /></div>
+              <div class="field"><label>Issue Date</label><input type="date" value="${esc(inv.issueDate)}" onchange="updateInvoiceField('issueDate',this.value)" /></div>
+              <div class="field"><label>Due Date</label><input type="date" value="${esc(inv.dueDate)}" onchange="updateInvoiceField('dueDate',this.value)" /></div>
+              <div class="field">
+                <label>Include GST (10%)</label>
+                <select onchange="updateInvoiceField('hasGST', this.value === 'true')">
+                  <option value="true" ${applyGST ? 'selected' : ''}>Yes, include GST</option>
+                  <option value="false" ${!applyGST ? 'selected' : ''}>No GST</option>
+                </select>
+              </div>
+              <div class="field full"><label>Payment Notes</label><textarea onchange="updateInvoiceField('notes',this.value)">${esc(inv.notes)}</textarea></div>
+            </div>
+            <div class="section-title"><h3>Services</h3><button class="btn small" onclick="addInvoiceLine()">+ Add Service</button></div>
+            <table>
+              <thead><tr><th>Service</th><th>Price</th><th></th></tr></thead>
+              <tbody>${inv.lineItems.map(item => `<tr><td><input value="${esc(item.serviceName)}" onchange="updateInvoiceLine('${item.id}','serviceName',this.value)" placeholder="Service Name"></td><td><input type="number" step="0.01" value="${esc(item.price)}" onchange="updateInvoiceLine('${item.id}','price',this.value)" /></td><td><button class="btn danger small" onclick="removeInvoiceLine('${item.id}')">Del</button></td></tr>`).join('')}</tbody>
+            </table>
           </div>
-          <div class="field full"><label>Payment Notes</label><textarea onchange="updateInvoiceField('notes',this.value)">${esc(inv.notes)}</textarea></div>
-        </div>
-        <div class="section-title"><h3>Services</h3><button class="btn small" onclick="addInvoiceLine()">+ Add Service</button></div>
-        <table>
-          <thead><tr><th>Service</th><th>Price</th><th></th></tr></thead>
-          <tbody>${inv.lineItems.map(item => `<tr><td><input value="${esc(item.serviceName)}" onchange="updateInvoiceLine('${item.id}','serviceName',this.value)" placeholder="Service Name"></td><td><input type="number" step="0.01" value="${esc(item.price)}" onchange="updateInvoiceLine('${item.id}','price',this.value)" /></td><td><button class="btn danger small" onclick="removeInvoiceLine('${item.id}')">Del</button></td></tr>`).join('')}</tbody>
-        </table>
-      </div>
-      
-      <div class="invoice-preview" id="invoicePDFTarget">
-        <div class="invoice-header"><div><h2>${esc(BUSINESS_PROFILE.name)}</h2><p>${esc(BUSINESS_PROFILE.address)}<br>${esc(BUSINESS_PROFILE.abn)}</p></div></div>
-        <div class="invoice-meta"><div><h4>Bill To</h4><p>${esc(p.clientName)}<br>${esc(p.clientEmail)}</p></div><div><h4>Project</h4><p>${esc(p.siteAddress)}<br>${esc(p.council)}</p></div><div><h4>Details</h4><div class="invoice-meta-row"><span>Invoice No:</span> <strong>${esc(inv.invoiceNumber)}</strong></div><div class="invoice-meta-row"><span>Issue Date:</span> <strong>${esc(inv.issueDate)}</strong></div><div class="invoice-meta-row"><span>Due Date:</span> <strong>${esc(inv.dueDate)}</strong></div></div></div>
-        <table class="invoice-table-rendered"><thead><tr><th>Description</th><th>Amount</th></tr></thead><tbody>${inv.lineItems.map(item => `<tr><td><strong>${esc(item.serviceName)}</strong></td><td>${formatCurrency(item.price)}</td></tr>`).join('')}</tbody></table>
-        <div class="invoice-footer"><div class="invoice-notes">${esc(inv.notes)}</div><div class="invoice-summary"><div class="summary-row"><span>Subtotal:</span> <strong>${formatCurrency(subtotal)}</strong></div>${applyGST ? `<div class="summary-row"><span>GST (10%):</span> <strong>${formatCurrency(gst)}</strong></div>` : ''}<div class="summary-row grand"><span>Total:</span> <strong>${formatCurrency(total)}</strong></div></div></div>
-      </div>
-    </div>`;
-}
+          
+          <div class="invoice-preview" id="invoicePDFTarget">
+            <div class="invoice-header"><div><h2>${esc(BUSINESS_PROFILE.name)}</h2><p>${esc(BUSINESS_PROFILE.address)}<br>${esc(BUSINESS_PROFILE.abn)}</p></div></div>
+            <div class="invoice-meta"><div><h4>Bill To</h4><p>${esc(p.clientName)}<br>${esc(p.clientEmail)}</p></div><div><h4>Project</h4><p>${esc(p.siteAddress)}<br>${esc(p.council)}</p></div><div><h4>Details</h4><div class="invoice-meta-row"><span>Invoice No:</span> <strong>${esc(inv.invoiceNumber)}</strong></div><div class="invoice-meta-row"><span>Issue Date:</span> <strong>${esc(inv.issueDate)}</strong></div><div class="invoice-meta-row"><span>Due Date:</span> <strong>${esc(inv.dueDate)}</strong></div></div></div>
+            <table class="invoice-table-rendered"><thead><tr><th>Description</th><th>Amount</th></tr></thead><tbody>${inv.lineItems.map(item => `<tr><td><strong>${esc(item.serviceName)}</strong></td><td>${formatCurrency(item.price)}</td></tr>`).join('')}</tbody></table>
+            <div class="invoice-footer">
+              <div class="invoice-notes">${esc(inv.notes)}</div>
+              <div class="invoice-summary">
+                <div class="summary-row"><span>Subtotal:</span> <strong>${formatCurrency(subtotal)}</strong></div>
+                ${gstHtmlRow}
+                <div class="summary-row grand"><span>Total:</span> <strong>${formatCurrency(total)}</strong></div>
+              </div>
+            </div>
+          </div>
+        </div>`;
+    }
 
     // PERFECT PDF GENERATION
     function downloadInvoicePDF() {
-  const p = getCurrentProject();
-  p.invoice ||= defaultInvoice(p);
-  const invoice = p.invoice;
-  const subtotal = invoice.lineItems.reduce((sum, item) => sum + Number(item.price || 0), 0);
-  
-  // Apply GST Logic
-  const applyGST = invoice.hasGST !== false;
-  const gst = applyGST ? subtotal * 0.1 : 0;
-  const total = subtotal + gst;
+      const p = getCurrentProject();
+      p.invoice ||= defaultInvoice(p);
+      const invoice = p.invoice;
+      const subtotal = invoice.lineItems.reduce((sum, item) => sum + Number(item.price || 0), 0);
+      const applyGST = invoice.hasGST !== false;
+      const gst = applyGST ? subtotal * 0.1 : 0;
+      const total = subtotal + gst;
 
-  const offscreenDiv = document.createElement('div');
-  offscreenDiv.style.width = '800px'; 
-  offscreenDiv.style.position = 'absolute';
-  offscreenDiv.style.left = '-9999px';
-  offscreenDiv.style.top = '0';
-  offscreenDiv.style.padding = '40px';
-  offscreenDiv.style.background = '#ffffff';
-  offscreenDiv.style.color = '#000000';
-  offscreenDiv.style.fontFamily = 'Helvetica, Arial, sans-serif';
+      // Extract GST Row cleanly to prevent template literal parsing errors inside the PDF engine
+      let pdfGstRow = '';
+      if (applyGST) {
+        pdfGstRow = `<div style="display:flex; justify-content:space-between; padding:4px 0;"><span>GST (10%):</span><strong>${formatCurrency(gst)}</strong></div>`;
+      }
 
-  offscreenDiv.innerHTML = `
-    <div style="display:flex; justify-content:space-between; margin-bottom:40px;">
-      <div><h2 style="margin:0; font-size:26px;">${esc(BUSINESS_PROFILE.name)}</h2><p style="margin:4px 0 0; color:#555; font-size:14px;">${esc(BUSINESS_PROFILE.address)}<br>${esc(BUSINESS_PROFILE.abn)}</p></div>
-    </div>
-    <div style="display:flex; justify-content:space-between; margin-bottom:40px; padding-bottom:20px; border-bottom:1px solid #ccc;">
-      <div style="flex:1;"><h4 style="margin:0 0 8px; color:#555; text-transform:uppercase; font-size:12px;">Bill To</h4><p style="margin:0; font-size:14px;">${esc(p.clientName)}<br>${esc(p.clientEmail)}</p></div>
-      <div style="flex:1;"><h4 style="margin:0 0 8px; color:#555; text-transform:uppercase; font-size:12px;">Project</h4><p style="margin:0; font-size:14px;">${esc(p.siteAddress)}<br>${esc(p.council)}</p></div>
-      <div style="flex:1; text-align:right;"><h4 style="margin:0 0 8px; color:#555; text-transform:uppercase; font-size:12px;">Invoice Details</h4><p style="margin:0; font-size:14px;">No: <strong>${esc(invoice.invoiceNumber)}</strong><br>Date: <strong>${esc(invoice.issueDate)}</strong><br>Due: <strong>${esc(invoice.dueDate)}</strong></p></div>
-    </div>
-    <table style="width:100%; border-collapse:collapse; margin-bottom:40px; font-size:14px;">
-      <thead><tr style="border-bottom:2px solid #ddd; text-align:left;"><th style="padding:12px;">Description</th><th style="padding:12px; text-align:right;">Amount</th></tr></thead>
-      <tbody>${invoice.lineItems.map(i => `<tr><td style="padding:12px; border-bottom:1px solid #eee;"><strong>${esc(i.serviceName)}</strong></td><td style="padding:12px; border-bottom:1px solid #eee; text-align:right;">${formatCurrency(i.price)}</td></tr>`).join('')}</tbody>
-    </table>
-    <div style="display:flex; justify-content:space-between; align-items:flex-end; font-size:14px;">
-      <div style="width:55%; white-space:pre-wrap; color:#555;">${esc(invoice.notes)}</div>
-      <div style="width:35%;">
-        <div style="display:flex; justify-content:space-between; padding:4px 0;"><span>Subtotal:</span><strong>${formatCurrency(subtotal)}</strong></div>
-        ${applyGST ? `<div style="display:flex; justify-content:space-between; padding:4px 0;"><span>GST (10%):</span><strong>${formatCurrency(gst)}</strong></div>` : ''}
-        <div style="display:flex; justify-content:space-between; padding:12px 0; border-top:2px solid #ccc; font-size:18px; font-weight:bold; margin-top:8px;"><span>Total:</span><span>${formatCurrency(total)}</span></div>
-      </div>
-    </div>
-  `;
+      const offscreenDiv = document.createElement('div');
+      
+      // Strict width constraint ensuring it matches the A4 aspect ratio before screenshot
+      offscreenDiv.style.width = '800px'; 
+      offscreenDiv.style.position = 'absolute';
+      offscreenDiv.style.left = '0';
+      offscreenDiv.style.top = '0';
+      offscreenDiv.style.zIndex = '-9999'; // Hidden entirely behind app
+      offscreenDiv.style.padding = '40px';
+      offscreenDiv.style.background = '#ffffff';
+      offscreenDiv.style.color = '#000000';
+      offscreenDiv.style.fontFamily = 'Helvetica, Arial, sans-serif';
 
-  document.body.appendChild(offscreenDiv);
+      offscreenDiv.innerHTML = `
+        <div style="display:flex; justify-content:space-between; margin-bottom:40px;">
+          <div><h2 style="margin:0; font-size:26px;">${esc(BUSINESS_PROFILE.name)}</h2><p style="margin:4px 0 0; color:#555; font-size:14px;">${esc(BUSINESS_PROFILE.address)}<br>${esc(BUSINESS_PROFILE.abn)}</p></div>
+        </div>
+        <div style="display:flex; justify-content:space-between; margin-bottom:40px; padding-bottom:20px; border-bottom:1px solid #ccc;">
+          <div style="flex:1;"><h4 style="margin:0 0 8px; color:#555; text-transform:uppercase; font-size:12px;">Bill To</h4><p style="margin:0; font-size:14px;">${esc(p.clientName)}<br>${esc(p.clientEmail)}</p></div>
+          <div style="flex:1;"><h4 style="margin:0 0 8px; color:#555; text-transform:uppercase; font-size:12px;">Project</h4><p style="margin:0; font-size:14px;">${esc(p.siteAddress)}<br>${esc(p.council)}</p></div>
+          <div style="flex:1; text-align:right;"><h4 style="margin:0 0 8px; color:#555; text-transform:uppercase; font-size:12px;">Invoice Details</h4><p style="margin:0; font-size:14px;">No: <strong>${esc(invoice.invoiceNumber)}</strong><br>Date: <strong>${esc(invoice.issueDate)}</strong><br>Due: <strong>${esc(invoice.dueDate)}</strong></p></div>
+        </div>
+        <table style="width:100%; border-collapse:collapse; margin-bottom:40px; font-size:14px;">
+          <thead><tr style="border-bottom:2px solid #ddd; text-align:left;"><th style="padding:12px;">Description</th><th style="padding:12px; text-align:right;">Amount</th></tr></thead>
+          <tbody>${invoice.lineItems.map(i => `<tr><td style="padding:12px; border-bottom:1px solid #eee;"><strong>${esc(i.serviceName)}</strong></td><td style="padding:12px; border-bottom:1px solid #eee; text-align:right;">${formatCurrency(i.price)}</td></tr>`).join('')}</tbody>
+        </table>
+        <div style="display:flex; justify-content:space-between; align-items:flex-end; font-size:14px;">
+          <div style="width:55%; white-space:pre-wrap; color:#555;">${esc(invoice.notes)}</div>
+          <div style="width:35%;">
+            <div style="display:flex; justify-content:space-between; padding:4px 0;"><span>Subtotal:</span><strong>${formatCurrency(subtotal)}</strong></div>
+            ${pdfGstRow}
+            <div style="display:flex; justify-content:space-between; padding:12px 0; border-top:2px solid #ccc; font-size:18px; font-weight:bold; margin-top:8px;"><span>Total:</span><span>${formatCurrency(total)}</span></div>
+          </div>
+        </div>
+      `;
 
-  const filename = `${invoice.invoiceNumber}_${p.clientName.replace(/\s+/g, '_')}.pdf`;
-  const opt = { margin: 10, filename: filename, image: { type: 'jpeg', quality: 0.98 }, html2canvas: { scale: 2 }, jsPDF: { unit: 'mm', format: 'a4', orientation: 'portrait' } };
-  html2pdf().set(opt).from(offscreenDiv).save().then(() => { document.body.removeChild(offscreenDiv); });
-}
+      document.body.appendChild(offscreenDiv);
 
-    /* LOCAL IMAGE CACHING */
+      const filename = `${invoice.invoiceNumber}_${p.clientName.replace(/\s+/g, '_')}.pdf`;
+      const opt = { 
+        margin: 10, 
+        filename: filename, 
+        image: { type: 'jpeg', quality: 0.98 }, 
+        html2canvas: { scale: 2, useCORS: true }, 
+        jsPDF: { unit: 'mm', format: 'a4', orientation: 'portrait' } 
+      };
+
+      // Added a slight delay so the browser can paint the hidden canvas before snapping it!
+      setTimeout(() => {
+        html2pdf().set(opt).from(offscreenDiv).save().then(() => { document.body.removeChild(offscreenDiv); });
+      }, 150);
+    }
+
+    /* LOCAL IMAGE CACHING (INDEXEDDB FILES TAB) */
     function renderFilesTab(p, el) {
       el.innerHTML = `<div class="card"><h3>Project Files (Saved Locally)</h3><p style="font-size:13px; color:var(--muted);">Files are securely saved to your browser's hard drive to keep cloud sync incredibly fast.</p><input type="file" multiple onchange="saveFileToIDB(event, '${p.id}')" style="margin-bottom:16px;" /><div id="filesContainer" class="file-list">Loading files...</div></div>`;
       loadFilesFromIDB(p.id);
     }
+    
     function loadFilesFromIDB(projectId) {
       if (!localDB) { document.getElementById('filesContainer').innerHTML = "Storage not ready."; return; }
       const tx = localDB.transaction("files", "readonly");
@@ -633,6 +652,7 @@
         document.getElementById('filesContainer').innerHTML = files.length ? files.map(f => `<div class="file-item"><div><strong>${esc(f.name)}</strong></div><div class="actions"><a class="btn small" href="${f.data}" download="${esc(f.name)}">Download</a><button class="btn danger small" onclick="deleteFileFromIDB('${f.id}', '${projectId}')">Del</button></div></div>`).join('') : '<div style="color:var(--muted)">No files uploaded yet.</div>';
       };
     }
+    
     function saveFileToIDB(event, projectId) {
       if (!localDB) return alert("Storage not ready.");
       const tx = localDB.transaction("files", "readwrite");

@@ -8,7 +8,7 @@
   <!-- html2pdf library for perfectly scaled PDF Invoices -->
   <script src="https://cdnjs.cloudflare.com/ajax/libs/html2pdf.js/0.10.1/html2pdf.bundle.min.js"></script>
   
-  <!-- NEW: Official Supabase JS SDK (Required for sb_publishable keys) -->
+  <!-- OFFICIAL SUPABASE SDK: Required to process sb_publishable keys -->
   <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
   
   <!-- Load your private config file -->
@@ -263,7 +263,6 @@
             </div>
             <div class="actions">
               <button class="btn" onclick="showDashboard()">Back</button>
-              <!-- One-click Email Generator -->
               <button class="btn outline-primary" onclick="generateEmailChase()">✉ Chase Missing Docs</button>
               <button class="btn" onclick="openProjectModal(currentProjectId)">Edit Details</button>
               <button class="btn danger" onclick="deleteCurrentProject()">Delete</button>
@@ -327,12 +326,16 @@
 
   <script>
     // ==========================================
-    // SUPABASE COMMUNICATION (Using Official SDK)
+    // SUPABASE COMMUNICATION (USING THE OFFICIAL SDK)
     // ==========================================
+    
+    // Note: The variables PORTAL_PASSWORD, SUPABASE_URL, and SUPABASE_ANON_KEY 
+    // are securely loaded from your config.js file!
+
     const SUPABASE_TABLE = 'app_state'; 
     const APP_STATE_ID = 'main';
-    const LOCAL_FALLBACK_KEY = 'projectApprovalsTracker.v10.localFallback';
-    const LIBRARY_FALLBACK_KEY = 'projectApprovalsTracker.v10.library';
+    const LOCAL_FALLBACK_KEY = 'projectApprovalsTracker.v11.localFallback';
+    const LIBRARY_FALLBACK_KEY = 'projectApprovalsTracker.v11.library';
     
     const BUSINESS_PROFILE = { name: 'Project Approvals', abn: 'ABN 16 696 716 980', email: 'info@projectapprovals.com.au', phone: '0414633507', address: 'Quakershill NSW 2763', bankDetails: 'PayID: info@projectapprovals.com.au\nBank: NAB\nAccount Name: Project Approvals\nBSB: 082-356\nAccount No: 308014097' };
     const INVOICE_SERVICE_OPTIONS = ['CDC consulting service','DA application support','CC approval support','OC approval support','BASIX coordination','Council lodgement support','Site inspection consulting','General approval consulting'];
@@ -400,54 +403,51 @@
 
     function defaultInvoice(project) { return { invoiceNumber: getNextGlobalInvoiceNumber(), issueDate: todayISO(), dueDate: addDays(todayISO(), 7), lineItems: [{ id: uid(), serviceName: `${project?.approvalType || 'Approval'} consulting service`, price: '' }], notes: BUSINESS_PROFILE.bankDetails }; }
 
-    function loadLocalFallback() { 
-      try { 
-        const lib = localStorage.getItem(LIBRARY_FALLBACK_KEY); 
-        if (lib) checklistLibrary = JSON.parse(lib); 
-        return JSON.parse(localStorage.getItem(LOCAL_FALLBACK_KEY) || '[]'); 
-      } catch { return []; } 
-    }
-    
-    function saveLocalFallback() { 
-      localStorage.setItem(LOCAL_FALLBACK_KEY, JSON.stringify(projects)); 
-      localStorage.setItem(LIBRARY_FALLBACK_KEY, JSON.stringify(checklistLibrary)); 
-    }
-    
-    function hasSupabaseConfig() { 
-      return typeof SUPABASE_URL !== 'undefined' && typeof SUPABASE_ANON_KEY !== 'undefined' && SUPABASE_URL && SUPABASE_ANON_KEY && !SUPABASE_URL.includes('PASTE_YOUR_'); 
-    }
+    function loadLocalFallback() { try { const lib = localStorage.getItem(LIBRARY_FALLBACK_KEY); if (lib) checklistLibrary = JSON.parse(lib); return JSON.parse(localStorage.getItem(LOCAL_FALLBACK_KEY) || '[]'); } catch { return []; } }
+    function saveLocalFallback() { localStorage.setItem(LOCAL_FALLBACK_KEY, JSON.stringify(projects)); localStorage.setItem(LIBRARY_FALLBACK_KEY, JSON.stringify(checklistLibrary)); }
+    function hasSupabaseConfig() { return typeof SUPABASE_URL !== 'undefined' && typeof SUPABASE_ANON_KEY !== 'undefined' && SUPABASE_URL && SUPABASE_ANON_KEY && !SUPABASE_URL.includes('PASTE_YOUR_'); }
 
+    // --- NEW CLOUD LOADING LOGIC USING SUPABASE-JS ---
     async function loadProjectsFromCloud() {
+      if (!supabaseClient) return;
+      
       const { data, error } = await supabaseClient
         .from(SUPABASE_TABLE)
-        .select('projects') // Safely select only the projects column to match your DB exactly
+        .select('*')
         .eq('id', APP_STATE_ID);
 
-      if (error) throw new Error(error.message);
+      if (error) {
+         console.error("Supabase Load Error:", error);
+         throw new Error(`Load failed: ${error.message}`);
+      }
       
-      if (data && data.length > 0) {
-        projects = Array.isArray(data[0].projects) ? data[0].projects : [];
+      if (data && data.length > 0) { 
+        projects = Array.isArray(data[0].projects) ? data[0].projects : []; 
+        if (data[0].checklistLibrary) checklistLibrary = data[0].checklistLibrary; 
+        else if (data[0].checklistlibrary) checklistLibrary = data[0].checklistlibrary; 
       }
       saveLocalFallback();
     }
 
+    // --- NEW CLOUD SAVING LOGIC USING SUPABASE-JS ---
     async function saveAll() {
       saveLocalFallback();
       if (!isCloudReady || !supabaseClient) return;
       setSyncStatus('Saving...', 'warning');
       
-      const payload = { 
+      const payload = {
         id: APP_STATE_ID, 
         projects: projects, 
-        updated_at: new Date().toISOString() 
+        checklistLibrary: checklistLibrary, 
+        updated_at: new Date().toISOString()
       };
-
+      
       const { error } = await supabaseClient
         .from(SUPABASE_TABLE)
-        .upsert(payload);
+        .upsert([payload]);
       
       if (error) { 
-        console.error("Supabase Save Error:", error.message);
+        console.error("Supabase Save Error:", error);
         setSyncStatus('Save failed (See Console)', 'error'); 
         return; 
       }
@@ -457,14 +457,15 @@
     async function initSupabase() {
       if (!hasSupabaseConfig()) { 
         projects = loadLocalFallback(); 
-        setSyncStatus('Missing config file', 'warning'); 
+        setSyncStatus('Local Storage Only (Missing Config)', 'warning'); 
         return; 
       }
       try {
-        // Initialize the Official SDK with your keys
+        setSyncStatus('Connecting...', 'warning');
+        
+        // This is the magic line that natively connects the sb_publishable key
         supabaseClient = window.supabase.createClient(SUPABASE_URL, SUPABASE_ANON_KEY);
         isCloudReady = true; 
-        setSyncStatus('Connecting...', 'warning');
         
         await loadProjectsFromCloud();
         setSyncStatus('Cloud Synced', 'success');
@@ -472,7 +473,7 @@
         console.error("Init Error:", error);
         projects = loadLocalFallback(); 
         isCloudReady = false; 
-        setSyncStatus('Sync Failed', 'error'); 
+        setSyncStatus('Sync Failed - Check Console', 'error'); 
       }
     }
 
@@ -568,10 +569,17 @@
               <tbody>${inv.lineItems.map(item => `<tr><td><input value="${esc(item.serviceName)}" onchange="updateInvoiceLine('${item.id}','serviceName',this.value)" placeholder="Service Name"></td><td><input type="number" step="0.01" value="${esc(item.price)}" onchange="updateInvoiceLine('${item.id}','price',this.value)" /></td><td><button class="btn danger small" onclick="removeInvoiceLine('${item.id}')">Del</button></td></tr>`).join('')}</tbody>
             </table>
           </div>
+          
+          <div class="invoice-preview" id="invoicePDFTarget">
+            <div class="invoice-header"><div><h2>${esc(BUSINESS_PROFILE.name)}</h2><p>${esc(BUSINESS_PROFILE.address)}<br>${esc(BUSINESS_PROFILE.abn)}</p></div></div>
+            <div class="invoice-meta"><div><h4>Bill To</h4><p>${esc(p.clientName)}<br>${esc(p.clientEmail)}</p></div><div><h4>Project</h4><p>${esc(p.siteAddress)}<br>${esc(p.council)}</p></div><div><h4>Details</h4><div class="invoice-meta-row"><span>Invoice No:</span> <strong>${esc(inv.invoiceNumber)}</strong></div><div class="invoice-meta-row"><span>Issue Date:</span> <strong>${esc(inv.issueDate)}</strong></div><div class="invoice-meta-row"><span>Due Date:</span> <strong>${esc(inv.dueDate)}</strong></div></div></div>
+            <table class="invoice-table-rendered"><thead><tr><th>Description</th><th>Amount</th></tr></thead><tbody>${inv.lineItems.map(item => `<tr><td><strong>${esc(item.serviceName)}</strong></td><td>${formatCurrency(item.price)}</td></tr>`).join('')}</tbody></table>
+            <div class="invoice-footer"><div class="invoice-notes">${esc(inv.notes)}</div><div class="invoice-summary"><div class="summary-row"><span>Subtotal:</span> <strong>${formatCurrency(subtotal)}</strong></div><div class="summary-row"><span>GST (10%):</span> <strong>${formatCurrency(gst)}</strong></div><div class="summary-row grand"><span>Total:</span> <strong>${formatCurrency(total)}</strong></div></div></div>
+          </div>
         </div>`;
     }
 
-    // PERFECT PDF GENERATION (Using absolute sizing isolated from the screen)
+    // PERFECT PDF GENERATION
     function downloadInvoicePDF() {
       const p = getCurrentProject();
       p.invoice ||= defaultInvoice(p);
@@ -581,8 +589,6 @@
       const total = subtotal + gst;
 
       const offscreenDiv = document.createElement('div');
-      
-      // Strict width constraint ensuring it matches the A4 aspect ratio before screenshot
       offscreenDiv.style.width = '800px'; 
       offscreenDiv.style.position = 'absolute';
       offscreenDiv.style.left = '-9999px';
@@ -618,23 +624,15 @@
       document.body.appendChild(offscreenDiv);
 
       const filename = `${invoice.invoiceNumber}_${p.clientName.replace(/\s+/g, '_')}.pdf`;
-      const opt = {
-        margin:       10, 
-        filename:     filename,
-        image:        { type: 'jpeg', quality: 0.98 },
-        html2canvas:  { scale: 2 }, 
-        jsPDF:        { unit: 'mm', format: 'a4', orientation: 'portrait' }
-      };
-
+      const opt = { margin: 10, filename: filename, image: { type: 'jpeg', quality: 0.98 }, html2canvas: { scale: 2 }, jsPDF: { unit: 'mm', format: 'a4', orientation: 'portrait' } };
       html2pdf().set(opt).from(offscreenDiv).save().then(() => { document.body.removeChild(offscreenDiv); });
     }
 
-    /* LOCAL IMAGE CACHING (INDEXEDDB FILES TAB) */
+    /* LOCAL IMAGE CACHING */
     function renderFilesTab(p, el) {
       el.innerHTML = `<div class="card"><h3>Project Files (Saved Locally)</h3><p style="font-size:13px; color:var(--muted);">Files are securely saved to your browser's hard drive to keep cloud sync incredibly fast.</p><input type="file" multiple onchange="saveFileToIDB(event, '${p.id}')" style="margin-bottom:16px;" /><div id="filesContainer" class="file-list">Loading files...</div></div>`;
       loadFilesFromIDB(p.id);
     }
-    
     function loadFilesFromIDB(projectId) {
       if (!localDB) { document.getElementById('filesContainer').innerHTML = "Storage not ready."; return; }
       const tx = localDB.transaction("files", "readonly");
@@ -644,7 +642,6 @@
         document.getElementById('filesContainer').innerHTML = files.length ? files.map(f => `<div class="file-item"><div><strong>${esc(f.name)}</strong></div><div class="actions"><a class="btn small" href="${f.data}" download="${esc(f.name)}">Download</a><button class="btn danger small" onclick="deleteFileFromIDB('${f.id}', '${projectId}')">Del</button></div></div>`).join('') : '<div style="color:var(--muted)">No files uploaded yet.</div>';
       };
     }
-    
     function saveFileToIDB(event, projectId) {
       if (!localDB) return alert("Storage not ready.");
       const tx = localDB.transaction("files", "readwrite");
@@ -672,14 +669,12 @@
     function generateEmailChase() {
       const p = getCurrentProject();
       if(!p || !p.clientEmail) { alert('No client email address saved for this project.'); return; }
-      
       const missing = p.documents.filter(d => d.required !== 'No' && !['Received','Approved'].includes(d.status));
       if(!missing.length) { alert('No documents are currently missing for this project!'); return; }
       
       const missingList = missing.map(d => '- ' + d.name).join('%0D%0A');
       const subject = `Missing Documents for ${p.siteAddress}`;
       const body = `Hi ${p.clientName},%0D%0A%0D%0AWe are currently missing the following documents for your project at ${p.siteAddress}:%0D%0A%0D%0A${missingList}%0D%0A%0D%0APlease provide these at your earliest convenience so we can proceed.%0D%0A%0D%0AThanks,`;
-      
       window.location.href = `mailto:${p.clientEmail}?subject=${subject}&body=${body}`;
     }
 

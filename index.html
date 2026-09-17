@@ -169,14 +169,7 @@
     .file-list { display: grid; gap: 12px; }
     .file-item { background: var(--bg); padding: 16px; border-radius: var(--radius); border: 1px solid var(--border); display: flex; justify-content: space-between; align-items: center; }
 
-    @media print {
-      body { background: #fff; color: #000; }
-      .top-nav, .tabs, .no-print, .modal-backdrop, #dashboardView, #projectView, .actions { display: none !important; }
-      .app-wrapper { display: block; }
-      main.content-container { padding: 0; max-width: none; }
-      .print-report { display: block; }
-      .invoice-preview { box-shadow: none; border: none; padding: 0; }
-    }
+    .print-report { display: none; }
   </style>
 </head>
 <body class="locked">
@@ -225,6 +218,7 @@
             <p id="pageSubtitle">Track DA, CDC, CC, OC, BASIX and BIC jobs.</p>
           </div>
           <div class="actions">
+            <!-- Export to CSV Feature -->
             <button class="btn" onclick="exportToCSV()">⤓ Export CSV</button>
             <button class="btn primary" onclick="openProjectModal()">+ New Project</button>
           </div>
@@ -323,12 +317,12 @@
 
   <script>
     // ==========================================
-    // CONFIG & SETUP
+    // SUPABASE COMMUNICATION 
     // ==========================================
     const SUPABASE_TABLE = 'app_state'; 
     const APP_STATE_ID = 'main';
-    const LOCAL_FALLBACK_KEY = 'projectApprovalsTracker.v17.localFallback';
-    const LIBRARY_FALLBACK_KEY = 'projectApprovalsTracker.v17.library';
+    const LOCAL_FALLBACK_KEY = 'projectApprovalsTracker.v18.localFallback';
+    const LIBRARY_FALLBACK_KEY = 'projectApprovalsTracker.v18.library';
     
     const BUSINESS_PROFILE = { name: 'Project Approvals', abn: 'ABN 16 696 716 980', email: 'info@projectapprovals.com.au', phone: '0414633507', address: 'Quakershill NSW 2763', bankDetails: 'PayID: info@projectapprovals.com.au\nBank: NAB\nAccount Name: Project Approvals\nBSB: 082-356\nAccount No: 308014097' };
     const INVOICE_SERVICE_OPTIONS = ['CDC consulting service','DA application support','CC approval support','OC approval support','BASIX coordination','Council lodgement support','Site inspection consulting','General approval consulting'];
@@ -416,14 +410,13 @@
     function hasSupabaseConfig() { return typeof SUPABASE_URL !== 'undefined' && typeof SUPABASE_ANON_KEY !== 'undefined' && SUPABASE_URL && SUPABASE_ANON_KEY && !SUPABASE_URL.includes('PASTE_YOUR_'); }
 
     // === RETROACTIVE INVOICE UPGRADER ===
-    // Aggressively targets and upgrades any old invoice string (like 'INV-1000' or blank ones) to the new unique string
     function upgradeOldInvoices() {
       let changed = false;
       projects.forEach(p => {
         if (!p.invoice) {
           p.invoice = defaultInvoice(p);
           changed = true;
-        } else if (!p.invoice.invoiceNumber || p.invoice.invoiceNumber.length < 12) {
+        } else if (!p.invoice.invoiceNumber || p.invoice.invoiceNumber.length < 12 || p.invoice.invoiceNumber.startsWith("INV-10")) {
           p.invoice.invoiceNumber = generateUniqueInvoiceNumber();
           changed = true;
         }
@@ -539,10 +532,12 @@
       if (activeTab === 'documents') el.innerHTML = `<div class="card"><div class="section-title"><h3>Document Checklist</h3><button class="btn primary small" onclick="addDocumentPrompt()">+ Add Item</button></div><div style="overflow-x:auto;"><table><thead><tr><th>Document</th><th>Required</th><th>Status</th><th>Responsible</th><th></th></tr></thead><tbody>${p.documents.map(d => `<tr><td><input value="${esc(d.name)}" onchange="updateDoc('${d.id}','name',this.value)"></td><td><select onchange="updateDoc('${d.id}','required',this.value)"><option ${d.required==='Yes'?'selected':''}>Yes</option><option ${d.required==='No'?'selected':''}>No</option></select></td><td><select onchange="updateDoc('${d.id}','status',this.value)">${['Not required','Required','Requested','Received','Reviewed','Needs revision','Uploaded to portal','Approved'].map(s => `<option ${d.status===s?'selected':''}>${s}</option>`).join('')}</select></td><td><input value="${esc(d.responsible)}" onchange="updateDoc('${d.id}','responsible',this.value)"></td><td><button class="btn small danger" onclick="removeDoc('${d.id}')">Del</button></td></tr>`).join('')}</tbody></table></div></div>`;
       if (activeTab === 'councilNotes') el.innerHTML = `<div class="card"><h3>Notes</h3><button class="btn primary small" onclick="addCouncilNote()">+ Add Note</button><br><br><table><tbody>${p.notesList.map(n => `<tr><td><input type="date" value="${esc(n.date)}" onchange="updateCouncilNote('${n.id}','date',this.value)"></td><td><textarea onchange="updateCouncilNote('${n.id}','note',this.value)">${esc(n.note)}</textarea></td><td><button class="btn small danger" onclick="removeCouncilNote('${n.id}')">Del</button></td></tr>`).join('')}</tbody></table></div>`;
       if (activeTab === 'projectNotes') el.innerHTML = `<div class="card"><h3>Internal Notes</h3><button class="btn primary small" onclick="addProjectNote()">+ Add Note</button><br><br><div class="note-list">${p.projectNotesList.map(n => `<div class="note-card"><div style="flex:1;"><input value="${esc(n.title)}" placeholder="Title" onchange="updateProjectNote('${n.id}','title',this.value)" style="margin-bottom:8px;"><textarea onchange="updateProjectNote('${n.id}','body',this.value)">${esc(n.body)}</textarea></div><button class="btn danger small" onclick="removeProjectNote('${n.id}')" style="margin-left:12px;">Del</button></div>`).join('')}</div></div>`;
+      
       if (activeTab === 'invoice') renderInvoiceTab(p, el);
       if (activeTab === 'files') renderFilesTab(p, el);
     }
 
+    // === UI INVOICE TAB RENDERING ===
     function renderInvoiceTab(p, el) {
       const inv = p.invoice;
       const subtotal = inv.lineItems.reduce((sum, item) => sum + Number(item.price || 0), 0); 
@@ -560,7 +555,7 @@
           <div class="card">
             <div class="section-title">
               <h3>Invoice Builder</h3>
-              <button class="btn primary" onclick="downloadInvoicePDF()">⤓ Download PDF</button>
+              <button class="btn primary" onclick="downloadInvoicePDF(this)">⤓ Download PDF</button>
             </div>
             <div class="form-grid" style="margin-bottom: 32px;">
               <div class="field"><label>Invoice No.</label><input value="${esc(inv.invoiceNumber)}" onchange="updateInvoiceField('invoiceNumber',this.value)" /></div>
@@ -598,82 +593,65 @@
         </div>`;
     }
 
-    // === BULLETPROOF SINGLE-PAGE PDF GENERATOR ===
-    function downloadInvoicePDF() {
+    // === PERFECT PDF GENERATION (FIXED BLANK SNAPSHOT ISSUE) ===
+    function downloadInvoicePDF(btnElement) {
       const p = getCurrentProject();
-      p.invoice ||= defaultInvoice(p);
       const invoice = p.invoice;
-      const subtotal = invoice.lineItems.reduce((sum, item) => sum + Number(item.price || 0), 0);
-      const applyGST = invoice.hasGST !== false;
-      const gst = applyGST ? subtotal * 0.1 : 0;
-      const total = subtotal + gst;
 
-      let pdfGstRow = '';
-      if (applyGST) {
-        pdfGstRow = `<div style="display:flex; justify-content:space-between; padding:6px 0; color:#334155;"><span>GST (10%):</span><strong>${formatCurrency(gst)}</strong></div>`;
-      }
-
-      // 1. Create a professional Loading Overlay so the user doesn't see a flash
-      const overlay = document.createElement('div');
-      overlay.style.cssText = 'position:fixed; top:0; left:0; width:100vw; height:100vh; background:rgba(255,255,255,0.9); z-index:99998; display:flex; align-items:center; justify-content:center; font-size:24px; font-weight:bold; color:#0f172a; font-family:sans-serif;';
-      overlay.innerText = 'Generating PDF Invoice...';
-      document.body.appendChild(overlay);
-
-      // 2. Create the exact A4 Print Container (794px width)
-      const pdfContainer = document.createElement('div');
-      pdfContainer.style.cssText = 'position:absolute; top:0; left:0; width:794px; background:#fff; z-index:99999; color:#000; font-family:Helvetica, Arial, sans-serif;';
+      // 1. Get the existing, fully rendered invoice box from the screen
+      const originalElement = document.getElementById('invoicePDFTarget');
       
-      pdfContainer.innerHTML = `
-        <div style="padding: 40px; box-sizing: border-box;">
-          <div style="display:flex; justify-content:space-between; margin-bottom:40px;">
-            <div><h2 style="margin:0; font-size:28px; color:#0f172a;">${esc(BUSINESS_PROFILE.name)}</h2><p style="margin:6px 0 0; color:#475569; font-size:14px;">${esc(BUSINESS_PROFILE.address)}<br>${esc(BUSINESS_PROFILE.abn)}</p></div>
-          </div>
-          <div style="display:flex; justify-content:space-between; margin-bottom:40px; padding-bottom:20px; border-bottom:2px solid #e2e8f0;">
-            <div style="flex:1;"><h4 style="margin:0 0 8px; color:#64748b; text-transform:uppercase; font-size:12px; letter-spacing:0.5px;">Bill To</h4><p style="margin:0; font-size:15px; color:#0f172a;"><strong>${esc(p.clientName)}</strong><br>${esc(p.clientEmail)}</p></div>
-            <div style="flex:1;"><h4 style="margin:0 0 8px; color:#64748b; text-transform:uppercase; font-size:12px; letter-spacing:0.5px;">Project</h4><p style="margin:0; font-size:15px; color:#0f172a;">${esc(p.siteAddress)}<br>${esc(p.council)}</p></div>
-            <div style="flex:1; text-align:right;"><h4 style="margin:0 0 8px; color:#64748b; text-transform:uppercase; font-size:12px; letter-spacing:0.5px;">Invoice Details</h4><p style="margin:0; font-size:15px; color:#0f172a;">No: <strong>${esc(invoice.invoiceNumber)}</strong><br>Date: <strong>${esc(invoice.issueDate)}</strong><br>Due: <strong>${esc(invoice.dueDate)}</strong></p></div>
-          </div>
-          <table style="width:100%; border-collapse:collapse; margin-bottom:40px; font-size:15px;">
-            <thead><tr style="border-bottom:2px solid #0f172a; text-align:left;"><th style="padding:12px 8px; color:#0f172a;">Description</th><th style="padding:12px 8px; text-align:right; color:#0f172a;">Amount</th></tr></thead>
-            <tbody>${invoice.lineItems.map(i => `<tr><td style="padding:16px 8px; border-bottom:1px solid #e2e8f0; color:#334155;"><strong>${esc(i.serviceName)}</strong></td><td style="padding:16px 8px; border-bottom:1px solid #e2e8f0; text-align:right; color:#334155;">${formatCurrency(i.price)}</td></tr>`).join('')}</tbody>
-          </table>
-          <div style="display:flex; justify-content:space-between; align-items:flex-start; font-size:15px;">
-            <div style="width:50%; white-space:pre-wrap; color:#64748b; line-height:1.6; font-size:13px;">${esc(invoice.notes)}</div>
-            <div style="width:35%; background:#f8fafc; padding:20px; border-radius:8px;">
-              <div style="display:flex; justify-content:space-between; padding:6px 0; color:#334155;"><span>Subtotal:</span><strong>${formatCurrency(subtotal)}</strong></div>
-              ${pdfGstRow}
-              <div style="display:flex; justify-content:space-between; padding-top:12px; border-top:2px solid #cbd5e1; font-size:20px; font-weight:800; margin-top:12px; color:#0f172a;"><span>Total:</span><span>${formatCurrency(total)}</span></div>
-            </div>
-          </div>
-        </div>
+      // 2. Clone it so we don't mess up the user's view
+      const clone = originalElement.cloneNode(true);
+      
+      // 3. Force strict A4 pixel constraints on the clone and place it safely ON TOP
+      clone.style.cssText = `
+        position: absolute;
+        top: 0;
+        left: 0;
+        width: 794px !important;
+        background: #ffffff !important;
+        color: #000000 !important;
+        padding: 40px !important;
+        box-shadow: none !important;
+        border: none !important;
+        z-index: 999999 !important;
+        margin: 0 !important;
       `;
 
-      document.body.appendChild(pdfContainer);
+      // 4. Temporarily add the clone to the page so the PDF camera can "see" it
+      document.body.appendChild(clone);
 
       const filename = `${invoice.invoiceNumber}_${p.clientName.replace(/\s+/g, '_')}.pdf`;
+      
+      // Visual feedback so you know it's working
+      const oldText = btnElement.innerText;
+      btnElement.innerText = "Generating PDF...";
+      btnElement.disabled = true;
+
       const opt = { 
-        margin:       [10, 0], // Small margin top/bottom
-        filename:     filename,
-        image:        { type: 'jpeg', quality: 1.0 },
-        html2canvas:  { scale: 2, useCORS: true, windowWidth: 794 }, 
-        jsPDF:        { unit: 'mm', format: 'a4', orientation: 'portrait' } 
+        margin: 10, 
+        filename: filename, 
+        image: { type: 'jpeg', quality: 1.0 }, 
+        html2canvas: { scale: 2, useCORS: true, windowWidth: 794 }, 
+        jsPDF: { unit: 'mm', format: 'a4', orientation: 'portrait' } 
       };
 
-      // 3. Ensure the browser paints the DOM before taking the snapshot, then clean up
-      setTimeout(() => {
-        html2pdf().set(opt).from(pdfContainer).save().then(() => { 
-          document.body.removeChild(pdfContainer); 
-          document.body.removeChild(overlay);
-        }).catch(err => {
-          console.error("PDF Error:", err);
-          alert("Error generating PDF. See console.");
-          document.body.removeChild(pdfContainer); 
-          document.body.removeChild(overlay);
-        });
-      }, 300);
+      // 5. Take the snapshot, then immediately clean up the clone
+      html2pdf().set(opt).from(clone).save().then(() => {
+        document.body.removeChild(clone);
+        btnElement.innerText = oldText;
+        btnElement.disabled = false;
+      }).catch(err => {
+        console.error("PDF Error:", err);
+        document.body.removeChild(clone);
+        btnElement.innerText = oldText;
+        btnElement.disabled = false;
+        alert("Error generating PDF.");
+      });
     }
 
-    /* LOCAL IMAGE CACHING */
+    /* LOCAL IMAGE CACHING (INDEXEDDB FILES TAB) */
     function renderFilesTab(p, el) {
       el.innerHTML = `<div class="card"><h3>Project Files (Saved Locally)</h3><p style="font-size:13px; color:var(--muted);">Files are securely saved to your browser's hard drive to keep cloud sync incredibly fast.</p><input type="file" multiple onchange="saveFileToIDB(event, '${p.id}')" style="margin-bottom:16px;" /><div id="filesContainer" class="file-list">Loading files...</div></div>`;
       loadFilesFromIDB(p.id);
@@ -700,6 +678,7 @@
     }
     function deleteFileFromIDB(fileId, projectId) { const tx = localDB.transaction("files", "readwrite"); tx.objectStore("files").delete(fileId); tx.oncomplete = () => loadFilesFromIDB(projectId); }
 
+    /* CSV EXPORT */
     function exportToCSV() {
       const headers = ['Project ID', 'Client Name', 'Address', 'Council', 'Approval Type', 'Status', 'Total Docs', 'Missing Docs'];
       const rows = projects.map(p => {
@@ -711,6 +690,7 @@
       const a = document.createElement('a'); a.href = URL.createObjectURL(blob); a.download = 'project-approvals.csv'; a.click();
     }
 
+    /* EMAIL GENERATION */
     function generateEmailChase() {
       const p = getCurrentProject();
       if(!p || !p.clientEmail) { alert('No client email address saved for this project.'); return; }

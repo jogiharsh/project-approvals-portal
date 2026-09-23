@@ -167,9 +167,15 @@
 
     .print-report { display: none; }
 
+    /* Client Portal Upload View Styles */
+    .client-portal-wrapper { max-width: 800px; margin: 40px auto; padding: 0 20px; }
+    .client-card { background: #fff; border: 1px solid var(--border); border-radius: var(--radius); padding: 32px; box-shadow: var(--shadow); }
+    .upload-box { border: 2px dashed var(--primary-soft); background: #f8fafc; padding: 32px; text-align: center; border-radius: var(--radius); margin-top: 20px; transition: border-color 0.2s; }
+    .upload-box:hover { border-color: var(--primary); }
+
     @media print {
       body { background: #fff; color: #000; }
-      .top-nav, .tabs, .no-print, .modal-backdrop, #dashboardView, #projectView, #libraryView, #financeView, .actions { display: none !important; }
+      .top-nav, .tabs, .no-print, .modal-backdrop, #dashboardView, #projectView, #libraryView, #financeView, #clientPortalView, .actions { display: none !important; }
       .app-wrapper { display: block; }
       main.content-container { padding: 0; max-width: none; }
       .print-report { display: block; padding: 24px; }
@@ -197,7 +203,7 @@
   </div>
 
   <div class="app-wrapper">
-    <header class="top-nav no-print">
+    <header class="top-nav no-print" id="mainHeader">
       <div class="nav-container">
         <div class="brand">
           <div class="brand-mark">PA</div>
@@ -283,6 +289,7 @@
             </div>
             <div class="actions">
               <button class="btn" onclick="showDashboard()">Back</button>
+              <button class="btn primary" onclick="copyClientUploadLink()">🔗 Copy Client Upload Link</button>
               <button class="btn outline-primary" onclick="generateEmailChase()">✉ Chase Missing Docs</button>
               <button class="btn" onclick="openProjectModal(currentProjectId)">Edit Details</button>
               <button class="btn primary" onclick="printProjectReport()">Print Report</button>
@@ -301,6 +308,45 @@
         </div>
 
         <div id="projectTabContent"></div>
+      </section>
+
+      <!-- CLIENT PORTAL VIEW (STANDALONE ISOLATED PAGE) -->
+      <section id="clientPortalView" class="hidden">
+        <div class="client-portal-wrapper">
+          <div class="client-card">
+            <div style="display:flex; justify-content:space-between; align-items:center; border-bottom:1px solid var(--border); padding-bottom:16px; margin-bottom:20px;">
+              <div>
+                <h2 id="clientPortalAddress" style="margin:0; font-size:20px;">Site Address</h2>
+                <p id="clientPortalSub" style="margin:4px 0 0; color:var(--muted); font-size:14px;"></p>
+              </div>
+              <div class="brand-mark">PA</div>
+            </div>
+
+            <h3>Required Documents</h3>
+            <p style="font-size:14px; color:var(--muted); margin-bottom:16px;">Please upload the requested files for your approval application below.</p>
+
+            <div style="overflow-x:auto; margin-bottom:24px;">
+              <table>
+                <thead>
+                  <tr>
+                    <th>Document Name</th>
+                    <th>Status</th>
+                    <th>Upload File</th>
+                  </tr>
+                </thead>
+                <tbody id="clientDocList"></tbody>
+              </table>
+            </div>
+
+            <div class="upload-box">
+              <h4 style="margin:0 0 8px;">General Upload</h4>
+              <p style="margin:0 0 16px; font-size:13px; color:var(--muted);">Select one or more documents to send directly to your project coordinator.</p>
+              <input type="file" id="clientGeneralFileInput" multiple style="max-width:300px;" />
+              <button class="btn primary" onclick="handleClientGeneralUpload()" style="margin-top:12px;">Upload Selected Files</button>
+            </div>
+            <div id="clientUploadStatus" style="margin-top:16px; font-size:14px; font-weight:600; text-align:center;"></div>
+          </div>
+        </div>
       </section>
 
       <!-- CHECKLIST LIBRARY VIEW -->
@@ -363,6 +409,8 @@
     let isCloudReady = false;
     let currentView = 'grid';
     let supabaseClient = null;
+    let isClientViewMode = false;
+    let currentClientToken = null;
 
     let checklistLibrary = {
       DA: ['Owner consent','Site survey','Architectural drawings','Statement of Environmental Effects','Cost estimate report'],
@@ -374,12 +422,11 @@
       Other: ['Client instructions','Site photos','Consultant advice']
     };
 
-    // SAFE PASSWORD GETTER (Prevents crash if config.js is missing or delayed)
     function getPortalPassword() {
       if (typeof PORTAL_PASSWORD !== 'undefined' && PORTAL_PASSWORD) {
         return PORTAL_PASSWORD;
       }
-      return 'Jogiharsh@1993'; // Fallback
+      return 'Jogiharsh@1993';
     }
 
     function unlockPortal(event) {
@@ -425,6 +472,7 @@
     }
 
     function uid() { return 'id-' + Date.now() + '-' + Math.random().toString(16).slice(2); }
+    function generateToken() { return Math.random().toString(36).substring(2, 10) + Math.random().toString(36).substring(2, 10); }
     function todayISO() { return new Date().toISOString().slice(0,10); }
     function esc(value='') { return String(value).replace(/[&<>"]/g, m => ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;'}[m])); }
     function formatCurrency(amount) { return new Intl.NumberFormat('en-AU', { style: 'currency', currency: 'AUD', maximumFractionDigits:2 }).format(Number(amount || 0)); }
@@ -472,6 +520,7 @@
     function upgradeOldInvoices() {
       let changed = false;
       projects.forEach(p => {
+        if (!p.clientToken) { p.clientToken = generateToken(); changed = true; }
         if (!p.invoice) {
           p.invoice = defaultInvoice(p);
           changed = true;
@@ -527,7 +576,6 @@
     }
 
     function queueSave() { saveAll().catch(e => { console.error(e); setSyncStatus('Save failed', 'error'); }); }
-    checkPortalAuth();
 
     const nswCouncils = ['Albury City Council','Blacktown City Council','Camden Council','Campbelltown City Council','Fairfield City Council','Liverpool City Council','Parramatta City Council','Penrith City Council','Sydney City Council','The Hills Shire Council','Other'];
     function populateCouncils() { document.getElementById('council').innerHTML = '<option value="">Select council</option>' + nswCouncils.map(c => `<option>${esc(c)}</option>`).join(''); }
@@ -542,7 +590,7 @@
     document.addEventListener('click', e => { const option = e.target.closest('[data-address]'); if (option) selectAddress(option.dataset.address); else if (!e.target.closest('#addressSuggestions') && e.target.id !== 'siteAddress') document.getElementById('addressSuggestions').classList.remove('show'); });
 
     function showOnly(sectionId) { 
-       ['dashboardView','projectView','libraryView','financeView'].forEach(id => document.getElementById(id).classList.add('hidden')); 
+       ['dashboardView','projectView','libraryView','financeView','clientPortalView'].forEach(id => document.getElementById(id).classList.add('hidden')); 
        document.getElementById(sectionId).classList.remove('hidden'); 
        document.querySelectorAll('.nav-btn').forEach(btn => btn.classList.remove('active')); 
     }
@@ -668,7 +716,7 @@
       p.documents ||= []; p.notesList ||= []; p.projectNotesList ||= []; p.invoice ||= defaultInvoice(p); p.cloudFiles ||= [];
       const el = document.getElementById('projectTabContent');
       if (activeTab === 'overview') el.innerHTML = `<div class="grid two"><div class="card"><h3>Project Details</h3><table><tbody><tr><th>Client</th><td>${esc(p.clientName)}<br><span style="color:var(--muted);">${esc(p.clientEmail)}</span></td></tr><tr><th>Address</th><td>${esc(p.siteAddress)}</td></tr><tr><th>Council</th><td>${esc(p.council)}</td></tr><tr><th>Type</th><td>${esc(p.approvalType)}</td></tr><tr><th>Status</th><td>${esc(p.status)}</td></tr></tbody></table></div><div class="card"><h3>Snapshot</h3><div class="grid two"><div class="stat-card"><span>Total Docs</span><strong>${p.documents.length}</strong></div><div class="stat-card"><span>Ready Docs</span><strong>${p.documents.filter(d=>['Received','Approved'].includes(d.status)).length}</strong></div></div><br><p><strong>Next Action:</strong> ${determineNextAction(p)}</p></div></div>`;
-      if (activeTab === 'documents') el.innerHTML = `<div class="card"><div class="section-title"><h3>Document Checklist</h3><button class="btn primary small" onclick="addDocumentPrompt()">+ Add Item</button></div><div style="overflow-x:auto;"><table><thead><tr><th>Document</th><th>Required</th><th>Status</th><th>Responsible</th><th></th></tr></thead><tbody>${p.documents.map(d => `<tr><td><input value="${esc(d.name)}" onchange="updateDoc('${d.id}','name',this.value)"></td><td><select onchange="updateDoc('${d.id}','required',this.value)"><option ${d.required==='Yes'?'selected':''}>Yes</option><option ${d.required==='No'?'selected':''}>No</option></select></td><td><select onchange="updateDoc('${d.id}','status',this.value)">${['Not required','Required','Requested','Received','Reviewed','Needs revision','Uploaded to portal','Approved'].map(s => `<option ${d.status===s?'selected':''}>${s}</option>`).join('')}</select></td><td><input value="${esc(d.responsible)}" onchange="updateDoc('${d.id}','responsible',this.value)"></td><td><button class="btn small danger" onclick="removeDoc('${d.id}')">Del</button></td></tr>`).join('')}</tbody></table></div></div>`;
+      if (activeTab === 'documents') el.innerHTML = `<div class="card"><div class="section-title"><h3>Document Checklist</h3><button class="btn primary small" onclick="addDocumentPrompt()">+ Add Item</button></div><div style="overflow-x:auto;"><table><thead><tr><th>Document</th><th>Required</th><th>Status</th><th>Responsible</th><th></th></tr></thead><tbody>${p.documents.map(d => `<tr><td><input value="${esc(d.name)}" onchange="updateDoc('${d.id}','name',this.value)"></td><td><select onchange="updateDoc('${d.id}','required',this.value)"><option ${d.required==='Yes'?'selected':''}>Yes</option><option${d.required==='No'?'selected':''}>No</option></select></td><td><select onchange="updateDoc('${d.id}','status',this.value)">${['Not required','Required','Requested','Received','Reviewed','Needs revision','Uploaded to portal','Approved'].map(s => `<option ${d.status===s?'selected':''}>${s}</option>`).join('')}</select></td><td><input value="${esc(d.responsible)}" onchange="updateDoc('${d.id}','responsible',this.value)"></td><td><button class="btn small danger" onclick="removeDoc('${d.id}')">Del</button></td></tr>`).join('')}</tbody></table></div></div>`;
       if (activeTab === 'councilNotes') el.innerHTML = `<div class="card"><h3>Notes</h3><button class="btn primary small" onclick="addCouncilNote()">+ Add Note</button><br><br><table><tbody>${p.notesList.map(n => `<tr><td><input type="date" value="${esc(n.date)}" onchange="updateCouncilNote('${n.id}','date',this.value)"></td><td><textarea onchange="updateCouncilNote('${n.id}','note',this.value)">${esc(n.note)}</textarea></td><td><button class="btn small danger" onclick="removeCouncilNote('${n.id}')">Del</button></td></tr>`).join('')}</tbody></table></div>`;
       if (activeTab === 'projectNotes') el.innerHTML = `<div class="card"><h3>Internal Notes</h3><button class="btn primary small" onclick="addProjectNote()">+ Add Note</button><br><br><div class="note-list">${p.projectNotesList.map(n => `<div class="note-card"><div style="flex:1;"><input value="${esc(n.title)}" placeholder="Title" onchange="updateProjectNote('${n.id}','title',this.value)" style="margin-bottom:8px;"><textarea onchange="updateProjectNote('${n.id}','body',this.value)">${esc(n.body)}</textarea></div><button class="btn danger small" onclick="removeProjectNote('${n.id}')" style="margin-left:12px;">Del</button></div>`).join('')}</div></div>`;
       if (activeTab === 'invoice') renderInvoiceTab(p, el);
@@ -738,6 +786,129 @@
             </div>
           </div>
         </div>`;
+    }
+
+    function copyClientUploadLink() {
+      const p = getCurrentProject();
+      if (!p) return;
+      if (!p.clientToken) { p.clientToken = generateToken(); queueSave(); }
+      const baseUrl = window.location.origin + window.location.pathname;
+      const clientUrl = `${baseUrl}?token=${p.clientToken}`;
+      navigator.clipboard.writeText(clientUrl);
+      alert(`Client Link Copied to Clipboard!\n\n${clientUrl}`);
+    }
+
+    // === CLIENT PORTAL PUBLIC VIEW LOGIC ===
+    function checkClientViewRoute() {
+      const params = new URLSearchParams(window.location.search);
+      const token = params.get('token');
+      if (token) {
+        isClientViewMode = true;
+        currentClientToken = token;
+        document.body.classList.remove('locked');
+        document.getElementById('authScreen').style.display = 'none';
+        document.getElementById('mainHeader').style.display = 'none';
+        const appWrapper = document.querySelector('.app-wrapper');
+        if (appWrapper) appWrapper.style.display = 'flex';
+        renderClientPortalView();
+        return true;
+      }
+      return false;
+    }
+
+    function renderClientPortalView() {
+      showOnly('clientPortalView');
+      const p = projects.find(x => x.clientToken === currentClientToken);
+      if (!p) {
+        document.getElementById('clientPortalView').innerHTML = `<div class="client-portal-wrapper"><div class="client-card"><h2 style="color:var(--danger)">Link Expired or Invalid</h2><p>Please contact your administrator for a new upload link.</p></div></div>`;
+        return;
+      }
+
+      document.getElementById('clientPortalAddress').textContent = p.siteAddress;
+      document.getElementById('clientPortalSub').textContent = `${p.clientName} · ${p.approvalType} Application (${p.council})`;
+
+      const listEl = document.getElementById('clientDocList');
+      const docs = p.documents?.filter(d => d.required !== 'No') || [];
+      
+      if (docs.length === 0) {
+        listEl.innerHTML = `<tr><td colspan="3" style="text-align:center; color:var(--muted)">No documents currently requested.</td></tr>`;
+        return;
+      }
+
+      listEl.innerHTML = docs.map(d => {
+        const isReady = ['Received','Approved'].includes(d.status);
+        const statusBadge = isReady ? `<span class="pill status-completed">Received</span>` : `<span class="pill status-hold">Pending</span>`;
+        return `<tr>
+          <td><strong>${esc(d.name)}</strong></td>
+          <td>${statusBadge}</td>
+          <td>
+            <input type="file" id="doc_file_${d.id}" style="font-size:12px;" />
+            <button class="btn primary small" onclick="uploadSpecificClientDoc('${p.id}', '${d.id}')" style="margin-top:4px;">Submit</button>
+          </td>
+        </tr>`;
+      }).join('');
+    }
+
+    async function uploadSpecificClientDoc(projectId, docId) {
+      const fileInput = document.getElementById(`doc_file_${docId}`);
+      if (!fileInput || !fileInput.files.length) return alert("Select a file first.");
+      
+      const file = fileInput.files[0];
+      const p = projects.find(x => x.id === projectId);
+      p.cloudFiles ||= [];
+
+      const statusEl = document.getElementById('clientUploadStatus');
+      statusEl.style.color = "var(--primary)";
+      statusEl.textContent = "Uploading document...";
+
+      const fileExt = file.name.split('.').pop();
+      const uniquePath = `${projectId}/${uid()}.${fileExt}`;
+
+      const { data, error } = await supabaseClient.storage.from(STORAGE_BUCKET).upload(uniquePath, file);
+      if (error) {
+         statusEl.style.color = "var(--danger)";
+         statusEl.textContent = "Upload failed. Please try again.";
+         return;
+      }
+
+      const { data: urlData } = supabaseClient.storage.from(STORAGE_BUCKET).getPublicUrl(uniquePath);
+      p.cloudFiles.push({ id: uid(), name: file.name, path: uniquePath, url: urlData.publicUrl });
+
+      const targetDoc = p.documents.find(d => d.id === docId);
+      if (targetDoc) targetDoc.status = 'Received';
+
+      queueSave();
+      statusEl.style.color = "var(--success)";
+      statusEl.textContent = "Document uploaded successfully!";
+      renderClientPortalView();
+    }
+
+    async function handleClientGeneralUpload() {
+      const fileInput = document.getElementById('clientGeneralFileInput');
+      if (!fileInput || !fileInput.files.length) return alert("Select at least one file.");
+
+      const p = projects.find(x => x.clientToken === currentClientToken);
+      p.cloudFiles ||= [];
+
+      const statusEl = document.getElementById('clientUploadStatus');
+      statusEl.style.color = "var(--primary)";
+      statusEl.textContent = "Uploading files...";
+
+      for (let file of fileInput.files) {
+        const fileExt = file.name.split('.').pop();
+        const uniquePath = `${p.id}/${uid()}.${fileExt}`;
+        const { data, error } = await supabaseClient.storage.from(STORAGE_BUCKET).upload(uniquePath, file);
+        if (!error) {
+          const { data: urlData } = supabaseClient.storage.from(STORAGE_BUCKET).getPublicUrl(uniquePath);
+          p.cloudFiles.push({ id: uid(), name: file.name, path: uniquePath, url: urlData.publicUrl });
+        }
+      }
+
+      queueSave();
+      statusEl.style.color = "var(--success)";
+      statusEl.textContent = "Files uploaded successfully!";
+      fileInput.value = '';
+      renderClientPortalView();
     }
 
     function printProjectReport() {
@@ -923,6 +1094,7 @@
       } else { 
         const newProject = { 
           id: uid(), 
+          clientToken: generateToken(),
           createdAt: todayISO(), 
           updatedAt: new Date().toISOString(), 
           ...data, 
@@ -954,7 +1126,7 @@
     function removeInvoiceLine(id) { const p=getCurrentProject(); p.invoice.lineItems = p.invoice.lineItems.filter(i => i.id !== id); queueSave(); renderProjectTab(); }
 
     function showChecklistLibrary() { showOnly('libraryView'); document.getElementById('navLibrary').classList.add('active'); renderLibraryUI(); }
-    function renderLibraryUI() { const container = document.getElementById('libraryView'); let html = `<div class="topbar"><h2>Checklist Library Editor</h2><p>Saved locally to your browser.</p></div><div class="grid two">`; for (const [type, items] of Object.entries(checklistLibrary)) { html += `<div class="card checklist-category"><h3>${type}</h3><div class="checklist-list">${items.map((item, index) => `<div class="checklist-item"><span>${esc(item)}</span><button class="btn danger small" onclick="removeLibraryItem('${type}', ${index})">✕</button></div>`).join('')}</div><div style="display:flex;gap:8px;margin-top:12px;"><input type="text" id="addInput_${type}" placeholder="New document name..." /><button class="btn primary small" onclick="addLibraryItem('${type}')">Add</button></div></div>`; } html += `</div>`; container.innerHTML = html; }
+    function renderLibraryUI() { const container = document.getElementById('libraryView'); let html = `<div class="topbar"><h2>Checklist Library Editor</h2><p>Saved locally to your browser.</p></div><div class="grid two">`; for (const [type, items] of Object.entries(checklistLibrary)) { html += `<div class="card checklist-category"><h3>${type}</h3><div class="checklist-list">${items.map((item, index) => `<div class="checklist-item"><span>${esc(item)}</span><button class="btn danger small" onclick="removeLibraryItem('${type}',${index})">✕</button></div>`).join('')}</div><div style="display:flex;gap:8px;margin-top:12px;"><input type="text" id="addInput_${type}" placeholder="New document name..." /><button class="btn primary small" onclick="addLibraryItem('${type}')">Add</button></div></div>`; } html += `</div>`; container.innerHTML = html; }
     function addLibraryItem(type) { const val = document.getElementById(`addInput_${type}`).value.trim(); if(val) { checklistLibrary[type].push(val); saveLocalFallback(); renderLibraryUI(); } }
     function removeLibraryItem(type, index) { if(confirm('Remove this item?')) { checklistLibrary[type].splice(index, 1); saveLocalFallback(); renderLibraryUI(); } }
     
@@ -962,7 +1134,15 @@
     function exportData() { const a = document.createElement('a'); a.href = URL.createObjectURL(new Blob([JSON.stringify(projects, null, 2)], { type: 'application/json' })); a.download = 'project-tracker-backup.json'; a.click(); URL.revokeObjectURL(a.href); }
     function importData(e) { const r = new FileReader(); r.onload = ev => { try { const loaded = JSON.parse(ev.target.result); projects = Array.isArray(loaded) ? loaded : loaded.projects || []; queueSave(); showDashboard(); alert('Restored.'); } catch { alert('Error.'); } }; r.readAsText(e.target.files[0]); }
     
-    async function bootstrap() { populateCouncils(); await initSupabase(); showDashboard(); }
+    async function bootstrap() { 
+      populateCouncils(); 
+      await initSupabase(); 
+      const isClient = checkClientViewRoute();
+      if (!isClient) {
+        checkPortalAuth();
+        showDashboard(); 
+      }
+    }
     bootstrap();
   </script>
 </body>

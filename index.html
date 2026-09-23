@@ -65,6 +65,8 @@
     .grid { display: grid; gap: 20px; }
     .grid.stats { grid-template-columns: repeat(4, 1fr); margin-bottom: 24px; }
     .grid.two { grid-template-columns: repeat(2, 1fr); }
+    .grid.dashboard-main { grid-template-columns: 1fr 320px; }
+    .grid.project-layout { grid-template-columns: 1fr 340px; }
     .card { background: var(--card); border: 1px solid var(--border); border-radius: var(--radius); padding: 24px; }
     .stat-card { background: var(--card); border: 1px solid var(--border); border-radius: var(--radius); padding: 20px; display: flex; flex-direction: column; }
     .stat-card span { color: var(--muted); font-size: 13px; font-weight: 500; text-transform: uppercase; letter-spacing: 0.5px; }
@@ -77,7 +79,7 @@
     .view-toggle button { background: transparent; border: none; padding: 6px 12px; font-size: 13px; cursor: pointer; border-radius: 4px; color: var(--muted); font-weight: 500; }
     .view-toggle button.active { background: #fff; color: var(--text); box-shadow: 0 1px 2px rgba(0,0,0,0.05); }
     
-    .project-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(320px, 1fr)); gap: 20px; }
+    .project-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(300px, 1fr)); gap: 20px; }
     .pipeline-board { display: grid; grid-template-columns: repeat(3, 1fr); gap: 24px; align-items: start; }
     .pipeline-col { background: #f1f5f9; border-radius: var(--radius); padding: 16px; min-height: 400px; }
     .pipeline-col h3 { margin: 0 0 16px; font-size: 14px; text-transform: uppercase; color: var(--muted); display: flex; justify-content: space-between; }
@@ -162,15 +164,23 @@
     .summary-row { display: flex; justify-content: space-between; padding: 8px 0; font-size: 14px; }
     .summary-row.grand { font-size: 18px; font-weight: 700; border-top: 2px solid var(--border); margin-top: 8px; padding-top: 12px; }
 
-    .file-list { display: grid; gap: 12px; }
-    .file-item { background: var(--bg); padding: 16px; border-radius: var(--radius); border: 1px solid var(--border); display: flex; justify-content: space-between; align-items: center; }
+    /* Calendar & Agenda Styling */
+    .calendar-container { background: var(--card); border: 1px solid var(--border); border-radius: var(--radius); padding: 16px; }
+    .calendar-header { display: flex; justify-content: space-between; align-items: center; margin-bottom: 12px; }
+    .calendar-header h4 { margin: 0; font-size: 14px; font-weight: 600; }
+    .calendar-grid { display: grid; grid-template-columns: repeat(7, 1fr); gap: 4px; text-align: center; }
+    .calendar-day-head { font-size: 11px; font-weight: 600; color: var(--muted); padding: 4px 0; }
+    .calendar-day { font-size: 12px; padding: 8px 0; border-radius: 4px; cursor: pointer; transition: background 0.2s; position: relative; }
+    .calendar-day:hover { background: var(--bg); }
+    .calendar-day.active { background: var(--primary-soft); color: var(--primary); font-weight: 600; }
+    .calendar-day.has-agenda::after { content: ''; width: 4px; height: 4px; background: var(--primary); border-radius: 50%; position: absolute; bottom: 2px; left: 50%; transform: translateX(-50%); }
 
-    .print-report { display: none; }
+    .agenda-item { display: flex; align-items: center; justify-content: space-between; padding: 8px 12px; border: 1px solid var(--border); border-radius: 6px; margin-top: 8px; background: #fff; font-size: 13px; }
+    .agenda-item.done { text-decoration: line-through; opacity: 0.6; }
 
     /* Client Portal Upload View Styles */
     .client-portal-wrapper { max-width: 900px; margin: 40px auto; padding: 0 20px; }
     .client-card { background: #fff; border: 1px solid var(--border); border-radius: var(--radius); padding: 32px; box-shadow: var(--shadow); }
-    .inline-upload-cell { display: flex; align-items: center; gap: 8px; }
 
     @media print {
       body { background: #fff; color: #000; }
@@ -258,7 +268,13 @@
           </div>
         </div>
         
-        <div id="projectTableWrap"></div>
+        <div class="grid dashboard-main">
+          <div id="projectTableWrap"></div>
+          <div class="card" style="height:fit-content;">
+            <h3 style="margin:0 0 16px; font-size:16px;">📅 Reminders & Agendas</h3>
+            <div id="dashboardRemindersList">Loading agendas...</div>
+          </div>
+        </div>
       </section>
 
       <!-- FINANCES VIEW -->
@@ -302,14 +318,30 @@
           <button class="tab-btn" data-tab="documents" onclick="switchTab('documents')">Documents</button>
           <button class="tab-btn" data-tab="councilNotes" onclick="switchTab('councilNotes')">Council Notes</button>
           <button class="tab-btn" data-tab="invoice" onclick="switchTab('invoice')">Invoice</button>
-          <button class="tab-btn" data-tab="files" onclick="switchTab('files')">Files</button>
           <button class="tab-btn" data-tab="projectNotes" onclick="switchTab('projectNotes')">Internal Notes</button>
         </div>
 
-        <div id="projectTabContent"></div>
+        <div class="grid project-layout">
+          <div id="projectTabContent"></div>
+          <div class="calendar-container">
+            <div class="calendar-header">
+              <h4 id="calendarMonthYear">Month Year</h4>
+              <div>
+                <button class="btn small" onclick="changeMonth(-1)">‹</button>
+                <button class="btn small" onclick="changeMonth(1)">›</button>
+              </div>
+            </div>
+            <div class="calendar-grid" id="calendarDaysGrid"></div>
+            <div style="margin-top:16px; border-top:1px solid var(--border); padding-top:12px;">
+              <h4 style="margin:0 0 8px; font-size:13px;" id="selectedDateTitle">Agendas</h4>
+              <div id="agendasForSelectedDate">Select a date to view agendas</div>
+              <button class="btn primary small full" style="margin-top:12px;" onclick="addAgendaPrompt()">+ Add Agenda Item</button>
+            </div>
+          </div>
+        </div>
       </section>
 
-      <!-- CLIENT PORTAL VIEW (DOCUMENT SECTION UPLOADS) -->
+      <!-- CLIENT PORTAL VIEW -->
       <section id="clientPortalView" class="hidden">
         <div class="client-portal-wrapper">
           <div class="client-card">
@@ -404,6 +436,10 @@
     let isClientViewMode = false;
     let currentClientToken = null;
 
+    let calMonth = new Date().getMonth();
+    let calYear = new Date().getFullYear();
+    let selectedCalDate = todayISO();
+
     let checklistLibrary = {
       DA: ['Owner consent','Site survey','Architectural drawings','Statement of Environmental Effects','Cost estimate report'],
       CDC: ['Design plans','Certificate of title','Building specifications','Structural plans','BASIX certificate'],
@@ -415,9 +451,7 @@
     };
 
     function getPortalPassword() {
-      if (typeof PORTAL_PASSWORD !== 'undefined' && PORTAL_PASSWORD) {
-        return PORTAL_PASSWORD;
-      }
+      if (typeof PORTAL_PASSWORD !== 'undefined' && PORTAL_PASSWORD) return PORTAL_PASSWORD;
       return 'Jogiharsh@1993';
     }
 
@@ -425,37 +459,23 @@
       event.preventDefault();
       try {
         const enteredPassword = document.getElementById('portalPassword').value;
-        const expectedPassword = getPortalPassword();
-
-        if (enteredPassword === expectedPassword) {
+        if (enteredPassword === getPortalPassword()) {
           sessionStorage.setItem('paPortalUnlocked', 'yes');
           document.body.classList.remove('locked');
           document.getElementById('authScreen').style.display = 'none';
-          const appWrapper = document.querySelector('.app-wrapper');
-          if (appWrapper) appWrapper.style.display = 'flex';
+          document.querySelector('.app-wrapper').style.display = 'flex';
         } else {
-          const errorEl = document.getElementById('authError');
-          if (errorEl) {
-            errorEl.textContent = 'Incorrect password. Please try again.';
-            errorEl.classList.add('show');
-          }
+          document.getElementById('authError').classList.add('show');
         }
-      } catch (err) {
-        console.error('Unlock portal error:', err);
-        alert('Login error: ' + err.message);
-      }
+      } catch (err) { console.error(err); }
     }
 
     function checkPortalAuth() {
-      try {
-        if (sessionStorage.getItem('paPortalUnlocked') === 'yes') {
-          document.body.classList.remove('locked');
-          const authScreen = document.getElementById('authScreen');
-          if (authScreen) authScreen.style.display = 'none';
-          const appWrapper = document.querySelector('.app-wrapper');
-          if (appWrapper) appWrapper.style.display = 'flex';
-        }
-      } catch (e) { console.error(e); }
+      if (sessionStorage.getItem('paPortalUnlocked') === 'yes') {
+        document.body.classList.remove('locked');
+        document.getElementById('authScreen').style.display = 'none';
+        document.querySelector('.app-wrapper').style.display = 'flex';
+      }
     }
 
     function setSyncStatus(message, tone='warning') {
@@ -468,14 +488,11 @@
     function todayISO() { return new Date().toISOString().slice(0,10); }
     function esc(value='') { return String(value).replace(/[&<>"]/g, m => ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;'}[m])); }
     function formatCurrency(amount) { return new Intl.NumberFormat('en-AU', { style: 'currency', currency: 'AUD', maximumFractionDigits:2 }).format(Number(amount || 0)); }
-    function looksCustomService(name='') { return !!name && !INVOICE_SERVICE_OPTIONS.includes(name); }
     function addDays(dateString, days) { const d = dateString ? new Date(dateString) : new Date(); d.setDate(d.getDate() + days); return d.toISOString().slice(0, 10); }
 
     function generateUniqueInvoiceNumber() {
       const d = new Date();
-      const datePart = d.getFullYear() + String(d.getMonth() + 1).padStart(2, '0') + String(d.getDate()).padStart(2, '0');
-      const randomPart = Math.random().toString(36).substring(2, 6).toUpperCase();
-      return `INV-${datePart}-${randomPart}`;
+      return `INV-${d.getFullYear()}${String(d.getMonth() + 1).padStart(2, '0')}${String(d.getDate()).padStart(2, '0')}-${Math.random().toString(36).substring(2, 6).toUpperCase()}`;
     }
 
     function defaultInvoice(project) { 
@@ -494,51 +511,33 @@
        if (project.status === 'Hold') return 'On Hold';
        if (project.status === 'Completed') return 'Archived';
        const missing = project.documents?.filter(d => d.required !== 'No' && !['Received','Approved'].includes(d.status)) || [];
-       if (missing.length > 0) {
-          return `Chase ${missing[0].responsible} for ${missing[0].name}`;
-       }
+       if (missing.length > 0) return `Chase ${missing[0].responsible} for ${missing[0].name}`;
        return 'Ready for Review / Council';
     }
 
     function loadLocalFallback() { try { const lib = localStorage.getItem(LIBRARY_FALLBACK_KEY); if (lib) checklistLibrary = JSON.parse(lib); return JSON.parse(localStorage.getItem(LOCAL_FALLBACK_KEY) || '[]'); } catch { return []; } }
-    function saveLocalFallback() { 
-      try {
-        localStorage.setItem(LOCAL_FALLBACK_KEY, JSON.stringify(projects)); 
-        localStorage.setItem(LIBRARY_FALLBACK_KEY, JSON.stringify(checklistLibrary)); 
-      } catch(e) { console.warn('Local storage full'); }
-    }
-    function hasSupabaseConfig() { return typeof SUPABASE_URL !== 'undefined' && typeof SUPABASE_ANON_KEY !== 'undefined' && SUPABASE_URL && SUPABASE_ANON_KEY && !SUPABASE_URL.includes('PASTE_YOUR_'); }
+    function saveLocalFallback() { localStorage.setItem(LOCAL_FALLBACK_KEY, JSON.stringify(projects)); localStorage.setItem(LIBRARY_FALLBACK_KEY, JSON.stringify(checklistLibrary)); }
+    function hasSupabaseConfig() { return typeof SUPABASE_URL !== 'undefined' && typeof SUPABASE_ANON_KEY !== 'undefined' && SUPABASE_URL && SUPABASE_ANON_KEY; }
 
     function upgradeOldInvoices() {
       let changed = false;
       projects.forEach(p => {
         if (!p.clientToken) { p.clientToken = generateToken(); changed = true; }
-        if (!p.invoice) {
-          p.invoice = defaultInvoice(p);
-          changed = true;
-        } else {
-           if (!p.invoice.status) { p.invoice.status = 'SENT'; changed = true; }
-           if (!p.invoice.invoiceNumber || p.invoice.invoiceNumber.length < 12 || p.invoice.invoiceNumber.startsWith("INV-10")) {
-             p.invoice.invoiceNumber = generateUniqueInvoiceNumber();
-             changed = true;
-           }
-        }
+        p.agendas ||= [];
+        if (!p.invoice) { p.invoice = defaultInvoice(p); changed = true; }
       });
-      if (changed) { saveLocalFallback(); }
-      return changed;
+      if (changed) saveLocalFallback();
     }
 
     async function loadProjectsFromCloud() {
       if (!supabaseClient) return;
       const { data, error } = await supabaseClient.from(SUPABASE_TABLE).select('*').eq('id', APP_STATE_ID);
-      if (error) throw new Error(`Load failed: ${error.message}`);
+      if (error) throw new Error(error.message);
       if (data && data.length > 0) { 
         projects = Array.isArray(data[0].projects) ? data[0].projects : []; 
         if (data[0].checklistLibrary) checklistLibrary = data[0].checklistLibrary; 
-        else if (data[0].checklistlibrary) checklistLibrary = data[0].checklistlibrary; 
       }
-      const didUpgrade = upgradeOldInvoices();
-      if (didUpgrade) { queueSave(); }
+      upgradeOldInvoices();
     }
 
     async function saveAll() {
@@ -552,12 +551,7 @@
     }
 
     async function initSupabase() {
-      if (!hasSupabaseConfig()) { 
-        projects = loadLocalFallback(); 
-        upgradeOldInvoices();
-        setSyncStatus('Local Storage Only (Missing Config)', 'warning'); 
-        return; 
-      }
+      if (!hasSupabaseConfig()) { projects = loadLocalFallback(); upgradeOldInvoices(); setSyncStatus('Local Storage Only', 'warning'); return; }
       try {
         setSyncStatus('Connecting...', 'warning');
         supabaseClient = window.supabase.createClient(SUPABASE_URL, SUPABASE_ANON_KEY);
@@ -567,7 +561,7 @@
       } catch (error) { projects = loadLocalFallback(); isCloudReady = false; setSyncStatus('Sync Failed', 'error'); }
     }
 
-    function queueSave() { saveAll().catch(e => { console.error(e); setSyncStatus('Save failed', 'error'); }); }
+    function queueSave() { saveAll().catch(e => setSyncStatus('Save failed', 'error')); }
 
     const nswCouncils = ['Albury City Council','Blacktown City Council','Camden Council','Campbelltown City Council','Fairfield City Council','Liverpool City Council','Parramatta City Council','Penrith City Council','Sydney City Council','The Hills Shire Council','Other'];
     function populateCouncils() { document.getElementById('council').innerHTML = '<option value="">Select council</option>' + nswCouncils.map(c => `<option>${esc(c)}</option>`).join(''); }
@@ -603,93 +597,53 @@
       document.getElementById('statUnpaid').textContent = formatCurrency(projects.reduce((sum, p) => { 
         if(p.invoice?.lineItems && p.invoice.status !== 'RECEIVED PAYMENT' && p.invoice.status !== 'CANCELLED') { 
           const sub = p.invoice.lineItems.reduce((s, i) => s + Number(i.price || 0), 0); 
-          const applyGST = p.invoice.hasGST !== false;
-          return sum + sub + (applyGST ? sub * 0.1 : 0); 
+          return sum + sub + (p.invoice.hasGST !== false ? sub * 0.1 : 0); 
         } 
         return sum; 
       }, 0));
 
       const wrap = document.getElementById('projectTableWrap');
-      if (!rows.length) { wrap.innerHTML = `<div class="empty">No projects found.</div>`; return; }
+      if (!rows.length) { wrap.innerHTML = `<div class="empty">No projects found.</div>`; }
+      else {
+        const generateCard = (p) => {
+          const readyDocs = p.documents?.filter(d=>['Approved','Received'].includes(d.status)).length || 0; 
+          const totalDocs = p.documents?.filter(d=>d.required!=='No').length || 0;
+          return `<div class="project-card" onclick="openProject('${p.id}')">
+             <div class="project-card-header"><span class="pill" style="background:#eee;">${esc(p.status)}</span><span class="pill" style="background:#e0e7ff; color:#4338ca;">${esc(p.approvalType)}</span></div>
+             <div><h4>${esc(p.siteAddress)}</h4><p>${esc(p.clientName)} &middot; ${esc(p.council)}</p></div>
+             <div class="next-action-text">${esc(determineNextAction(p))}</div>
+             <div class="project-card-footer"><span style="font-size:12px; font-weight:600;">${readyDocs} / ${totalDocs} Docs Ready</span></div>
+          </div>`;
+        };
 
-      const generateCard = (p) => {
-        const readyDocs = p.documents?.filter(d=>d.status==='Approved'||d.status==='Received').length || 0; 
-        const totalDocs = p.documents?.filter(d=>d.required!=='No').length || 0;
-        const color = p.status === 'Active' ? 'blue' : p.status === 'Hold' ? 'orange' : 'green';
-        const actionText = determineNextAction(p);
-
-        return `<div class="project-card" onclick="openProject('${p.id}')">
-           <div class="project-card-header"><span class="pill" style="background:var(--${color}-100, #eee);">${esc(p.status)}</span><span class="pill" style="background:#e0e7ff; color:#4338ca;">${esc(p.approvalType)}</span></div>
-           <div><h4>${esc(p.siteAddress)}</h4><p>${esc(p.clientName)} &middot; ${esc(p.council)}</p></div>
-           <div class="next-action-text">${esc(actionText)}</div>
-           <div class="project-card-footer"><span style="font-size:12px; font-weight:600;">${readyDocs} / ${totalDocs} Docs Ready</span></div>
-        </div>`;
-      };
-
-      if(currentView === 'grid') wrap.innerHTML = `<div class="project-grid">${rows.map(generateCard).join('')}</div>`;
-      else wrap.innerHTML = `<div class="pipeline-board"><div class="pipeline-col"><h3>Active <span>${rows.filter(p=>p.status==='Active').length}</span></h3><div class="pipeline-cards">${rows.filter(p=>p.status==='Active').map(generateCard).join('')}</div></div><div class="pipeline-col" style="background:#fffbeb;"><h3>Hold <span>${rows.filter(p=>p.status==='Hold').length}</span></h3><div class="pipeline-cards">${rows.filter(p=>p.status==='Hold').map(generateCard).join('')}</div></div><div class="pipeline-col" style="background:#f0fdf4;"><h3>Completed <span>${rows.filter(p=>p.status==='Completed').length}</span></h3><div class="pipeline-cards">${rows.filter(p=>p.status==='Completed').map(generateCard).join('')}</div></div></div>`;
-    }
-
-    function showFinances() {
-      showOnly('financeView');
-      document.getElementById('navFinances').classList.add('active');
-      
-      let allInvoices = [];
-      let unpaidTotal = 0;
-      let paidTotal = 0;
-
-      projects.forEach(p => {
-         if (p.invoice && p.invoice.lineItems) {
-            const sub = p.invoice.lineItems.reduce((s, i) => s + Number(i.price || 0), 0);
-            const applyGST = p.invoice.hasGST !== false;
-            const total = sub + (applyGST ? sub * 0.1 : 0);
-            const isPaid = p.invoice.status === 'RECEIVED PAYMENT';
-            const isCancelled = p.invoice.status === 'CANCELLED';
-
-            if (!isCancelled) {
-               if (isPaid) paidTotal += total;
-               else unpaidTotal += total;
-            }
-
-            allInvoices.push({
-               projectId: p.id,
-               projectName: p.siteAddress,
-               client: p.clientName,
-               invoiceNo: p.invoice.invoiceNumber,
-               issueDate: p.invoice.issueDate,
-               status: p.invoice.status || 'SENT',
-               total: total
-            });
-         }
-      });
-
-      allInvoices.sort((a,b) => new Date(b.issueDate || 0) - new Date(a.issueDate || 0));
-
-      document.getElementById('financeUnpaid').textContent = formatCurrency(unpaidTotal);
-      document.getElementById('financePaid').textContent = formatCurrency(paidTotal);
-
-      const wrap = document.getElementById('financeTableWrap');
-      if (allInvoices.length === 0) {
-         wrap.innerHTML = `<div class="empty">No invoices generated yet.</div>`;
-         return;
+        if(currentView === 'grid') wrap.innerHTML = `<div class="project-grid">${rows.map(generateCard).join('')}</div>`;
+        else wrap.innerHTML = `<div class="pipeline-board"><div class="pipeline-col"><h3>Active <span>${rows.filter(p=>p.status==='Active').length}</span></h3><div class="pipeline-cards">${rows.filter(p=>p.status==='Active').map(generateCard).join('')}</div></div><div class="pipeline-col" style="background:#fffbeb;"><h3>Hold <span>${rows.filter(p=>p.status==='Hold').length}</span></h3><div class="pipeline-cards">${rows.filter(p=>p.status==='Hold').map(generateCard).join('')}</div></div><div class="pipeline-col" style="background:#f0fdf4;"><h3>Completed <span>${rows.filter(p=>p.status==='Completed').length}</span></h3><div class="pipeline-cards">${rows.filter(p=>p.status==='Completed').map(generateCard).join('')}</div></div></div>`;
       }
 
-      wrap.innerHTML = `<div style="overflow-x:auto;"><table>
-        <thead><tr><th>Invoice No</th><th>Date</th><th>Project</th><th>Client</th><th>Status</th><th style="text-align:right;">Amount</th></tr></thead>
-        <tbody>
-          ${allInvoices.map(inv => {
-             const statusColor = inv.status === 'RECEIVED PAYMENT' ? 'status-completed' : inv.status === 'OVERDUE' ? 'status-overdue' : inv.status === 'CANCELLED' ? '' : 'status-hold';
-             return `<tr style="cursor:pointer;" onclick="openProject('${inv.projectId}'); switchTab('invoice');">
-               <td><strong>${esc(inv.invoiceNo)}</strong></td>
-               <td>${esc(inv.issueDate)}</td>
-               <td>${esc(inv.projectName)}</td>
-               <td>${esc(inv.client)}</td>
-               <td><span class="pill ${statusColor}">${esc(inv.status)}</span></td>
-               <td style="text-align:right; font-weight:600;">${formatCurrency(inv.total)}</td>
-             </tr>`;
-          }).join('')}
-        </tbody>
-      </table></div>`;
+      renderDashboardReminders();
+    }
+
+    function renderDashboardReminders() {
+      let allAgendas = [];
+      projects.forEach(p => {
+        (p.agendas || []).forEach(a => {
+          allAgendas.push({ ...a, projectAddress: p.siteAddress, projectId: p.id });
+        });
+      });
+
+      allAgendas.sort((a,b) => new Date(a.date) - new Date(b.date));
+      const remEl = document.getElementById('dashboardRemindersList');
+      if(!allAgendas.length) { remEl.innerHTML = `<p style="font-size:13px; color:var(--muted);">No upcoming agendas.</p>`; return; }
+
+      remEl.innerHTML = allAgendas.map(a => `
+        <div class="agenda-item ${a.status==='Done'?'done':''}" onclick="openProject('${a.projectId}')" style="cursor:pointer;">
+          <div>
+            <strong>${esc(a.text)}</strong><br>
+            <span style="font-size:11px; color:var(--muted);">${esc(a.date)} &middot; ${esc(a.projectAddress)}</span>
+          </div>
+          <span class="pill ${a.status==='Done'?'status-completed':'status-hold'}">${esc(a.status)}</span>
+        </div>
+      `).join('');
     }
 
     function openProject(projectId) {
@@ -698,6 +652,7 @@
       document.getElementById('projectMeta').innerHTML = `<span class="pill" style="background:#e0e7ff; color:#4338ca;">${esc(p.approvalType)}</span> - ${esc(p.siteAddress)}`;
       document.querySelectorAll('.tab-btn').forEach(btn => btn.classList.toggle('active', btn.dataset.tab === activeTab));
       renderProjectTab();
+      renderCalendar();
     }
     
     function getCurrentProject() { return projects.find(p => p.id === currentProjectId); }
@@ -705,104 +660,135 @@
 
     function renderProjectTab() {
       const p = getCurrentProject(); if (!p) return;
-      p.documents ||= []; p.notesList ||= []; p.projectNotesList ||= []; p.invoice ||= defaultInvoice(p); p.cloudFiles ||= [];
+      p.documents ||= []; p.notesList ||= []; p.projectNotesList ||= []; p.invoice ||= defaultInvoice(p); p.agendas ||= [];
       const el = document.getElementById('projectTabContent');
-      if (activeTab === 'overview') el.innerHTML = `<div class="grid two"><div class="card"><h3>Project Details</h3><table><tbody><tr><th>Client</th><td>${esc(p.clientName)}<br><span style="color:var(--muted);">${esc(p.clientEmail)}</span></td></tr><tr><th>Address</th><td>${esc(p.siteAddress)}</td></tr><tr><th>Council</th><td>${esc(p.council)}</td></tr><tr><th>Type</th><td>${esc(p.approvalType)}</td></tr><tr><th>Status</th><td>${esc(p.status)}</td></tr></tbody></table></div><div class="card"><h3>Snapshot</h3><div class="grid two"><div class="stat-card"><span>Total Docs</span><strong>${p.documents.length}</strong></div><div class="stat-card"><span>Ready Docs</span><strong>${p.documents.filter(d=>['Received','Approved'].includes(d.status)).length}</strong></div></div><br><p><strong>Next Action:</strong> ${determineNextAction(p)}</p></div></div>`;
+
+      if (activeTab === 'overview') el.innerHTML = `<div class="card"><h3>Project Details</h3><table><tbody><tr><th>Client</th><td>${esc(p.clientName)}<br><span style="color:var(--muted);">${esc(p.clientEmail)}</span></td></tr><tr><th>Address</th><td>${esc(p.siteAddress)}</td></tr><tr><th>Council</th><td>${esc(p.council)}</td></tr><tr><th>Type</th><td>${esc(p.approvalType)}</td></tr><tr><th>Status</th><td>${esc(p.status)}</td></tr></tbody></table></div>`;
+      
       if (activeTab === 'documents') {
-        el.innerHTML = `<div class="card"><div class="section-title"><h3>Document Checklist & Direct Uploads</h3><button class="btn primary small" onclick="addDocumentPrompt()">+ Add Section</button></div><div style="overflow-x:auto;"><table><thead><tr><th>Document Section</th><th>Required</th><th>Status</th><th>Responsible</th><th>Attached File</th><th></th></tr></thead><tbody>${p.documents.map(d => {
-          const attachedFile = d.fileUrl ? `<a class="btn small" href="${esc(d.fileUrl)}" target="_blank">📄 View Doc</a>` : `<input type="file" id="admin_doc_file_${d.id}" style="font-size:11px;" /><button class="btn primary small" onclick="uploadAdminDocFile('${p.id}', '${d.id}')">Upload</button>`;
+        el.innerHTML = `<div class="card"><div class="section-title"><h3>Document Checklist & Direct Uploads</h3><button class="btn primary small" onclick="addDocumentPrompt()">+ Add Section</button></div><div style="overflow-x:auto;"><table><thead><tr><th>Document Section</th><th>Required</th><th>Status</th><th>Responsible</th><th>Attached File / Action</th><th></th></tr></thead><tbody>${p.documents.map(d => {
+          const fileAction = d.fileUrl 
+            ? `<a class="btn small primary" href="${esc(d.fileUrl)}" target="_blank">📄 View Doc</a>` 
+            : `<div style="display:flex; gap:4px;"><input type="file" id="admin_doc_file_${d.id}" style="font-size:11px;" /><button class="btn primary small" onclick="uploadAdminDocFile('${p.id}', '${d.id}')">Upload</button></div>`;
           return `<tr>
             <td><input value="${esc(d.name)}" onchange="updateDoc('${d.id}','name',this.value)"></td>
             <td><select onchange="updateDoc('${d.id}','required',this.value)"><option ${d.required==='Yes'?'selected':''}>Yes</option><option${d.required==='No'?'selected':''}>No</option></select></td>
             <td><select onchange="updateDoc('${d.id}','status',this.value)">${['Not required','Required','Requested','Received','Reviewed','Needs revision','Uploaded to portal','Approved'].map(s => `<option ${d.status===s?'selected':''}>${s}</option>`).join('')}</select></td>
             <td><input value="${esc(d.responsible)}" onchange="updateDoc('${d.id}','responsible',this.value)"></td>
-            <td>${attachedFile}</td>
+            <td>${fileAction}</td>
             <td><button class="btn small danger" onclick="removeDoc('${d.id}')">Del</button></td>
           </tr>`;
         }).join('')}</tbody></table></div></div>`;
       }
+
       if (activeTab === 'councilNotes') el.innerHTML = `<div class="card"><h3>Notes</h3><button class="btn primary small" onclick="addCouncilNote()">+ Add Note</button><br><br><table><tbody>${p.notesList.map(n => `<tr><td><input type="date" value="${esc(n.date)}" onchange="updateCouncilNote('${n.id}','date',this.value)"></td><td><textarea onchange="updateCouncilNote('${n.id}','note',this.value)">${esc(n.note)}</textarea></td><td><button class="btn small danger" onclick="removeCouncilNote('${n.id}')">Del</button></td></tr>`).join('')}</tbody></table></div>`;
       if (activeTab === 'projectNotes') el.innerHTML = `<div class="card"><h3>Internal Notes</h3><button class="btn primary small" onclick="addProjectNote()">+ Add Note</button><br><br><div class="note-list">${p.projectNotesList.map(n => `<div class="note-card"><div style="flex:1;"><input value="${esc(n.title)}" placeholder="Title" onchange="updateProjectNote('${n.id}','title',this.value)" style="margin-bottom:8px;"><textarea onchange="updateProjectNote('${n.id}','body',this.value)">${esc(n.body)}</textarea></div><button class="btn danger small" onclick="removeProjectNote('${n.id}')" style="margin-left:12px;">Del</button></div>`).join('')}</div></div>`;
       if (activeTab === 'invoice') renderInvoiceTab(p, el);
-      if (activeTab === 'files') renderFilesTab(p, el);
     }
 
-    function renderInvoiceTab(p, el) {
-      const inv = p.invoice;
-      const subtotal = inv.lineItems.reduce((sum, item) => sum + Number(item.price || 0), 0); 
-      const applyGST = inv.hasGST !== false; 
-      const gst = applyGST ? subtotal * 0.1 : 0; 
-      const total = subtotal + gst;
+    // CALENDAR FUNCTIONS
+    function renderCalendar() {
+      const p = getCurrentProject(); if(!p) return;
+      const monthNames = ["January", "February", "March", "April", "May", "June", "July", "August", "September", "October", "November", "December"];
+      document.getElementById('calendarMonthYear').textContent = `${monthNames[calMonth]} ${calYear}`;
 
-      let gstHtmlRow = '';
-      if (applyGST) {
-        gstHtmlRow = `<div class="summary-row"><span>GST (10%):</span> <strong>${formatCurrency(gst)}</strong></div>`;
+      const firstDay = new Date(calYear, calMonth, 1).getDay();
+      const daysInMonth = new Date(calYear, calMonth + 1, 0).getDate();
+      
+      const grid = document.getElementById('calendarDaysGrid');
+      grid.innerHTML = ['S','M','T','W','T','F','S'].map(d => `<div class="calendar-day-head">${d}</div>`).join('');
+
+      for(let i=0; i<firstDay; i++) grid.innerHTML += `<div></div>`;
+
+      for(let day=1; day<=daysInMonth; day++) {
+        const dateStr = `${calYear}-${String(calMonth+1).padStart(2,'0')}-${String(day).padStart(2,'0')}`;
+        const hasAgenda = p.agendas?.some(a => a.date === dateStr);
+        const isActive = selectedCalDate === dateStr;
+        grid.innerHTML += `<div class="calendar-day ${isActive?'active':''} ${hasAgenda?'has-agenda':''}" onclick="selectCalendarDate('${dateStr}')">${day}</div>`;
+      }
+      renderAgendasForSelectedDate();
+    }
+
+    function changeMonth(delta) {
+      calMonth += delta;
+      if(calMonth < 0) { calMonth = 11; calYear--; }
+      if(calMonth > 11) { calMonth = 0; calYear++; }
+      renderCalendar();
+    }
+
+    function selectCalendarDate(dateStr) {
+      selectedCalDate = dateStr;
+      renderCalendar();
+    }
+
+    function renderAgendasForSelectedDate() {
+      const p = getCurrentProject(); if(!p) return;
+      document.getElementById('selectedDateTitle').textContent = `Agendas for ${selectedCalDate}`;
+      const list = p.agendas?.filter(a => a.date === selectedCalDate) || [];
+      const container = document.getElementById('agendasForSelectedDate');
+      
+      if(!list.length) { container.innerHTML = `<span style="font-size:12px; color:var(--muted)">No items for this date.</span>`; return; }
+
+      container.innerHTML = list.map(a => `
+        <div class="agenda-item ${a.status==='Done'?'done':''}">
+          <span>${esc(a.text)}</span>
+          <div style="display:flex; gap:4px;">
+            <button class="btn small" onclick="toggleAgendaStatus('${a.id}')">${a.status==='Done'?'Undo':'Done'}</button>
+            <button class="btn small danger" onclick="removeAgenda('${a.id}')">✕</button>
+          </div>
+        </div>
+      `).join('');
+    }
+
+    function addAgendaPrompt() {
+      const text = prompt(`Enter agenda/reminder for ${selectedCalDate}:`);
+      if(!text) return;
+      const p = getCurrentProject();
+      p.agendas ||= [];
+      p.agendas.push({ id: uid(), date: selectedCalDate, text, status: 'Pending' });
+      queueSave();
+      renderCalendar();
+    }
+
+    function toggleAgendaStatus(id) {
+      const p = getCurrentProject();
+      const a = p.agendas.find(x => x.id === id);
+      if(a) { a.status = a.status === 'Done' ? 'Pending' : 'Done'; queueSave(); renderCalendar(); }
+    }
+
+    function removeAgenda(id) {
+      const p = getCurrentProject();
+      p.agendas = p.agendas.filter(x => x.id !== id);
+      queueSave();
+      renderCalendar();
+    }
+
+    async function uploadAdminDocFile(projectId, docId) {
+      const fileInput = document.getElementById(`admin_doc_file_${docId}`);
+      if (!fileInput || !fileInput.files.length) return alert("Select a file first.");
+
+      const file = fileInput.files[0];
+      const p = getCurrentProject();
+
+      setSyncStatus('Uploading document...', 'warning');
+      const fileExt = file.name.split('.').pop();
+      const uniquePath = `${projectId}/${uid()}.${fileExt}`;
+
+      const { data, error } = await supabaseClient.storage.from(STORAGE_BUCKET).upload(uniquePath, file);
+      if (error) { alert("Upload failed: " + error.message); return; }
+
+      const { data: urlData } = supabaseClient.storage.from(STORAGE_BUCKET).getPublicUrl(uniquePath);
+      const targetDoc = p.documents.find(d => d.id === docId);
+      if (targetDoc) {
+        targetDoc.status = 'Received';
+        targetDoc.fileUrl = urlData.publicUrl;
       }
 
-      el.innerHTML = `
-        <div class="invoice-shell">
-          <div class="card">
-            <div class="section-title">
-              <h3>Invoice Builder</h3>
-              <button class="btn primary" onclick="printInvoice()">🖨 Print Invoice / PDF</button>
-            </div>
-            <div class="form-grid" style="margin-bottom: 32px;">
-              <div class="field"><label>Invoice No.</label><input value="${esc(inv.invoiceNumber)}" onchange="updateInvoiceField('invoiceNumber',this.value)" /></div>
-              <div class="field"><label>Issue Date</label><input type="date" value="${esc(inv.issueDate)}" onchange="updateInvoiceField('issueDate',this.value)" /></div>
-              <div class="field"><label>Due Date</label><input type="date" value="${esc(inv.dueDate)}" onchange="updateInvoiceField('dueDate',this.value)" /></div>
-              <div class="field">
-                <label>Status</label>
-                <select onchange="updateInvoiceField('status', this.value)">
-                  <option value="DRAFT" ${inv.status==='DRAFT'?'selected':''}>DRAFT</option>
-                  <option value="SENT" ${inv.status==='SENT'?'selected':''}>SENT</option>
-                  <option value="RECEIVED PAYMENT" ${inv.status==='RECEIVED PAYMENT'?'selected':''}>RECEIVED PAYMENT</option>
-                  <option value="OVERDUE" ${inv.status==='OVERDUE'?'selected':''}>OVERDUE</option>
-                  <option value="CANCELLED" ${inv.status==='CANCELLED'?'selected':''}>CANCELLED</option>
-                </select>
-              </div>
-              <div class="field">
-                <label>Include GST (10%)</label>
-                <select onchange="updateInvoiceField('hasGST', this.value === 'true')">
-                  <option value="true" ${applyGST ? 'selected' : ''}>Yes, include GST</option>
-                  <option value="false" ${!applyGST ? 'selected' : ''}>No GST</option>
-                </select>
-              </div>
-              <div class="field full"><label>Payment Notes</label><textarea onchange="updateInvoiceField('notes',this.value)">${esc(inv.notes)}</textarea></div>
-            </div>
-            <div class="section-title"><h3>Services</h3><button class="btn small" onclick="addInvoiceLine()">+ Add Service</button></div>
-            <table>
-              <thead><tr><th>Service</th><th>Price</th><th></th></tr></thead>
-              <tbody>${inv.lineItems.map(item => `<tr><td><input value="${esc(item.serviceName)}" onchange="updateInvoiceLine('${item.id}','serviceName',this.value)" placeholder="Service Name"></td><td><input type="number" step="0.01" value="${esc(item.price)}" onchange="updateInvoiceLine('${item.id}','price',this.value)" /></td><td><button class="btn danger small" onclick="removeInvoiceLine('${item.id}')">Del</button></td></tr>`).join('')}</tbody>
-            </table>
-          </div>
-          
-          <div class="invoice-preview" id="invoicePDFTarget">
-            <div class="invoice-header"><div><h2>${esc(BUSINESS_PROFILE.name)}</h2><p>${esc(BUSINESS_PROFILE.address)}<br>${esc(BUSINESS_PROFILE.abn)}</p></div></div>
-            <div class="invoice-meta"><div><h4>Bill To</h4><p>${esc(p.clientName)}<br>${esc(p.clientEmail)}</p></div><div><h4>Project</h4><p>${esc(p.siteAddress)}<br>${esc(p.council)}</p></div><div><h4>Details</h4><div class="invoice-meta-row"><span>Invoice No:</span> <strong>${esc(inv.invoiceNumber)}</strong></div><div class="invoice-meta-row"><span>Issue Date:</span> <strong>${esc(inv.issueDate)}</strong></div><div class="invoice-meta-row"><span>Due Date:</span> <strong>${esc(inv.dueDate)}</strong></div></div></div>
-            <table class="invoice-table-rendered"><thead><tr><th>Description</th><th>Amount</th></tr></thead><tbody>${inv.lineItems.map(item => `<tr><td><strong>${esc(item.serviceName)}</strong></td><td>${formatCurrency(item.price)}</td></tr>`).join('')}</tbody></table>
-            <div class="invoice-footer">
-              <div class="invoice-notes">${esc(inv.notes)}</div>
-              <div class="invoice-summary">
-                <div class="summary-row"><span>Subtotal:</span> <strong>${formatCurrency(subtotal)}</strong></div>
-                ${gstHtmlRow}
-                <div class="summary-row grand"><span>Total:</span> <strong>${formatCurrency(total)}</strong></div>
-              </div>
-            </div>
-          </div>
-        </div>`;
+      queueSave();
+      renderProjectTab();
     }
 
-    function copyClientUploadLink() {
-      const p = getCurrentProject();
-      if (!p) return;
-      if (!p.clientToken) { p.clientToken = generateToken(); queueSave(); }
-      const baseUrl = window.location.origin + window.location.pathname;
-      const clientUrl = `${baseUrl}?token=${p.clientToken}`;
-      navigator.clipboard.writeText(clientUrl);
-      alert(`Client Link Copied to Clipboard!\n\n${clientUrl}`);
-    }
-
-    // === CLIENT PORTAL INLINE UPLOAD LOGIC ===
+    // CLIENT PORTAL UPLOAD LOGIC
     function checkClientViewRoute() {
       const params = new URLSearchParams(window.location.search);
       const token = params.get('token');
@@ -812,8 +798,7 @@
         document.body.classList.remove('locked');
         document.getElementById('authScreen').style.display = 'none';
         document.getElementById('mainHeader').style.display = 'none';
-        const appWrapper = document.querySelector('.app-wrapper');
-        if (appWrapper) appWrapper.style.display = 'flex';
+        document.querySelector('.app-wrapper').style.display = 'flex';
         renderClientPortalView();
         return true;
       }
@@ -823,10 +808,7 @@
     function renderClientPortalView() {
       showOnly('clientPortalView');
       const p = projects.find(x => x.clientToken === currentClientToken);
-      if (!p) {
-        document.getElementById('clientPortalView').innerHTML = `<div class="client-portal-wrapper"><div class="client-card"><h2 style="color:var(--danger)">Link Expired or Invalid</h2><p>Please contact your administrator for a new upload link.</p></div></div>`;
-        return;
-      }
+      if (!p) { document.getElementById('clientPortalView').innerHTML = `<div class="client-portal-wrapper"><div class="client-card"><h2>Link Expired</h2></div></div>`; return; }
 
       document.getElementById('clientPortalAddress').textContent = p.siteAddress;
       document.getElementById('clientPortalSub').textContent = `${p.clientName} · ${p.approvalType} Application (${p.council})`;
@@ -834,22 +816,15 @@
       const listEl = document.getElementById('clientDocList');
       const docs = p.documents?.filter(d => d.required !== 'No') || [];
       
-      if (docs.length === 0) {
-        listEl.innerHTML = `<tr><td colspan="3" style="text-align:center; color:var(--muted)">No documents currently requested.</td></tr>`;
-        return;
-      }
-
       listEl.innerHTML = docs.map(d => {
         const isUploaded = d.fileUrl || ['Received','Approved'].includes(d.status);
-        const statusBadge = isUploaded ? `<span class="pill status-completed">Received</span>` : `<span class="pill status-hold">Pending</span>`;
-        
         const actionCell = d.fileUrl 
-          ? `<a class="btn small" href="${esc(d.fileUrl)}" target="_blank">📄 View Uploaded File</a>` 
-          : `<div class="inline-upload-cell"><input type="file" id="client_doc_file_${d.id}" style="font-size:12px;" /><button class="btn primary small" onclick="uploadClientDocFile('${p.id}', '${d.id}')">Upload</button></div>`;
+          ? `<a class="btn small primary" href="${esc(d.fileUrl)}" target="_blank">📄 View File</a>` 
+          : `<div style="display:flex; gap:4px;"><input type="file" id="client_doc_file_${d.id}" style="font-size:12px;" /><button class="btn primary small" onclick="uploadClientDocFile('${p.id}', '${d.id}')">Upload</button></div>`;
 
         return `<tr>
           <td><strong>${esc(d.name)}</strong></td>
-          <td>${statusBadge}</td>
+          <td><span class="pill ${isUploaded?'status-completed':'status-hold'}">${isUploaded?'Received':'Pending'}</span></td>
           <td>${actionCell}</td>
         </tr>`;
       }).join('');
@@ -861,27 +836,17 @@
       
       const file = fileInput.files[0];
       const p = projects.find(x => x.id === projectId);
-      p.cloudFiles ||= [];
 
       const statusEl = document.getElementById('clientUploadStatus');
-      statusEl.style.color = "var(--primary)";
       statusEl.textContent = "Uploading document...";
 
       const fileExt = file.name.split('.').pop();
       const uniquePath = `${projectId}/${uid()}.${fileExt}`;
 
       const { data, error } = await supabaseClient.storage.from(STORAGE_BUCKET).upload(uniquePath, file);
-      if (error) {
-         statusEl.style.color = "var(--danger)";
-         statusEl.textContent = "Upload failed. Please try again.";
-         return;
-      }
+      if (error) { statusEl.textContent = "Upload failed."; return; }
 
       const { data: urlData } = supabaseClient.storage.from(STORAGE_BUCKET).getPublicUrl(uniquePath);
-      const fileRecord = { id: uid(), name: file.name, path: uniquePath, url: urlData.publicUrl };
-      
-      p.cloudFiles.push(fileRecord);
-
       const targetDoc = p.documents.find(d => d.id === docId);
       if (targetDoc) {
         targetDoc.status = 'Received';
@@ -889,186 +854,23 @@
       }
 
       queueSave();
-      statusEl.style.color = "var(--success)";
       statusEl.textContent = "Document uploaded successfully!";
       renderClientPortalView();
     }
 
-    async function uploadAdminDocFile(projectId, docId) {
-      const fileInput = document.getElementById(`admin_doc_file_${docId}`);
-      if (!fileInput || !fileInput.files.length) return alert("Select a file first.");
-
-      const file = fileInput.files[0];
+    function copyClientUploadLink() {
       const p = getCurrentProject();
-      p.cloudFiles ||= [];
-
-      setSyncStatus('Uploading document...', 'warning');
-
-      const fileExt = file.name.split('.').pop();
-      const uniquePath = `${projectId}/${uid()}.${fileExt}`;
-
-      const { data, error } = await supabaseClient.storage.from(STORAGE_BUCKET).upload(uniquePath, file);
-      if (error) {
-         alert("Upload failed: " + error.message);
-         return;
-      }
-
-      const { data: urlData } = supabaseClient.storage.from(STORAGE_BUCKET).getPublicUrl(uniquePath);
-      p.cloudFiles.push({ id: uid(), name: file.name, path: uniquePath, url: urlData.publicUrl });
-
-      const targetDoc = p.documents.find(d => d.id === docId);
-      if (targetDoc) {
-        targetDoc.status = 'Received';
-        targetDoc.fileUrl = urlData.publicUrl;
-      }
-
-      queueSave();
-      renderProjectTab();
+      if (!p) return;
+      if (!p.clientToken) { p.clientToken = generateToken(); queueSave(); }
+      const clientUrl = `${window.location.origin}${window.location.pathname}?token=${p.clientToken}`;
+      navigator.clipboard.writeText(clientUrl);
+      alert(`Client Link Copied:\n\n${clientUrl}`);
     }
 
-    function printProjectReport() {
-      const p = getCurrentProject();
-      const completed = p.documents.filter(d => ['Received','Reviewed','Uploaded to portal','Approved'].includes(d.status));
-      const missing = p.documents.filter(d => d.required !== 'No' && !['Received','Approved'].includes(d.status));
-      
-      document.getElementById('printReport').innerHTML = `
-        <h1 class="print-title">Project Approval Status Report</h1>
-        <p class="print-subtitle">Generated ${new Date().toLocaleDateString()} &middot; Project Approvals</p>
-        <div class="card" style="margin-bottom: 20px;"><h3>Project Details</h3><table style="width:100%;text-align:left;"><tbody>
-        <tr><th style="padding:8px;">Client</th><td style="padding:8px;">${esc(p.clientName)}</td></tr>
-        <tr><th style="padding:8px;">Site Address</th><td style="padding:8px;">${esc(p.siteAddress)}</td></tr>
-        <tr><th style="padding:8px;">Council</th><td style="padding:8px;">${esc(p.council)}</td></tr>
-        <tr><th style="padding:8px;">Approval Pathway</th><td style="padding:8px;">${esc(p.approvalType)}</td></tr>
-        <tr><th style="padding:8px;">Current Status</th><td style="padding:8px;">${esc(p.status)}</td></tr>
-        </tbody></table></div>
-        <div class="card" style="margin-bottom: 20px;"><h3>Completed Documents</h3>${reportList(completed, 'No completed documents yet.')}</div>
-        <div class="card" style="margin-bottom: 20px;"><h3>Missing Documents</h3>${reportList(missing, 'No missing documents currently listed.')}</div>
-        <div class="card" style="margin-bottom: 20px;"><h3>Council Notes</h3>${reportNotes(p)}</div>
-        <div class="card" style="margin-bottom: 20px;"><h3>Internal Notes</h3>${reportProjectNotes(p)}</div>
-      `;
-      window.print();
-    }
+    function updateDoc(id, field, value) { getCurrentProject().documents.find(x=>x.id===id)[field]=value; queueSave(); }
+    function removeDoc(id) { const p=getCurrentProject(); p.documents=p.documents.filter(d=>d.id!==id); queueSave(); renderProjectTab(); }
+    function addDocumentPrompt() { const name=prompt('Doc name'); if(!name) return; getCurrentProject().documents.push({ id: uid(), name, required:'Yes', status:'Required', responsible:'Client' }); queueSave(); renderProjectTab(); }
 
-    function printInvoice() {
-      const p = getCurrentProject();
-      p.invoice ||= defaultInvoice(p);
-      const invoice = p.invoice;
-      const subtotal = invoice.lineItems.reduce((sum, item) => sum + Number(item.price || 0), 0);
-      const applyGST = invoice.hasGST !== false;
-      const gst = applyGST ? subtotal * 0.1 : 0;
-      const total = subtotal + gst;
-
-      let gstHtmlRow = '';
-      if (applyGST) {
-        gstHtmlRow = `<div class="summary-row" style="display:flex; justify-content:space-between; padding:8px 0; font-size:14px;"><span>GST (10%):</span> <strong>${formatCurrency(gst)}</strong></div>`;
-      }
-
-      document.getElementById('printReport').innerHTML = `
-        <div class="invoice-preview" style="box-shadow:none; border-color:#ddd; padding:12px;">
-          <div class="invoice-header" style="display:flex; justify-content:space-between; margin-bottom:40px;"><div><h2 style="margin:0 0 4px; font-size:24px;">${esc(BUSINESS_PROFILE.name)}</h2><p style="margin:0; color:#64748b; font-size:14px;">${esc(BUSINESS_PROFILE.address)}<br>${esc(BUSINESS_PROFILE.abn)}</p></div></div>
-          <div class="invoice-meta" style="display:grid; grid-template-columns:1fr 1fr 1fr; gap:24px; margin-bottom:40px; padding-bottom:24px; border-bottom:1px solid #e2e8f0;">
-            <div><h4 style="margin:0 0 8px; font-size:12px; text-transform:uppercase; color:#64748b;">Bill To</h4><p style="margin:0; font-size:14px;">${esc(p.clientName)}<br>${esc(p.clientEmail)}</p></div>
-            <div><h4 style="margin:0 0 8px; font-size:12px; text-transform:uppercase; color:#64748b;">Project</h4><p style="margin:0; font-size:14px;">${esc(p.siteAddress)}<br>${esc(p.council)}</p></div>
-            <div><h4 style="margin:0 0 8px; font-size:12px; text-transform:uppercase; color:#64748b;">Details</h4>
-              <div style="display:flex; justify-content:space-between; font-size:14px; margin-bottom:4px;"><span>Invoice No:</span> <strong>${esc(invoice.invoiceNumber)}</strong></div>
-              <div style="display:flex; justify-content:space-between; font-size:14px; margin-bottom:4px;"><span>Issue Date:</span> <strong>${esc(invoice.issueDate)}</strong></div>
-              <div style="display:flex; justify-content:space-between; font-size:14px; margin-bottom:4px;"><span>Due Date:</span> <strong>${esc(invoice.dueDate)}</strong></div>
-            </div>
-          </div>
-          <table class="invoice-table-rendered" style="width:100%; border-collapse:collapse; margin-bottom:40px;">
-            <thead><tr><th style="padding:12px; border:1px solid #e2e8f0; text-align:left; background:#f8fafc; font-size:12px; text-transform:uppercase; color:#64748b;">Description</th><th style="padding:12px; border:1px solid #e2e8f0; text-align:right; width:140px; background:#f8fafc; font-size:12px; text-transform:uppercase; color:#64748b;">Amount</th></tr></thead>
-            <tbody>${invoice.lineItems.map(item => `<tr><td style="padding:12px; border:1px solid #e2e8f0;"><strong>${esc(item.serviceName)}</strong></td><td style="padding:12px; border:1px solid #e2e8f0; text-align:right;">${formatCurrency(item.price)}</td></tr>`).join('')}</tbody>
-          </table>
-          <div class="invoice-footer" style="display:flex; justify-content:space-between; align-items:flex-end;">
-            <div class="invoice-notes" style="font-size:14px; white-space:pre-wrap; color:#64748b;">${esc(invoice.notes)}</div>
-            <div class="invoice-summary" style="width:300px;">
-              <div class="summary-row" style="display:flex; justify-content:space-between; padding:8px 0; font-size:14px;"><span>Subtotal:</span> <strong>${formatCurrency(subtotal)}</strong></div>
-              ${gstHtmlRow}
-              <div class="summary-row grand" style="display:flex; justify-content:space-between; padding:12px 0; border-top:2px solid #e2e8f0; margin-top:8px; font-size:18px; font-weight:700;"><span>Total:</span> <strong>${formatCurrency(total)}</strong></div>
-            </div>
-          </div>
-        </div>
-      `;
-      window.print();
-    }
-
-    function reportList(items, empty) { return items.length ? `<table style="width:100%;text-align:left;border-collapse:collapse;"><thead><tr><th style="padding:8px;border-bottom:1px solid #ccc;">Document</th><th style="padding:8px;border-bottom:1px solid #ccc;">Status</th><th style="padding:8px;border-bottom:1px solid #ccc;">Responsible</th></tr></thead><tbody>${items.map(d => `<tr><td style="padding:8px;border-bottom:1px solid #eee;">${esc(d.name)}</td><td style="padding:8px;border-bottom:1px solid #eee;">${esc(d.status)}</td><td style="padding:8px;border-bottom:1px solid #eee;">${esc(d.responsible)}</td></tr>`).join('')}</tbody></table>` : `<p>${empty}</p>`; }
-    function reportNotes(p) { return p.notesList?.length ? `<table style="width:100%;text-align:left;border-collapse:collapse;"><thead><tr><th style="padding:8px;border-bottom:1px solid #ccc;">Date</th><th style="padding:8px;border-bottom:1px solid #ccc;">Note</th></tr></thead><tbody>${p.notesList.map(n => `<tr><td style="padding:8px;border-bottom:1px solid #eee;">${esc(n.date)}</td><td style="padding:8px;border-bottom:1px solid #eee;">${esc(n.note)}</td></tr>`).join('')}</tbody></table>` : '<p>No notes added.</p>'; }
-    function reportProjectNotes(p) { return p.projectNotesList?.length ? `<table style="width:100%;text-align:left;border-collapse:collapse;"><thead><tr><th style="padding:8px;border-bottom:1px solid #ccc;">Title</th><th style="padding:8px;border-bottom:1px solid #ccc;">Note</th></tr></thead><tbody>${p.projectNotesList.map(n => `<tr><td style="padding:8px;border-bottom:1px solid #eee;">${esc(n.title || '-')}</td><td style="padding:8px;border-bottom:1px solid #eee;">${esc(n.body)}</td></tr>`).join('')}</tbody></table>` : '<p>No project notes added.</p>'; }
-
-    // === CLOUD STORAGE LOGIC ===
-    async function renderFilesTab(p, el) {
-      el.innerHTML = `<div class="card"><h3>Project Files (Cloud Storage)</h3><p style="font-size:13px; color:var(--muted);">Files upload directly to your secure Supabase cloud bucket.</p><input type="file" multiple onchange="uploadFilesToCloud(event, '${p.id}')" style="margin-bottom:16px;" /><div id="filesContainer" class="file-list">Loading files...</div></div>`;
-      
-      const files = p.cloudFiles || [];
-      const wrap = document.getElementById('filesContainer');
-      
-      if (files.length === 0) {
-         wrap.innerHTML = `<div style="color:var(--muted)">No files uploaded yet.</div>`;
-         return;
-      }
-      wrap.innerHTML = files.map(f => `<div class="file-item"><div><strong>${esc(f.name)}</strong></div><div class="actions"><a class="btn small" href="${esc(f.url)}" target="_blank">Download</a><button class="btn danger small" onclick="deleteFileFromCloud('${f.id}', '${f.path}')">Del</button></div></div>`).join('');
-    }
-    
-    async function uploadFilesToCloud(event, projectId) {
-       if (!supabaseClient) return alert("Connect to Supabase first.");
-       const p = getCurrentProject();
-       p.cloudFiles ||= [];
-       const files = event.target.files;
-       if (files.length === 0) return;
-
-       setSyncStatus('Uploading files...', 'warning');
-       for(let file of files) {
-          const fileExt = file.name.split('.').pop();
-          const uniquePath = `${projectId}/${uid()}.${fileExt}`;
-          
-          const { data, error } = await supabaseClient.storage.from(STORAGE_BUCKET).upload(uniquePath, file);
-          if (error) {
-             console.error("Upload error:", error);
-             alert("Error uploading: " + file.name + ". Ensure public 'project_files' bucket exists in Supabase.");
-          } else {
-             const { data: urlData } = supabaseClient.storage.from(STORAGE_BUCKET).getPublicUrl(uniquePath);
-             p.cloudFiles.push({ id: uid(), name: file.name, path: uniquePath, url: urlData.publicUrl });
-          }
-       }
-       queueSave();
-       renderProjectTab();
-    }
-    
-    async function deleteFileFromCloud(fileId, path) {
-       if (!confirm("Permanently delete this file from the cloud?")) return;
-       const p = getCurrentProject();
-       setSyncStatus('Deleting file...', 'warning');
-       await supabaseClient.storage.from(STORAGE_BUCKET).remove([path]);
-       p.cloudFiles = p.cloudFiles.filter(f => f.id !== fileId);
-       queueSave();
-       renderProjectTab();
-    }
-
-    function exportToCSV() {
-      const headers = ['Project ID', 'Client Name', 'Address', 'Council', 'Approval Type', 'Status', 'Total Docs', 'Missing Docs'];
-      const rows = projects.map(p => {
-         const missing = p.documents.filter(d=>d.required!=='No'&&!['Received','Approved'].includes(d.status)).length;
-         return [p.id, `"${p.clientName}"`, `"${p.siteAddress}"`, `"${p.council}"`, p.approvalType, p.status, p.documents.length, missing].join(',');
-      });
-      const csv = [headers.join(','), ...rows].join('\n');
-      const blob = new Blob([csv], { type: 'text/csv' });
-      const a = document.createElement('a'); a.href = URL.createObjectURL(blob); a.download = 'project-approvals.csv'; a.click();
-    }
-
-    function generateEmailChase() {
-      const p = getCurrentProject();
-      if(!p || !p.clientEmail) { alert('No client email address saved for this project.'); return; }
-      const missing = p.documents.filter(d => d.required !== 'No' && !['Received','Approved'].includes(d.status));
-      if(!missing.length) { alert('No documents are currently missing for this project!'); return; }
-      
-      const missingList = missing.map(d => '- ' + d.name).join('%0D%0A');
-      const subject = `Missing Documents for ${p.siteAddress}`;
-      const body = `Hi ${p.clientName},%0D%0A%0D%0AWe are currently missing the following documents for your project at ${p.siteAddress}:%0D%0A%0D%0A${missingList}%0D%0A%0D%0APlease provide these at your earliest convenience so we can proceed.%0D%0A%0D%0AThanks,`;
-      window.location.href = `mailto:${p.clientEmail}?subject=${subject}&body=${body}`;
-    }
-
-    // Modal Logic
     function openProjectModal(id='') { 
       document.getElementById('projectForm').reset(); 
       populateCouncils(); 
@@ -1076,13 +878,10 @@
       document.getElementById('modalTitle').textContent = id ? 'Edit Project' : 'Add Project'; 
       if (id) { 
         const p = projects.find(x => x.id === id); 
-        const fieldMap = ['clientName','clientPhone','clientEmail','siteAddress','council','lotDp','projectType','approvalType','jobStatus'];
-        fieldMap.forEach(key => { 
+        ['clientName','clientPhone','clientEmail','siteAddress','council','lotDp','projectType','approvalType','jobStatus'].forEach(key => { 
           const el = document.getElementById(key); 
           if (el) el.value = p[key==='jobStatus'?'status':key] || ''; 
         }); 
-      } else { 
-        document.getElementById('jobStatus').value = 'Active'; 
       } 
       document.getElementById('projectModal').classList.add('show'); 
     }
@@ -1092,32 +891,11 @@
     function saveProject(event) { 
       event.preventDefault(); 
       const id = document.getElementById('projectId').value; 
-      const data = { 
-        clientName: document.getElementById('clientName').value, 
-        clientPhone: document.getElementById('clientPhone').value, 
-        clientEmail: document.getElementById('clientEmail').value, 
-        siteAddress: document.getElementById('siteAddress').value, 
-        council: document.getElementById('council').value, 
-        lotDp: document.getElementById('lotDp').value, 
-        projectType: document.getElementById('projectType').value, 
-        approvalType: document.getElementById('approvalType').value, 
-        status: document.getElementById('jobStatus').value 
-      }; 
+      const data = { clientName: document.getElementById('clientName').value, clientPhone: document.getElementById('clientPhone').value, clientEmail: document.getElementById('clientEmail').value, siteAddress: document.getElementById('siteAddress').value, council: document.getElementById('council').value, lotDp: document.getElementById('lotDp').value, projectType: document.getElementById('projectType').value, approvalType: document.getElementById('approvalType').value, status: document.getElementById('jobStatus').value }; 
 
-      if (id) { 
-        Object.assign(projects.find(x => x.id === id), data); 
-      } else { 
-        const newProject = { 
-          id: uid(), 
-          clientToken: generateToken(),
-          createdAt: todayISO(), 
-          updatedAt: new Date().toISOString(), 
-          ...data, 
-          documents: (checklistLibrary[data.approvalType] || checklistLibrary.Other).map(name => ({ id: uid(), name, required: 'Yes', status: 'Required', responsible: 'Client/Consultant' })), 
-          notesList: [], 
-          projectNotesList: [], 
-          cloudFiles: [] 
-        }; 
+      if (id) { Object.assign(projects.find(x => x.id === id), data); } 
+      else { 
+        const newProject = { id: uid(), clientToken: generateToken(), createdAt: todayISO(), ...data, documents: (checklistLibrary[data.approvalType] || checklistLibrary.Other).map(name => ({ id: uid(), name, required: 'Yes', status: 'Required', responsible: 'Client/Consultant' })), notesList: [], projectNotesList: [], agendas: [] }; 
         newProject.invoice = defaultInvoice(newProject); 
         projects.unshift(newProject); 
       } 
@@ -1126,34 +904,10 @@
       id ? openProject(id) : showDashboard(); 
     }
 
-    function updateDoc(id, field, value) { const p=getCurrentProject(); p.documents.find(x=>x.id===id)[field]=value; queueSave(); }
-    function removeDoc(id) { const p=getCurrentProject(); p.documents=p.documents.filter(d=>d.id!==id); queueSave(); renderProjectTab(); }
-    function addDocumentPrompt() { const name=prompt('Doc name'); if(!name) return; const p=getCurrentProject(); p.documents.push({ id: uid(), name, required:'Yes', status:'Required', responsible:'Client' }); queueSave(); renderProjectTab(); }
-    function addCouncilNote() { const p=getCurrentProject(); p.notesList.push({ id: uid(), date: todayISO(), note:'' }); queueSave(); renderProjectTab(); }
-    function updateCouncilNote(id, f, v) { const p=getCurrentProject(); p.notesList.find(x=>x.id===id)[f]=v; queueSave(); }
-    function removeCouncilNote(id) { const p=getCurrentProject(); p.notesList=p.notesList.filter(n=>n.id!==id); queueSave(); renderProjectTab(); }
-    function addProjectNote() { const p=getCurrentProject(); p.projectNotesList.push({ id: uid(), title:'', body:'' }); queueSave(); renderProjectTab(); }
-    function updateProjectNote(id, f, v) { const p=getCurrentProject(); p.projectNotesList.find(x=>x.id===id)[f]=v; queueSave(); }
-    function removeProjectNote(id) { const p=getCurrentProject(); p.projectNotesList=p.projectNotesList.filter(n=>n.id!==id); queueSave(); renderProjectTab(); }
-    function updateInvoiceField(field, value) { const p=getCurrentProject(); p.invoice[field]=value; queueSave(); renderProjectTab(); }
-    function updateInvoiceLine(id, field, value) { const p=getCurrentProject(); p.invoice.lineItems.find(x=>x.id===id)[field]=value; queueSave(); renderProjectTab(); }
-    function addInvoiceLine() { const p=getCurrentProject(); p.invoice.lineItems.push({ id: uid(), serviceName:'', price:'' }); queueSave(); renderProjectTab(); }
-    function removeInvoiceLine(id) { const p=getCurrentProject(); p.invoice.lineItems = p.invoice.lineItems.filter(i => i.id !== id); queueSave(); renderProjectTab(); }
-
-    function showChecklistLibrary() { showOnly('libraryView'); document.getElementById('navLibrary').classList.add('active'); renderLibraryUI(); }
-    function renderLibraryUI() { const container = document.getElementById('libraryView'); let html = `<div class="topbar"><h2>Checklist Library Editor</h2><p>Saved locally to your browser.</p></div><div class="grid two">`; for (const [type, items] of Object.entries(checklistLibrary)) { html += `<div class="card checklist-category"><h3>${type}</h3><div class="checklist-list">${items.map((item, index) => `<div class="checklist-item"><span>${esc(item)}</span><button class="btn danger small" onclick="removeLibraryItem('${type}',${index})">✕</button></div>`).join('')}</div><div style="display:flex;gap:8px;margin-top:12px;"><input type="text" id="addInput_${type}" placeholder="New document name..." /><button class="btn primary small" onclick="addLibraryItem('${type}')">Add</button></div></div>`; } html += `</div>`; container.innerHTML = html; }
-    function addLibraryItem(type) { const val = document.getElementById(`addInput_${type}`).value.trim(); if(val) { checklistLibrary[type].push(val); saveLocalFallback(); renderLibraryUI(); } }
-    function removeLibraryItem(type, index) { if(confirm('Remove this item?')) { checklistLibrary[type].splice(index, 1); saveLocalFallback(); renderLibraryUI(); } }
-    
-    function deleteCurrentProject() { if (!confirm('Delete project?')) return; projects = projects.filter(p => p.id !== currentProjectId); queueSave(); showDashboard(); }
-    function exportData() { const a = document.createElement('a'); a.href = URL.createObjectURL(new Blob([JSON.stringify(projects, null, 2)], { type: 'application/json' })); a.download = 'project-tracker-backup.json'; a.click(); URL.revokeObjectURL(a.href); }
-    function importData(e) { const r = new FileReader(); r.onload = ev => { try { const loaded = JSON.parse(ev.target.result); projects = Array.isArray(loaded) ? loaded : loaded.projects || []; queueSave(); showDashboard(); alert('Restored.'); } catch { alert('Error.'); } }; r.readAsText(e.target.files[0]); }
-    
     async function bootstrap() { 
       populateCouncils(); 
       await initSupabase(); 
-      const isClient = checkClientViewRoute();
-      if (!isClient) {
+      if (!checkClientViewRoute()) {
         checkPortalAuth();
         showDashboard(); 
       }

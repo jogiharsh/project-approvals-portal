@@ -26,7 +26,7 @@
     button, input, select, textarea { font: inherit; }
 
     /* Layout */
-    .app-wrapper { display: flex; flex-direction: column; min-height: 100vh; display: none; background: var(--bg); position: relative; z-index: 1; }
+    .app-wrapper { flex-direction: column; min-height: 100vh; display: none; background: var(--bg); position: relative; z-index: 1; }
     .top-nav { background: #ffffff; border-bottom: 1px solid var(--border); position: sticky; top: 0; z-index: 50; }
     .nav-container { max-width: 1400px; margin: 0 auto; padding: 0 24px; display: flex; align-items: center; justify-content: space-between; height: 64px; }
     .brand { display: flex; align-items: center; gap: 12px; }
@@ -719,8 +719,8 @@
       `).join('');
     }
 
-    function openProject(projectId) {
-      currentProjectId = projectId; activeTab = 'overview'; const p = getCurrentProject(); showOnly('projectView');
+    function openProject(projectId, tab = 'overview') {
+      currentProjectId = projectId; activeTab = tab; const p = getCurrentProject(); showOnly('projectView');
       document.getElementById('projectHeading').textContent = 'File Hub';
       document.getElementById('projectMeta').innerHTML = `<span class="pill" style="background:#e0e7ff; color:#4338ca;">${esc(p.approvalType)}</span> - ${esc(p.siteAddress)}`;
       document.querySelectorAll('.tab-btn').forEach(btn => btn.classList.toggle('active', btn.dataset.tab === activeTab));
@@ -731,14 +731,12 @@
     function getCurrentProject() { return projects.find(p => p.id === currentProjectId); }
     function switchTab(tab) { activeTab = tab; document.querySelectorAll('.tab-btn').forEach(btn => btn.classList.toggle('active', btn.dataset.tab === tab)); renderProjectTab(); }
 
-    async function getSignedDocumentUrl(path) {
+    function getSignedDocumentUrl(path) {
+      // Bucket is public — use permanent public URL; no signed URL needed
       if (!supabaseClient || !path) return null;
       try {
-        const { data, error } = await supabaseClient.storage.from(STORAGE_BUCKET).createSignedUrl(path, 3600);
-        if (data && data.signedUrl) return data.signedUrl;
-        // Fallback to publicUrl if signed URL fails
-        const { data: pubData } = supabaseClient.storage.from(STORAGE_BUCKET).getPublicUrl(path);
-        return pubData ? pubData.publicUrl : null;
+        const { data } = supabaseClient.storage.from(STORAGE_BUCKET).getPublicUrl(path);
+        return data ? data.publicUrl : null;
       } catch { return null; }
     }
 
@@ -753,12 +751,10 @@
         let rowsHtml = '';
         for (const d of p.documents) {
           const cloudMatch = (p.cloudFiles || []).find(f => f.path && f.path.includes(d.id));
-          let fileUrl = d.fileUrl || (cloudMatch ? cloudMatch.url : null);
-          
-          if (cloudMatch && cloudMatch.path) {
-            const freshUrl = await getSignedDocumentUrl(cloudMatch.path);
-            if (freshUrl) fileUrl = freshUrl;
-          }
+          // Prefer cloud path → permanent public URL; fall back to stored fileUrl
+          let fileUrl = (cloudMatch && cloudMatch.path)
+            ? getSignedDocumentUrl(cloudMatch.path)
+            : (d.fileUrl || (cloudMatch ? cloudMatch.url : null));
 
           const fileAction = fileUrl 
             ? `<div style="display:flex; gap:4px; align-items:center;">
@@ -949,8 +945,9 @@
         return; 
       }
 
-      const { data: signedData } = await supabaseClient.storage.from(STORAGE_BUCKET).createSignedUrl(uniquePath, 3600);
-      const urlToUse = signedData ? signedData.signedUrl : '';
+      // Use permanent public URL (bucket is public) — signed URLs expire after 1 hour
+      const { data: pubData } = supabaseClient.storage.from(STORAGE_BUCKET).getPublicUrl(uniquePath);
+      const urlToUse = pubData ? pubData.publicUrl : '';
 
       p.cloudFiles.push({ id: uid(), name: file.name, path: uniquePath, url: urlToUse });
 
@@ -1052,17 +1049,18 @@
       document.getElementById('clientPortalSub').textContent = `${p.clientName} · ${p.approvalType} Application (${p.council})`;
 
       const listEl = document.getElementById('clientDocList');
+      // Show loading state while building the table
+      listEl.innerHTML = `<tr><td colspan="3" style="text-align:center; padding:24px; color:var(--muted);">Loading documents…</td></tr>`;
+
       const docs = p.documents?.filter(d => d.required !== 'No') || [];
       
       let rowsHtml = '';
       for (const d of docs) {
         const cloudMatch = (p.cloudFiles || []).find(f => f.path && f.path.includes(d.id));
-        let fileUrl = d.fileUrl || (cloudMatch ? cloudMatch.url : null);
-        
-        if (cloudMatch && cloudMatch.path) {
-          const freshUrl = await getSignedDocumentUrl(cloudMatch.path);
-          if (freshUrl) fileUrl = freshUrl;
-        }
+        // Use permanent public URL from stored path; fall back to stored fileUrl
+        let fileUrl = (cloudMatch && cloudMatch.path)
+          ? getSignedDocumentUrl(cloudMatch.path)
+          : (d.fileUrl || (cloudMatch ? cloudMatch.url : null));
 
         const isUploaded = fileUrl || ['Received','Approved'].includes(d.status);
 
@@ -1102,8 +1100,9 @@
         return; 
       }
 
-      const { data: signedData } = await supabaseClient.storage.from(STORAGE_BUCKET).createSignedUrl(uniquePath, 3600);
-      const urlToUse = signedData ? signedData.signedUrl : '';
+      // Use permanent public URL (bucket is public) — signed URLs expire after 1 hour
+      const { data: pubData } = supabaseClient.storage.from(STORAGE_BUCKET).getPublicUrl(uniquePath);
+      const urlToUse = pubData ? pubData.publicUrl : '';
 
       const { error: rpcError } = await supabaseClient.rpc('attach_client_file', {
         p_token: currentClientToken,
@@ -1120,7 +1119,10 @@
       }
 
       statusEl.textContent = "Document uploaded successfully!";
-      await initClientPortalOnly();
+      // Bug fix: refresh the portal view only — don't re-initialise the whole client
+      const { data: refreshData } = await supabaseClient.rpc('get_client_project', { p_token: currentClientToken });
+      if (refreshData) { projects = [refreshData]; }
+      await renderClientPortalView();
     }
 
     function copyClientUploadLink() {
@@ -1142,8 +1144,14 @@
     
     async function removeDoc(id) { 
       const p = getCurrentProject(); 
-      if (p && confirm('Remove this document section completely?')) { 
-        if (p.cloudFiles) {
+      if (p && confirm('Remove this document section completely?')) {
+        // Delete associated cloud files from storage first to avoid orphaned files
+        if (p.cloudFiles && supabaseClient) {
+          const pathsToDelete = p.cloudFiles.filter(f => f.path && f.path.includes(id)).map(f => f.path);
+          if (pathsToDelete.length > 0) {
+            setSyncStatus('Deleting cloud files...', 'warning');
+            await supabaseClient.storage.from(STORAGE_BUCKET).remove(pathsToDelete);
+          }
           p.cloudFiles = p.cloudFiles.filter(f => !f.path || !f.path.includes(id));
         }
         p.documents = p.documents.filter(d => d.id !== id); 
@@ -1192,7 +1200,7 @@
       document.getElementById('financePaid').textContent = formatCurrency(paidTotal);
       const wrap = document.getElementById('financeTableWrap');
       if (!allInvoices.length) { wrap.innerHTML = `<div class="empty">No invoices generated yet.</div>`; return; }
-      wrap.innerHTML = `<div style="overflow-x:auto;"><table><thead><tr><th>Invoice No</th><th>Date</th><th>Project</th><th>Client</th><th>Status</th><th style="text-align:right;">Amount</th></tr></thead><tbody>${allInvoices.map(inv => `<tr style="cursor:pointer;" onclick="openProject('${inv.projectId}'); switchTab('invoice');"><td><strong>${esc(inv.invoiceNo)}</strong></td><td>${esc(inv.issueDate)}</td><td>${esc(inv.projectName)}</td><td>${esc(inv.client)}</td><td><span class="pill">${esc(inv.status)}</span></td><td style="text-align:right;">${formatCurrency(inv.total)}</td></tr>`).join('')}</tbody></table></div>`;
+      wrap.innerHTML = `<div style="overflow-x:auto;"><table><thead><tr><th>Invoice No</th><th>Date</th><th>Project</th><th>Client</th><th>Status</th><th style="text-align:right;">Amount</th></tr></thead><tbody>${allInvoices.map(inv => `<tr style="cursor:pointer;" onclick="openProject('${inv.projectId}', 'invoice')"><td><strong>${esc(inv.invoiceNo)}</strong></td><td>${esc(inv.issueDate)}</td><td>${esc(inv.projectName)}</td><td>${esc(inv.client)}</td><td><span class="pill">${esc(inv.status)}</span></td><td style="text-align:right;">${formatCurrency(inv.total)}</td></tr>`).join('')}</tbody></table></div>`;
     }
 
     function openProjectModal(id='') { 
@@ -1257,6 +1265,7 @@
           const parsed = JSON.parse(ev.target.result);
           if (Array.isArray(parsed) && parsed.every(x => x.id && x.siteAddress)) {
             projects = parsed;
+            upgradeOldInvoices(); // ensure clientToken, agendas, invoice, cloudFiles are present
             queueSave(); 
             showDashboard(); 
             alert('Backup restored successfully.'); 

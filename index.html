@@ -182,6 +182,8 @@
     .client-portal-wrapper { max-width: 900px; margin: 40px auto; padding: 0 20px; }
     .client-card { background: #fff; border: 1px solid var(--border); border-radius: var(--radius); padding: 32px; box-shadow: var(--shadow); }
 
+    .note-card { background: var(--bg); border: 1px solid var(--border); border-radius: var(--radius); padding: 16px; margin-bottom: 12px; display: flex; justify-content: space-between; }
+
     @media print {
       body { background: #fff; color: #000; }
       .top-nav, .tabs, .no-print, .modal-backdrop, #dashboardView, #projectView, #libraryView, #financeView, #clientPortalView, .actions { display: none !important; }
@@ -523,10 +525,11 @@
       let changed = false;
       projects.forEach(p => {
         if (!p.clientToken) { p.clientToken = generateToken(); changed = true; }
-        p.agendas ||= [];
+        if (!p.agendas) { p.agendas = []; changed = true; }
         if (!p.invoice) { p.invoice = defaultInvoice(p); changed = true; }
       });
       if (changed) saveLocalFallback();
+      return changed;
     }
 
     async function loadProjectsFromCloud() {
@@ -537,7 +540,8 @@
         projects = Array.isArray(data[0].projects) ? data[0].projects : []; 
         if (data[0].checklistLibrary) checklistLibrary = data[0].checklistLibrary; 
       }
-      upgradeOldInvoices();
+      const didUpgrade = upgradeOldInvoices();
+      if (didUpgrade) queueSave();
     }
 
     async function saveAll() {
@@ -660,16 +664,21 @@
 
     function renderProjectTab() {
       const p = getCurrentProject(); if (!p) return;
-      p.documents ||= []; p.notesList ||= []; p.projectNotesList ||= []; p.invoice ||= defaultInvoice(p); p.agendas ||= [];
+      p.documents ||= []; p.notesList ||= []; p.projectNotesList ||= []; p.invoice ||= defaultInvoice(p); p.agendas ||= []; p.cloudFiles ||= [];
       const el = document.getElementById('projectTabContent');
 
       if (activeTab === 'overview') el.innerHTML = `<div class="card"><h3>Project Details</h3><table><tbody><tr><th>Client</th><td>${esc(p.clientName)}<br><span style="color:var(--muted);">${esc(p.clientEmail)}</span></td></tr><tr><th>Address</th><td>${esc(p.siteAddress)}</td></tr><tr><th>Council</th><td>${esc(p.council)}</td></tr><tr><th>Type</th><td>${esc(p.approvalType)}</td></tr><tr><th>Status</th><td>${esc(p.status)}</td></tr></tbody></table></div>`;
       
       if (activeTab === 'documents') {
         el.innerHTML = `<div class="card"><div class="section-title"><h3>Document Checklist & Direct Uploads</h3><button class="btn primary small" onclick="addDocumentPrompt()">+ Add Section</button></div><div style="overflow-x:auto;"><table><thead><tr><th>Document Section</th><th>Required</th><th>Status</th><th>Responsible</th><th>Attached File / Action</th><th></th></tr></thead><tbody>${p.documents.map(d => {
-          const fileAction = d.fileUrl 
-            ? `<a class="btn small primary" href="${esc(d.fileUrl)}" target="_blank">📄 View Doc</a>` 
+          // Check both direct URL or cloudFiles array
+          const cloudMatch = p.cloudFiles.find(f => f.path.includes(d.id));
+          const fileUrl = d.fileUrl || (cloudMatch ? cloudMatch.url : null);
+          
+          const fileAction = fileUrl 
+            ? `<a class="btn small primary" href="${esc(fileUrl)}" target="_blank">📄 View Doc</a>` 
             : `<div style="display:flex; gap:4px;"><input type="file" id="admin_doc_file_${d.id}" style="font-size:11px;" /><button class="btn primary small" onclick="uploadAdminDocFile('${p.id}', '${d.id}')">Upload</button></div>`;
+          
           return `<tr>
             <td><input value="${esc(d.name)}" onchange="updateDoc('${d.id}','name',this.value)"></td>
             <td><select onchange="updateDoc('${d.id}','required',this.value)"><option ${d.required==='Yes'?'selected':''}>Yes</option><option${d.required==='No'?'selected':''}>No</option></select></td>
@@ -684,6 +693,68 @@
       if (activeTab === 'councilNotes') el.innerHTML = `<div class="card"><h3>Notes</h3><button class="btn primary small" onclick="addCouncilNote()">+ Add Note</button><br><br><table><tbody>${p.notesList.map(n => `<tr><td><input type="date" value="${esc(n.date)}" onchange="updateCouncilNote('${n.id}','date',this.value)"></td><td><textarea onchange="updateCouncilNote('${n.id}','note',this.value)">${esc(n.note)}</textarea></td><td><button class="btn small danger" onclick="removeCouncilNote('${n.id}')">Del</button></td></tr>`).join('')}</tbody></table></div>`;
       if (activeTab === 'projectNotes') el.innerHTML = `<div class="card"><h3>Internal Notes</h3><button class="btn primary small" onclick="addProjectNote()">+ Add Note</button><br><br><div class="note-list">${p.projectNotesList.map(n => `<div class="note-card"><div style="flex:1;"><input value="${esc(n.title)}" placeholder="Title" onchange="updateProjectNote('${n.id}','title',this.value)" style="margin-bottom:8px;"><textarea onchange="updateProjectNote('${n.id}','body',this.value)">${esc(n.body)}</textarea></div><button class="btn danger small" onclick="removeProjectNote('${n.id}')" style="margin-left:12px;">Del</button></div>`).join('')}</div></div>`;
       if (activeTab === 'invoice') renderInvoiceTab(p, el);
+    }
+
+    function renderInvoiceTab(p, el) {
+      const inv = p.invoice;
+      const subtotal = inv.lineItems.reduce((sum, item) => sum + Number(item.price || 0), 0); 
+      const applyGST = inv.hasGST !== false; 
+      const gst = applyGST ? subtotal * 0.1 : 0; 
+      const total = subtotal + gst;
+
+      let gstHtmlRow = applyGST ? `<div class="summary-row"><span>GST (10%):</span> <strong>${formatCurrency(gst)}</strong></div>` : '';
+
+      el.innerHTML = `
+        <div class="invoice-shell">
+          <div class="card">
+            <div class="section-title">
+              <h3>Invoice Builder</h3>
+              <button class="btn primary" onclick="printInvoice()">🖨 Print Invoice / PDF</button>
+            </div>
+            <div class="form-grid" style="margin-bottom: 32px;">
+              <div class="field"><label>Invoice No.</label><input value="${esc(inv.invoiceNumber)}" onchange="updateInvoiceField('invoiceNumber',this.value)" /></div>
+              <div class="field"><label>Issue Date</label><input type="date" value="${esc(inv.issueDate)}" onchange="updateInvoiceField('issueDate',this.value)" /></div>
+              <div class="field"><label>Due Date</label><input type="date" value="${esc(inv.dueDate)}" onchange="updateInvoiceField('dueDate',this.value)" /></div>
+              <div class="field">
+                <label>Status</label>
+                <select onchange="updateInvoiceField('status', this.value)">
+                  <option value="DRAFT" ${inv.status==='DRAFT'?'selected':''}>DRAFT</option>
+                  <option value="SENT" ${inv.status==='SENT'?'selected':''}>SENT</option>
+                  <option value="RECEIVED PAYMENT" ${inv.status==='RECEIVED PAYMENT'?'selected':''}>RECEIVED PAYMENT</option>
+                  <option value="OVERDUE" ${inv.status==='OVERDUE'?'selected':''}>OVERDUE</option>
+                  <option value="CANCELLED" ${inv.status==='CANCELLED'?'selected':''}>CANCELLED</option>
+                </select>
+              </div>
+              <div class="field">
+                <label>Include GST (10%)</label>
+                <select onchange="updateInvoiceField('hasGST', this.value === 'true')">
+                  <option value="true" ${applyGST ? 'selected' : ''}>Yes, include GST</option>
+                  <option value="false" ${!applyGST ? 'selected' : ''}>No GST</option>
+                </select>
+              </div>
+              <div class="field full"><label>Payment Notes</label><textarea onchange="updateInvoiceField('notes',this.value)">${esc(inv.notes)}</textarea></div>
+            </div>
+            <div class="section-title"><h3>Services</h3><button class="btn small" onclick="addInvoiceLine()">+ Add Service</button></div>
+            <table>
+              <thead><tr><th>Service</th><th>Price</th><th></th></tr></thead>
+              <tbody>${inv.lineItems.map(item => `<tr><td><input value="${esc(item.serviceName)}" onchange="updateInvoiceLine('${item.id}','serviceName',this.value)" placeholder="Service Name"></td><td><input type="number" step="0.01" value="${esc(item.price)}" onchange="updateInvoiceLine('${item.id}','price',this.value)" /></td><td><button class="btn danger small" onclick="removeInvoiceLine('${item.id}')">Del</button></td></tr>`).join('')}</tbody>
+            </table>
+          </div>
+          
+          <div class="invoice-preview">
+            <div class="invoice-header"><div><h2>${esc(BUSINESS_PROFILE.name)}</h2><p>${esc(BUSINESS_PROFILE.address)}<br>${esc(BUSINESS_PROFILE.abn)}</p></div></div>
+            <div class="invoice-meta"><div><h4>Bill To</h4><p>${esc(p.clientName)}<br>${esc(p.clientEmail)}</p></div><div><h4>Project</h4><p>${esc(p.siteAddress)}<br>${esc(p.council)}</p></div><div><h4>Details</h4><div class="invoice-meta-row"><span>Invoice No:</span> <strong>${esc(inv.invoiceNumber)}</strong></div><div class="invoice-meta-row"><span>Issue Date:</span> <strong>${esc(inv.issueDate)}</strong></div><div class="invoice-meta-row"><span>Due Date:</span> <strong>${esc(inv.dueDate)}</strong></div></div></div>
+            <table class="invoice-table-rendered"><thead><tr><th>Description</th><th>Amount</th></tr></thead><tbody>${inv.lineItems.map(item => `<tr><td><strong>${esc(item.serviceName)}</strong></td><td>${formatCurrency(item.price)}</td></tr>`).join('')}</tbody></table>
+            <div class="invoice-footer">
+              <div class="invoice-notes">${esc(inv.notes)}</div>
+              <div class="invoice-summary">
+                <div class="summary-row"><span>Subtotal:</span> <strong>${formatCurrency(subtotal)}</strong></div>
+                ${gstHtmlRow}
+                <div class="summary-row grand"><span>Total:</span> <strong>${formatCurrency(total)}</strong></div>
+              </div>
+            </div>
+          </div>
+        </div>`;
     }
 
     // CALENDAR FUNCTIONS
@@ -713,6 +784,7 @@
       calMonth += delta;
       if(calMonth < 0) { calMonth = 11; calYear--; }
       if(calMonth > 11) { calMonth = 0; calYear++; }
+      selectedCalDate = `${calYear}-${String(calMonth+1).padStart(2,'0')}-01`;
       renderCalendar();
     }
 
@@ -769,15 +841,19 @@
 
       const file = fileInput.files[0];
       const p = getCurrentProject();
+      p.cloudFiles ||= [];
 
       setSyncStatus('Uploading document...', 'warning');
       const fileExt = file.name.split('.').pop();
-      const uniquePath = `${projectId}/${uid()}.${fileExt}`;
+      const uniquePath = `${projectId}/${docId}_${uid()}.${fileExt}`;
 
       const { data, error } = await supabaseClient.storage.from(STORAGE_BUCKET).upload(uniquePath, file);
       if (error) { alert("Upload failed: " + error.message); return; }
 
       const { data: urlData } = supabaseClient.storage.from(STORAGE_BUCKET).getPublicUrl(uniquePath);
+      
+      p.cloudFiles.push({ id: uid(), name: file.name, path: uniquePath, url: urlData.publicUrl });
+
       const targetDoc = p.documents.find(d => d.id === docId);
       if (targetDoc) {
         targetDoc.status = 'Received';
@@ -817,9 +893,12 @@
       const docs = p.documents?.filter(d => d.required !== 'No') || [];
       
       listEl.innerHTML = docs.map(d => {
-        const isUploaded = d.fileUrl || ['Received','Approved'].includes(d.status);
-        const actionCell = d.fileUrl 
-          ? `<a class="btn small primary" href="${esc(d.fileUrl)}" target="_blank">📄 View File</a>` 
+        const cloudMatch = (p.cloudFiles || []).find(f => f.path.includes(d.id));
+        const fileUrl = d.fileUrl || (cloudMatch ? cloudMatch.url : null);
+        const isUploaded = fileUrl || ['Received','Approved'].includes(d.status);
+
+        const actionCell = fileUrl 
+          ? `<a class="btn small primary" href="${esc(fileUrl)}" target="_blank">📄 View File</a>` 
           : `<div style="display:flex; gap:4px;"><input type="file" id="client_doc_file_${d.id}" style="font-size:12px;" /><button class="btn primary small" onclick="uploadClientDocFile('${p.id}', '${d.id}')">Upload</button></div>`;
 
         return `<tr>
@@ -836,17 +915,21 @@
       
       const file = fileInput.files[0];
       const p = projects.find(x => x.id === projectId);
+      p.cloudFiles ||= [];
 
       const statusEl = document.getElementById('clientUploadStatus');
       statusEl.textContent = "Uploading document...";
 
       const fileExt = file.name.split('.').pop();
-      const uniquePath = `${projectId}/${uid()}.${fileExt}`;
+      const uniquePath = `${projectId}/${docId}_${uid()}.${fileExt}`;
 
       const { data, error } = await supabaseClient.storage.from(STORAGE_BUCKET).upload(uniquePath, file);
       if (error) { statusEl.textContent = "Upload failed."; return; }
 
       const { data: urlData } = supabaseClient.storage.from(STORAGE_BUCKET).getPublicUrl(uniquePath);
+      
+      p.cloudFiles.push({ id: uid(), name: file.name, path: uniquePath, url: urlData.publicUrl });
+
       const targetDoc = p.documents.find(d => d.id === docId);
       if (targetDoc) {
         targetDoc.status = 'Received';
@@ -870,6 +953,45 @@
     function updateDoc(id, field, value) { getCurrentProject().documents.find(x=>x.id===id)[field]=value; queueSave(); }
     function removeDoc(id) { const p=getCurrentProject(); p.documents=p.documents.filter(d=>d.id!==id); queueSave(); renderProjectTab(); }
     function addDocumentPrompt() { const name=prompt('Doc name'); if(!name) return; getCurrentProject().documents.push({ id: uid(), name, required:'Yes', status:'Required', responsible:'Client' }); queueSave(); renderProjectTab(); }
+
+    function addCouncilNote() { const p=getCurrentProject(); p.notesList.push({ id: uid(), date: todayISO(), note:'' }); queueSave(); renderProjectTab(); }
+    function updateCouncilNote(id, f, v) { const p=getCurrentProject(); p.notesList.find(x=>x.id===id)[f]=v; queueSave(); }
+    function removeCouncilNote(id) { const p=getCurrentProject(); p.notesList=p.notesList.filter(n=>n.id!==id); queueSave(); renderProjectTab(); }
+    function addProjectNote() { const p=getCurrentProject(); p.projectNotesList.push({ id: uid(), title:'', body:'' }); queueSave(); renderProjectTab(); }
+    function updateProjectNote(id, f, v) { const p=getCurrentProject(); p.projectNotesList.find(x=>x.id===id)[f]=v; queueSave(); }
+    function removeProjectNote(id) { const p=getCurrentProject(); p.projectNotesList=p.projectNotesList.filter(n=>n.id!==id); queueSave(); renderProjectTab(); }
+    
+    function updateInvoiceField(field, value) { const p=getCurrentProject(); p.invoice[field]=value; queueSave(); }
+    function updateInvoiceLine(id, field, value) { const p=getCurrentProject(); p.invoice.lineItems.find(x=>x.id===id)[field]=value; queueSave(); }
+    function addInvoiceLine() { const p=getCurrentProject(); p.invoice.lineItems.push({ id: uid(), serviceName:'', price:'' }); queueSave(); renderProjectTab(); }
+    function removeInvoiceLine(id) { const p=getCurrentProject(); p.invoice.lineItems = p.invoice.lineItems.filter(i => i.id !== id); queueSave(); renderProjectTab(); }
+
+    function showFinances() {
+      showOnly('financeView');
+      document.getElementById('navFinances').classList.add('active');
+      let allInvoices = [], unpaidTotal = 0, paidTotal = 0;
+      projects.forEach(p => {
+         if (p.invoice && p.invoice.lineItems) {
+            const sub = p.invoice.lineItems.reduce((s, i) => s + Number(i.price || 0), 0);
+            const total = sub + (p.invoice.hasGST !== false ? sub * 0.1 : 0);
+            if (p.invoice.status !== 'CANCELLED') {
+               if (p.invoice.status === 'RECEIVED PAYMENT') paidTotal += total;
+               else unpaidTotal += total;
+            }
+            allInvoices.push({ projectId: p.id, projectName: p.siteAddress, client: p.clientName, invoiceNo: p.invoice.invoiceNumber, issueDate: p.invoice.issueDate, status: p.invoice.status || 'SENT', total });
+         }
+      });
+      document.getElementById('financeUnpaid').textContent = formatCurrency(unpaidTotal);
+      document.getElementById('financePaid').textContent = formatCurrency(paidTotal);
+      const wrap = document.getElementById('financeTableWrap');
+      if (!allInvoices.length) { wrap.innerHTML = `<div class="empty">No invoices generated yet.</div>`; return; }
+      wrap.innerHTML = `<div style="overflow-x:auto;"><table><thead><tr><th>Invoice No</th><th>Date</th><th>Project</th><th>Client</th><th>Status</th><th style="text-align:right;">Amount</th></tr></thead><tbody>${allInvoices.map(inv => `<tr style="cursor:pointer;" onclick="openProject('${inv.projectId}'); switchTab('invoice');"><td><strong>${esc(inv.invoiceNo)}</strong></td><td>${esc(inv.issueDate)}</td><td>${esc(inv.projectName)}</td><td>${esc(inv.client)}</td><td><span class="pill">${esc(inv.status)}</span></td><td style="text-align:right;">${formatCurrency(inv.total)}</td></tr>`).join('')}</tbody></table></div>`;
+    }
+
+    function showChecklistLibrary() { showOnly('libraryView'); document.getElementById('navLibrary').classList.add('active'); renderLibraryUI(); }
+    function renderLibraryUI() { const container = document.getElementById('libraryView'); let html = `<div class="topbar"><h2>Checklist Library Editor</h2></div><div class="grid two">`; for (const [type, items] of Object.entries(checklistLibrary)) { html += `<div class="card"><h3>${type}</h3><div>${items.map((item, index) => `<div style="display:flex; justify-content:space-between; margin-bottom:4px;"><span>${esc(item)}</span><button class="btn danger small" onclick="removeLibraryItem('${type}',${index})">✕</button></div>`).join('')}</div><div style="display:flex;gap:8px;margin-top:12px;"><input type="text" id="addInput_${type}" placeholder="New document name..." /><button class="btn primary small" onclick="addLibraryItem('${type}')">Add</button></div></div>`; } html += `</div>`; container.innerHTML = html; }
+    function addLibraryItem(type) { const val = document.getElementById(`addInput_${type}`).value.trim(); if(val) { checklistLibrary[type].push(val); saveLocalFallback(); renderLibraryUI(); } }
+    function removeLibraryItem(type, index) { if(confirm('Remove item?')) { checklistLibrary[type].splice(index, 1); saveLocalFallback(); renderLibraryUI(); } }
 
     function openProjectModal(id='') { 
       document.getElementById('projectForm').reset(); 
@@ -895,7 +1017,7 @@
 
       if (id) { Object.assign(projects.find(x => x.id === id), data); } 
       else { 
-        const newProject = { id: uid(), clientToken: generateToken(), createdAt: todayISO(), ...data, documents: (checklistLibrary[data.approvalType] || checklistLibrary.Other).map(name => ({ id: uid(), name, required: 'Yes', status: 'Required', responsible: 'Client/Consultant' })), notesList: [], projectNotesList: [], agendas: [] }; 
+        const newProject = { id: uid(), clientToken: generateToken(), createdAt: todayISO(), ...data, documents: (checklistLibrary[data.approvalType] || checklistLibrary.Other).map(name => ({ id: uid(), name, required: 'Yes', status: 'Required', responsible: 'Client/Consultant' })), notesList: [], projectNotesList: [], agendas: [], cloudFiles: [] }; 
         newProject.invoice = defaultInvoice(newProject); 
         projects.unshift(newProject); 
       } 
@@ -903,6 +1025,14 @@
       closeProjectModal(); 
       id ? openProject(id) : showDashboard(); 
     }
+
+    function deleteCurrentProject() { if (!confirm('Delete project?')) return; projects = projects.filter(p => p.id !== currentProjectId); queueSave(); showDashboard(); }
+    function exportData() { const a = document.createElement('a'); a.href = URL.createObjectURL(new Blob([JSON.stringify(projects, null, 2)], { type: 'application/json' })); a.download = 'project-tracker-backup.json'; a.click(); }
+    function importData(e) { const r = new FileReader(); r.onload = ev => { try { projects = JSON.parse(ev.target.result); queueSave(); showDashboard(); alert('Restored.'); } catch { alert('Error.'); } }; r.readAsText(e.target.files[0]); }
+    function exportToCSV() { const csv = projects.map(p => [p.id, `"${p.clientName}"`, `"${p.siteAddress}"`, p.approvalType, p.status].join(',')).join('\n'); const a = document.createElement('a'); a.href = URL.createObjectURL(new Blob([csv], { type: 'text/csv' })); a.download = 'projects.csv'; a.click(); }
+    function generateEmailChase() { const p = getCurrentProject(); if(!p?.clientEmail) return alert('No email'); window.location.href = `mailto:${p.clientEmail}?subject=Missing Docs for ${p.siteAddress}`; }
+    function printProjectReport() { window.print(); }
+    function printInvoice() { window.print(); }
 
     async function bootstrap() { 
       populateCouncils(); 

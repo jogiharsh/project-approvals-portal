@@ -168,10 +168,9 @@
     .print-report { display: none; }
 
     /* Client Portal Upload View Styles */
-    .client-portal-wrapper { max-width: 800px; margin: 40px auto; padding: 0 20px; }
+    .client-portal-wrapper { max-width: 900px; margin: 40px auto; padding: 0 20px; }
     .client-card { background: #fff; border: 1px solid var(--border); border-radius: var(--radius); padding: 32px; box-shadow: var(--shadow); }
-    .upload-box { border: 2px dashed var(--primary-soft); background: #f8fafc; padding: 32px; text-align: center; border-radius: var(--radius); margin-top: 20px; transition: border-color 0.2s; }
-    .upload-box:hover { border-color: var(--primary); }
+    .inline-upload-cell { display: flex; align-items: center; gap: 8px; }
 
     @media print {
       body { background: #fff; color: #000; }
@@ -310,7 +309,7 @@
         <div id="projectTabContent"></div>
       </section>
 
-      <!-- CLIENT PORTAL VIEW (STANDALONE ISOLATED PAGE) -->
+      <!-- CLIENT PORTAL VIEW (DOCUMENT SECTION UPLOADS) -->
       <section id="clientPortalView" class="hidden">
         <div class="client-portal-wrapper">
           <div class="client-card">
@@ -322,27 +321,20 @@
               <div class="brand-mark">PA</div>
             </div>
 
-            <h3>Required Documents</h3>
-            <p style="font-size:14px; color:var(--muted); margin-bottom:16px;">Please upload the requested files for your approval application below.</p>
+            <h3 style="margin-bottom:8px;">Document Requirements</h3>
+            <p style="font-size:14px; color:var(--muted); margin-bottom:20px;">Upload each requested document directly next to its section below.</p>
 
-            <div style="overflow-x:auto; margin-bottom:24px;">
+            <div style="overflow-x:auto;">
               <table>
                 <thead>
                   <tr>
-                    <th>Document Name</th>
+                    <th>Document Section</th>
                     <th>Status</th>
                     <th>Upload File</th>
                   </tr>
                 </thead>
                 <tbody id="clientDocList"></tbody>
               </table>
-            </div>
-
-            <div class="upload-box">
-              <h4 style="margin:0 0 8px;">General Upload</h4>
-              <p style="margin:0 0 16px; font-size:13px; color:var(--muted);">Select one or more documents to send directly to your project coordinator.</p>
-              <input type="file" id="clientGeneralFileInput" multiple style="max-width:300px;" />
-              <button class="btn primary" onclick="handleClientGeneralUpload()" style="margin-top:12px;">Upload Selected Files</button>
             </div>
             <div id="clientUploadStatus" style="margin-top:16px; font-size:14px; font-weight:600; text-align:center;"></div>
           </div>
@@ -716,7 +708,19 @@
       p.documents ||= []; p.notesList ||= []; p.projectNotesList ||= []; p.invoice ||= defaultInvoice(p); p.cloudFiles ||= [];
       const el = document.getElementById('projectTabContent');
       if (activeTab === 'overview') el.innerHTML = `<div class="grid two"><div class="card"><h3>Project Details</h3><table><tbody><tr><th>Client</th><td>${esc(p.clientName)}<br><span style="color:var(--muted);">${esc(p.clientEmail)}</span></td></tr><tr><th>Address</th><td>${esc(p.siteAddress)}</td></tr><tr><th>Council</th><td>${esc(p.council)}</td></tr><tr><th>Type</th><td>${esc(p.approvalType)}</td></tr><tr><th>Status</th><td>${esc(p.status)}</td></tr></tbody></table></div><div class="card"><h3>Snapshot</h3><div class="grid two"><div class="stat-card"><span>Total Docs</span><strong>${p.documents.length}</strong></div><div class="stat-card"><span>Ready Docs</span><strong>${p.documents.filter(d=>['Received','Approved'].includes(d.status)).length}</strong></div></div><br><p><strong>Next Action:</strong> ${determineNextAction(p)}</p></div></div>`;
-      if (activeTab === 'documents') el.innerHTML = `<div class="card"><div class="section-title"><h3>Document Checklist</h3><button class="btn primary small" onclick="addDocumentPrompt()">+ Add Item</button></div><div style="overflow-x:auto;"><table><thead><tr><th>Document</th><th>Required</th><th>Status</th><th>Responsible</th><th></th></tr></thead><tbody>${p.documents.map(d => `<tr><td><input value="${esc(d.name)}" onchange="updateDoc('${d.id}','name',this.value)"></td><td><select onchange="updateDoc('${d.id}','required',this.value)"><option ${d.required==='Yes'?'selected':''}>Yes</option><option${d.required==='No'?'selected':''}>No</option></select></td><td><select onchange="updateDoc('${d.id}','status',this.value)">${['Not required','Required','Requested','Received','Reviewed','Needs revision','Uploaded to portal','Approved'].map(s => `<option ${d.status===s?'selected':''}>${s}</option>`).join('')}</select></td><td><input value="${esc(d.responsible)}" onchange="updateDoc('${d.id}','responsible',this.value)"></td><td><button class="btn small danger" onclick="removeDoc('${d.id}')">Del</button></td></tr>`).join('')}</tbody></table></div></div>`;
+      if (activeTab === 'documents') {
+        el.innerHTML = `<div class="card"><div class="section-title"><h3>Document Checklist & Direct Uploads</h3><button class="btn primary small" onclick="addDocumentPrompt()">+ Add Section</button></div><div style="overflow-x:auto;"><table><thead><tr><th>Document Section</th><th>Required</th><th>Status</th><th>Responsible</th><th>Attached File</th><th></th></tr></thead><tbody>${p.documents.map(d => {
+          const attachedFile = d.fileUrl ? `<a class="btn small" href="${esc(d.fileUrl)}" target="_blank">📄 View Doc</a>` : `<input type="file" id="admin_doc_file_${d.id}" style="font-size:11px;" /><button class="btn primary small" onclick="uploadAdminDocFile('${p.id}', '${d.id}')">Upload</button>`;
+          return `<tr>
+            <td><input value="${esc(d.name)}" onchange="updateDoc('${d.id}','name',this.value)"></td>
+            <td><select onchange="updateDoc('${d.id}','required',this.value)"><option ${d.required==='Yes'?'selected':''}>Yes</option><option${d.required==='No'?'selected':''}>No</option></select></td>
+            <td><select onchange="updateDoc('${d.id}','status',this.value)">${['Not required','Required','Requested','Received','Reviewed','Needs revision','Uploaded to portal','Approved'].map(s => `<option ${d.status===s?'selected':''}>${s}</option>`).join('')}</select></td>
+            <td><input value="${esc(d.responsible)}" onchange="updateDoc('${d.id}','responsible',this.value)"></td>
+            <td>${attachedFile}</td>
+            <td><button class="btn small danger" onclick="removeDoc('${d.id}')">Del</button></td>
+          </tr>`;
+        }).join('')}</tbody></table></div></div>`;
+      }
       if (activeTab === 'councilNotes') el.innerHTML = `<div class="card"><h3>Notes</h3><button class="btn primary small" onclick="addCouncilNote()">+ Add Note</button><br><br><table><tbody>${p.notesList.map(n => `<tr><td><input type="date" value="${esc(n.date)}" onchange="updateCouncilNote('${n.id}','date',this.value)"></td><td><textarea onchange="updateCouncilNote('${n.id}','note',this.value)">${esc(n.note)}</textarea></td><td><button class="btn small danger" onclick="removeCouncilNote('${n.id}')">Del</button></td></tr>`).join('')}</tbody></table></div>`;
       if (activeTab === 'projectNotes') el.innerHTML = `<div class="card"><h3>Internal Notes</h3><button class="btn primary small" onclick="addProjectNote()">+ Add Note</button><br><br><div class="note-list">${p.projectNotesList.map(n => `<div class="note-card"><div style="flex:1;"><input value="${esc(n.title)}" placeholder="Title" onchange="updateProjectNote('${n.id}','title',this.value)" style="margin-bottom:8px;"><textarea onchange="updateProjectNote('${n.id}','body',this.value)">${esc(n.body)}</textarea></div><button class="btn danger small" onclick="removeProjectNote('${n.id}')" style="margin-left:12px;">Del</button></div>`).join('')}</div></div>`;
       if (activeTab === 'invoice') renderInvoiceTab(p, el);
@@ -798,7 +802,7 @@
       alert(`Client Link Copied to Clipboard!\n\n${clientUrl}`);
     }
 
-    // === CLIENT PORTAL PUBLIC VIEW LOGIC ===
+    // === CLIENT PORTAL INLINE UPLOAD LOGIC ===
     function checkClientViewRoute() {
       const params = new URLSearchParams(window.location.search);
       const token = params.get('token');
@@ -836,21 +840,23 @@
       }
 
       listEl.innerHTML = docs.map(d => {
-        const isReady = ['Received','Approved'].includes(d.status);
-        const statusBadge = isReady ? `<span class="pill status-completed">Received</span>` : `<span class="pill status-hold">Pending</span>`;
+        const isUploaded = d.fileUrl || ['Received','Approved'].includes(d.status);
+        const statusBadge = isUploaded ? `<span class="pill status-completed">Received</span>` : `<span class="pill status-hold">Pending</span>`;
+        
+        const actionCell = d.fileUrl 
+          ? `<a class="btn small" href="${esc(d.fileUrl)}" target="_blank">📄 View Uploaded File</a>` 
+          : `<div class="inline-upload-cell"><input type="file" id="client_doc_file_${d.id}" style="font-size:12px;" /><button class="btn primary small" onclick="uploadClientDocFile('${p.id}', '${d.id}')">Upload</button></div>`;
+
         return `<tr>
           <td><strong>${esc(d.name)}</strong></td>
           <td>${statusBadge}</td>
-          <td>
-            <input type="file" id="doc_file_${d.id}" style="font-size:12px;" />
-            <button class="btn primary small" onclick="uploadSpecificClientDoc('${p.id}', '${d.id}')" style="margin-top:4px;">Submit</button>
-          </td>
+          <td>${actionCell}</td>
         </tr>`;
       }).join('');
     }
 
-    async function uploadSpecificClientDoc(projectId, docId) {
-      const fileInput = document.getElementById(`doc_file_${docId}`);
+    async function uploadClientDocFile(projectId, docId) {
+      const fileInput = document.getElementById(`client_doc_file_${docId}`);
       if (!fileInput || !fileInput.files.length) return alert("Select a file first.");
       
       const file = fileInput.files[0];
@@ -872,10 +878,15 @@
       }
 
       const { data: urlData } = supabaseClient.storage.from(STORAGE_BUCKET).getPublicUrl(uniquePath);
-      p.cloudFiles.push({ id: uid(), name: file.name, path: uniquePath, url: urlData.publicUrl });
+      const fileRecord = { id: uid(), name: file.name, path: uniquePath, url: urlData.publicUrl };
+      
+      p.cloudFiles.push(fileRecord);
 
       const targetDoc = p.documents.find(d => d.id === docId);
-      if (targetDoc) targetDoc.status = 'Received';
+      if (targetDoc) {
+        targetDoc.status = 'Received';
+        targetDoc.fileUrl = urlData.publicUrl;
+      }
 
       queueSave();
       statusEl.style.color = "var(--success)";
@@ -883,32 +894,36 @@
       renderClientPortalView();
     }
 
-    async function handleClientGeneralUpload() {
-      const fileInput = document.getElementById('clientGeneralFileInput');
-      if (!fileInput || !fileInput.files.length) return alert("Select at least one file.");
+    async function uploadAdminDocFile(projectId, docId) {
+      const fileInput = document.getElementById(`admin_doc_file_${docId}`);
+      if (!fileInput || !fileInput.files.length) return alert("Select a file first.");
 
-      const p = projects.find(x => x.clientToken === currentClientToken);
+      const file = fileInput.files[0];
+      const p = getCurrentProject();
       p.cloudFiles ||= [];
 
-      const statusEl = document.getElementById('clientUploadStatus');
-      statusEl.style.color = "var(--primary)";
-      statusEl.textContent = "Uploading files...";
+      setSyncStatus('Uploading document...', 'warning');
 
-      for (let file of fileInput.files) {
-        const fileExt = file.name.split('.').pop();
-        const uniquePath = `${p.id}/${uid()}.${fileExt}`;
-        const { data, error } = await supabaseClient.storage.from(STORAGE_BUCKET).upload(uniquePath, file);
-        if (!error) {
-          const { data: urlData } = supabaseClient.storage.from(STORAGE_BUCKET).getPublicUrl(uniquePath);
-          p.cloudFiles.push({ id: uid(), name: file.name, path: uniquePath, url: urlData.publicUrl });
-        }
+      const fileExt = file.name.split('.').pop();
+      const uniquePath = `${projectId}/${uid()}.${fileExt}`;
+
+      const { data, error } = await supabaseClient.storage.from(STORAGE_BUCKET).upload(uniquePath, file);
+      if (error) {
+         alert("Upload failed: " + error.message);
+         return;
+      }
+
+      const { data: urlData } = supabaseClient.storage.from(STORAGE_BUCKET).getPublicUrl(uniquePath);
+      p.cloudFiles.push({ id: uid(), name: file.name, path: uniquePath, url: urlData.publicUrl });
+
+      const targetDoc = p.documents.find(d => d.id === docId);
+      if (targetDoc) {
+        targetDoc.status = 'Received';
+        targetDoc.fileUrl = urlData.publicUrl;
       }
 
       queueSave();
-      statusEl.style.color = "var(--success)";
-      statusEl.textContent = "Files uploaded successfully!";
-      fileInput.value = '';
-      renderClientPortalView();
+      renderProjectTab();
     }
 
     function printProjectReport() {

@@ -572,10 +572,8 @@
           projects = Array.isArray(data.projects) ? data.projects : [];
           if (data.checklistLibrary) checklistLibrary = data.checklistLibrary;
         } else {
-          const { data: directData } = await supabaseClient.from(SUPABASE_TABLE).select('*').eq('id', APP_STATE_ID);
-          if (directData && directData.length > 0) {
-            projects = Array.isArray(directData[0].projects) ? directData[0].projects : [];
-          }
+          setSyncStatus('Admin RPC restricted', 'error');
+          projects = loadLocalFallback();
         }
       } catch (e) {
         console.warn('Cloud read failed, fallback to local', e);
@@ -594,11 +592,9 @@
       const { error } = await supabaseClient.rpc('admin_save_app_state', { p_payload: payload });
       
       if (error) {
-        const { error: directErr } = await supabaseClient.from(SUPABASE_TABLE).upsert([{ id: APP_STATE_ID, ...payload, updated_at: new Date().toISOString() }]);
-        if (directErr) {
-          setSyncStatus('Save failed', 'error');
-          return;
-        }
+        setSyncStatus('Save failed', 'error');
+        console.error("Save error:", error.message);
+        return;
       }
       setSyncStatus('Cloud Synced', 'success');
     }
@@ -1007,6 +1003,7 @@
         console.warn('RPC unavailable', e);
       }
 
+      // Safe Fail-Closed: Refuse to fetch full app_state table
       renderClientPortalError("Link expired or service unavailable.");
     }
 
@@ -1113,14 +1110,10 @@
     async function removeDoc(id) { 
       const p = getCurrentProject(); 
       if (p && confirm('Remove this document section completely?')) { 
-        // 1. Purge matching file records from cloudFiles memory
         if (p.cloudFiles) {
           p.cloudFiles = p.cloudFiles.filter(f => !f.path || !f.path.includes(id));
         }
-        // 2. Remove document entry
         p.documents = p.documents.filter(d => d.id !== id); 
-        
-        // 3. Force immediate hard save to overwrite remote state
         await saveAll(); 
         renderProjectTab(); 
       } 

@@ -4,11 +4,7 @@
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
   <title>Project Approvals - NSW Tracker</title>
-  
-  <!-- OFFICIAL SUPABASE SDK -->
   <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
-  
-  <!-- Load private config file -->
   <script src="config.js"></script>
 
   <style>
@@ -20,12 +16,10 @@
       --shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.05), 0 2px 4px -2px rgba(0, 0, 0, 0.05);
       --radius: 8px;
     }
-
     * { box-sizing: border-box; }
     body { margin: 0; font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif; background: var(--bg); color: var(--text); line-height: 1.5; }
     button, input, select, textarea { font: inherit; }
 
-    /* Layout */
     .app-wrapper { display: flex; flex-direction: column; min-height: 100vh; display: none; background: var(--bg); position: relative; z-index: 1; }
     .top-nav { background: #ffffff; border-bottom: 1px solid var(--border); position: sticky; top: 0; z-index: 50; }
     .nav-container { max-width: 1400px; margin: 0 auto; padding: 0 24px; display: flex; align-items: center; justify-content: space-between; height: 64px; }
@@ -50,9 +44,9 @@
     .topbar p { margin: 4px 0 0; color: var(--muted); font-size: 14px; }
     .actions { display: flex; gap: 8px; flex-wrap: wrap; }
 
-    /* Buttons */
     .btn { background: #fff; border: 1px solid var(--border); color: var(--text); padding: 8px 16px; border-radius: var(--radius); font-size: 14px; font-weight: 500; cursor: pointer; transition: all 0.2s; display: inline-flex; align-items: center; gap: 6px; }
     .btn:hover { background: var(--bg); border-color: #cbd5e1; }
+    .btn:disabled { opacity: 0.55; cursor: not-allowed; }
     .btn.primary { background: var(--primary); border-color: var(--primary); color: #fff; }
     .btn.primary:hover { background: var(--primary-hover); border-color: var(--primary-hover); }
     .btn.danger { background: #fff; border-color: var(--danger); color: var(--danger); }
@@ -61,7 +55,6 @@
     .btn.outline-primary { color: var(--primary); border-color: var(--primary-soft); }
     .btn.outline-primary:hover { background: var(--primary-soft); }
 
-    /* Grids & Cards */
     .grid { display: grid; gap: 20px; }
     .grid.stats { grid-template-columns: repeat(4, 1fr); margin-bottom: 24px; }
     .grid.two { grid-template-columns: repeat(2, 1fr); }
@@ -78,14 +71,14 @@
     .view-toggle { display: flex; background: var(--bg); border-radius: var(--radius); padding: 4px; border: 1px solid var(--border); }
     .view-toggle button { background: transparent; border: none; padding: 6px 12px; font-size: 13px; cursor: pointer; border-radius: 4px; color: var(--muted); font-weight: 500; }
     .view-toggle button.active { background: #fff; color: var(--text); box-shadow: 0 1px 2px rgba(0,0,0,0.05); }
-    
+
     .project-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(300px, 1fr)); gap: 20px; }
     .pipeline-board { display: grid; grid-template-columns: repeat(3, 1fr); gap: 24px; align-items: start; }
     .pipeline-col { background: #f1f5f9; border-radius: var(--radius); padding: 16px; min-height: 400px; }
     .pipeline-col h3 { margin: 0 0 16px; font-size: 14px; text-transform: uppercase; color: var(--muted); display: flex; justify-content: space-between; }
     .pipeline-col h3 span { background: #e2e8f0; padding: 2px 8px; border-radius: 99px; font-size: 12px; }
     .pipeline-cards { display: flex; flex-direction: column; gap: 12px; }
-    
+
     .project-card { background: var(--card); border: 1px solid var(--border); border-radius: var(--radius); padding: 20px; cursor: pointer; transition: box-shadow 0.2s, transform 0.2s; display: flex; flex-direction: column; gap: 12px; }
     .project-card:hover { box-shadow: var(--shadow); transform: translateY(-2px); border-color: #cbd5e1; }
     .project-card-header { display: flex; justify-content: space-between; align-items: flex-start; }
@@ -94,7 +87,6 @@
     .project-card-footer { margin-top: auto; padding-top: 12px; border-top: 1px solid var(--border); display: flex; justify-content: space-between; align-items: center; }
     .next-action-text { font-size: 12px; color: var(--primary); font-weight: 600; background: var(--primary-soft); padding: 4px 8px; border-radius: 4px; display: inline-block; margin-top: 8px;}
 
-    /* Forms */
     .field { display: flex; flex-direction: column; position: relative; }
     .field label { font-size: 12px; font-weight: 600; color: var(--text); margin-bottom: 6px; text-transform: uppercase; }
     input, select, textarea { width: 100%; border: 1px solid var(--border); background: #fff; padding: 8px 12px; border-radius: var(--radius); font-size: 14px; outline: none; transition: border-color 0.2s; }
@@ -107,13 +99,11 @@
     .suggestion:hover { background: var(--bg); }
     .address-status { font-size: 11px; color: var(--muted); margin-top: 4px; min-height: 16px; }
 
-    /* Tables */
     table { width: 100%; border-collapse: collapse; font-size: 14px; }
     th, td { text-align: left; padding: 12px 16px; border-bottom: 1px solid var(--border); }
     th { background: #fdfdfd; color: var(--muted); font-size: 12px; font-weight: 600; text-transform: uppercase; }
     tr:hover td { background: var(--bg); }
 
-    /* Pills */
     .pill { display: inline-block; padding: 4px 10px; border-radius: 99px; font-size: 11px; font-weight: 600; text-transform: uppercase; letter-spacing: 0.5px; }
     .status-active { background: #e0e7ff; color: #4338ca; }
     .status-hold { background: #fffbeb; color: #d97706; }
@@ -121,7 +111,6 @@
     .status-overdue { background: var(--danger-soft); color: var(--danger); }
     .hidden { display: none !important; }
 
-    /* Tabs */
     .tabs { display: flex; border-bottom: 1px solid var(--border); margin: 24px 0; overflow-x: auto; }
     .tab-btn { background: transparent; border: none; padding: 12px 24px; font-size: 14px; font-weight: 500; color: var(--muted); cursor: pointer; border-bottom: 2px solid transparent; margin-bottom: -1px; }
     .tab-btn:hover { color: var(--text); }
@@ -131,7 +120,6 @@
     .section-title h3 { margin: 0; font-size: 18px; font-weight: 600; }
     .empty { text-align: center; padding: 60px 20px; background: var(--bg); border-radius: var(--radius); color: var(--muted); border: 1px dashed var(--border); }
 
-    /* Modal */
     .modal-backdrop { position: fixed; inset: 0; background: rgba(15, 23, 42, 0.6); backdrop-filter: blur(4px); display: none; align-items: center; justify-content: center; z-index: 100; padding: 24px; }
     .modal-backdrop.show { display: flex; }
     .modal { background: var(--card); width: 100%; max-width: 700px; max-height: 90vh; overflow-y: auto; border-radius: var(--radius); box-shadow: 0 20px 25px -5px rgba(0,0,0,0.1); padding: 32px; }
@@ -140,7 +128,6 @@
     .form-grid { display: grid; grid-template-columns: repeat(2, 1fr); gap: 16px; }
     .full { grid-column: 1 / -1; }
 
-    /* Auth Screen */
     .auth-screen { position: fixed; inset: 0; background: var(--bg); display: flex; align-items: center; justify-content: center; z-index: 9999; }
     .auth-card { background: #fff; padding: 40px; width: 100%; max-width: 400px; border-radius: var(--radius); box-shadow: var(--shadow); border: 1px solid var(--border); text-align: center; }
     .auth-card .brand-mark { margin: 0 auto 20px; width: 48px; height: 48px; font-size: 20px; border-radius: 8px; }
@@ -148,7 +135,6 @@
     .auth-error { display: none; margin-top: 16px; color: var(--danger); background: var(--danger-soft); padding: 12px; border-radius: var(--radius); font-size: 13px; }
     .auth-error.show { display: block; }
 
-    /* Invoice Specific */
     .invoice-shell { display: grid; gap: 24px; }
     .invoice-preview { background: #fff; border: 1px solid var(--border); border-radius: 8px; padding: 40px; box-shadow: var(--shadow); }
     .invoice-header { display: flex; justify-content: space-between; margin-bottom: 40px; }
@@ -164,7 +150,6 @@
     .summary-row { display: flex; justify-content: space-between; padding: 8px 0; font-size: 14px; }
     .summary-row.grand { font-size: 18px; font-weight: 700; border-top: 2px solid var(--border); margin-top: 8px; padding-top: 12px; }
 
-    /* Calendar & Agenda Styling */
     .calendar-container { background: var(--card); border: 1px solid var(--border); border-radius: var(--radius); padding: 16px; }
     .calendar-header { display: flex; justify-content: space-between; align-items: center; margin-bottom: 12px; }
     .calendar-header h4 { margin: 0; font-size: 14px; font-weight: 600; }
@@ -178,9 +163,9 @@
     .agenda-item { display: flex; align-items: center; justify-content: space-between; padding: 8px 12px; border: 1px solid var(--border); border-radius: 6px; margin-top: 8px; background: #fff; font-size: 13px; }
     .agenda-item.done { text-decoration: line-through; opacity: 0.6; }
 
-    /* Client Portal Upload View Styles */
     .client-portal-wrapper { max-width: 900px; margin: 40px auto; padding: 0 20px; }
     .client-card { background: #fff; border: 1px solid var(--border); border-radius: var(--radius); padding: 32px; box-shadow: var(--shadow); }
+    .client-shell { display: none; min-height: 100vh; background: var(--bg); }
 
     .note-card { background: var(--bg); border: 1px solid var(--border); border-radius: var(--radius); padding: 16px; margin-bottom: 12px; display: flex; justify-content: space-between; }
 
@@ -194,28 +179,31 @@
       .print-report { display: block; padding: 24px; }
       .card { box-shadow: none; border: 1px solid #ccc; break-inside: avoid; margin-bottom: 20px; padding: 16px; }
       .invoice-preview { box-shadow: none !important; border: 0 !important; padding: 0 !important; }
-      .print-title { font-size: 26px; margin: 0 0 6px; }
-      .print-subtitle { color: #555; margin: 0 0 20px; }
       tr { page-break-inside: avoid; page-break-after: auto; }
     }
   </style>
 </head>
 <body class="locked">
 
+  <!-- ============================================================
+       ADMIN LOGIN (Supabase Auth)
+       ============================================================ -->
   <div id="authScreen" class="auth-screen">
-    <form class="auth-card" onsubmit="unlockPortal(event)">
+    <form class="auth-card" id="loginForm">
       <div class="brand-mark">PA</div>
       <h2>Internal Portal</h2>
-      <p>Enter your password to access the approval tracker.</p>
-      <div class="field">
-        <input id="portalPassword" type="password" autocomplete="current-password" placeholder="Password" required />
-      </div>
-      <button class="btn primary" type="submit" style="width:100%; margin-top:16px;">Access Portal</button>
-      <div id="authError" class="auth-error">Incorrect password. Please try again.</div>
+      <p>Sign in with your admin account.</p>
+      <div class="field"><input id="loginEmail" type="email" placeholder="Email" autocomplete="username" required /></div>
+      <div class="field" style="margin-top:12px;"><input id="loginPassword" type="password" placeholder="Password" autocomplete="current-password" required /></div>
+      <button class="btn primary" type="submit" style="width:100%; margin-top:16px;">Sign In</button>
+      <div id="authError" class="auth-error">Invalid credentials. Please try again.</div>
     </form>
   </div>
 
-  <div class="app-wrapper">
+  <!-- ============================================================
+       ADMIN APP
+       ============================================================ -->
+  <div class="app-wrapper" id="adminApp">
     <header class="top-nav no-print" id="mainHeader">
       <div class="nav-container">
         <div class="brand">
@@ -229,10 +217,8 @@
           <button class="nav-btn" onclick="exportData()">Backup</button>
           <input id="importFile" type="file" accept="application/json" class="hidden" onchange="importData(event)" />
           <button class="nav-btn" onclick="document.getElementById('importFile').click()">Restore</button>
-          
-          <div class="sync-wrapper">
-            <div id="syncDot" class="sync-dot yellow" title="Waiting for setup"></div>
-          </div>
+          <button class="nav-btn" onclick="logout()">Sign Out</button>
+          <div class="sync-wrapper"><div id="syncDot" class="sync-dot yellow" title="Waiting for setup"></div></div>
         </nav>
       </div>
     </header>
@@ -250,14 +236,12 @@
             <button class="btn primary" onclick="openProjectModal()">+ New Project</button>
           </div>
         </div>
-
         <div class="grid stats">
           <div class="stat-card"><span>Total Projects</span><strong id="statTotal">0</strong></div>
           <div class="stat-card"><span>Active Jobs</span><strong id="statActive">0</strong></div>
           <div class="stat-card"><span>Missing Documents</span><strong id="statMissing">0</strong></div>
           <div class="stat-card alert"><span>Unpaid Invoices</span><strong id="statUnpaid">$0</strong></div>
         </div>
-
         <div class="toolbar">
           <div class="toolbar-filters">
             <input id="searchInput" placeholder="Search address, client..." oninput="renderDashboard()" style="width:250px;" />
@@ -270,7 +254,6 @@
             <button id="btnViewBoard" onclick="setDashboardView('board')">Pipeline</button>
           </div>
         </div>
-        
         <div class="grid dashboard-main">
           <div id="projectTableWrap"></div>
           <div class="card" style="height:fit-content;">
@@ -283,18 +266,13 @@
       <!-- FINANCES VIEW -->
       <section id="financeView" class="hidden">
         <div class="topbar no-print">
-          <div>
-            <h2>Financial Ledger</h2>
-            <p>Track all outstanding and paid invoices across all projects.</p>
-          </div>
+          <div><h2>Financial Ledger</h2><p>Track all outstanding and paid invoices across all projects.</p></div>
         </div>
         <div class="grid two" style="margin-bottom: 24px;">
            <div class="stat-card alert"><span>Total Outstanding (Unpaid)</span><strong id="financeUnpaid">$0</strong></div>
            <div class="stat-card" style="border-color:#16a34a;"><span>Total Collected (Paid)</span><strong id="financePaid" style="color:#16a34a;">$0</strong></div>
         </div>
-        <div class="card">
-           <div id="financeTableWrap"></div>
-        </div>
+        <div class="card"><div id="financeTableWrap"></div></div>
       </section>
 
       <!-- PROJECT FILE VIEW -->
@@ -315,7 +293,6 @@
             </div>
           </div>
         </div>
-
         <div class="tabs no-print" style="background: var(--card); padding: 0 24px; margin-top: 0; border-radius: 0 0 var(--radius) var(--radius); border-left: 1px solid var(--border); border-right: 1px solid var(--border); border-bottom: 1px solid var(--border); margin-bottom: 24px;">
           <button class="tab-btn active" data-tab="overview" onclick="switchTab('overview')">Overview</button>
           <button class="tab-btn" data-tab="documents" onclick="switchTab('documents')">Documents</button>
@@ -323,7 +300,6 @@
           <button class="tab-btn" data-tab="invoice" onclick="switchTab('invoice')">Invoice</button>
           <button class="tab-btn" data-tab="projectNotes" onclick="switchTab('projectNotes')">Internal Notes</button>
         </div>
-
         <div class="grid project-layout">
           <div id="projectTabContent"></div>
           <div class="calendar-container">
@@ -344,41 +320,43 @@
         </div>
       </section>
 
-      <!-- CLIENT PORTAL VIEW -->
-      <section id="clientPortalView" class="hidden">
-        <div class="client-portal-wrapper">
-          <div class="client-card">
-            <div style="display:flex; justify-content:space-between; align-items:center; border-bottom:1px solid var(--border); padding-bottom:16px; margin-bottom:20px;">
-              <div>
-                <h2 id="clientPortalAddress" style="margin:0; font-size:20px;">Site Address</h2>
-                <p id="clientPortalSub" style="margin:4px 0 0; color:var(--muted); font-size:14px;"></p>
-              </div>
-              <div class="brand-mark">PA</div>
-            </div>
-
-            <h3 style="margin-bottom:8px;">Document Requirements</h3>
-            <p style="font-size:14px; color:var(--muted); margin-bottom:20px;">Upload each requested document directly next to its section below.</p>
-
-            <div style="overflow-x:auto;">
-              <table>
-                <thead>
-                  <tr>
-                    <th>Document Section</th>
-                    <th>Status</th>
-                    <th>Upload File</th>
-                  </tr>
-                </thead>
-                <tbody id="clientDocList"></tbody>
-              </table>
-            </div>
-            <div id="clientUploadStatus" style="margin-top:16px; font-size:14px; font-weight:600; text-align:center;"></div>
-          </div>
-        </div>
-      </section>
-
-      <!-- NATIVE PRINT CONTAINER -->
       <section id="printReport" class="print-report"></section>
     </main>
+  </div>
+
+  <!-- ============================================================
+       CLIENT PORTAL (completely separate shell — no admin UI in DOM)
+       ============================================================ -->
+  <div class="client-shell" id="clientApp">
+    <div class="client-portal-wrapper">
+      <div class="client-card">
+        <div style="display:flex; justify-content:space-between; align-items:center; border-bottom:1px solid var(--border); padding-bottom:16px; margin-bottom:20px;">
+          <div>
+            <h2 id="clientPortalAddress" style="margin:0; font-size:20px;">Site Address</h2>
+            <p id="clientPortalSub" style="margin:4px 0 0; color:var(--muted); font-size:14px;"></p>
+          </div>
+          <div class="brand-mark">PA</div>
+        </div>
+        <h3 style="margin-bottom:8px;">Document Requirements</h3>
+        <p style="font-size:14px; color:var(--muted); margin-bottom:20px;">Upload each requested document directly next to its section below.</p>
+        <div style="overflow-x:auto;">
+          <table>
+            <thead><tr><th>Document Section</th><th>Status</th><th>Upload File</th></tr></thead>
+            <tbody id="clientDocList"></tbody>
+          </table>
+        </div>
+        <div id="clientUploadStatus" style="margin-top:16px; font-size:14px; font-weight:600; text-align:center;"></div>
+      </div>
+    </div>
+  </div>
+
+  <div id="clientErrorShell" class="client-shell">
+    <div class="client-portal-wrapper">
+      <div class="client-card" style="text-align:center;">
+        <h2 style="color:var(--danger)">Access Restricted</h2>
+        <p id="clientErrorMessage" style="color:var(--muted);"></p>
+      </div>
+    </div>
   </div>
 
   <!-- PROJECT MODAL -->
@@ -416,16 +394,27 @@
 
   <script>
     // ==========================================
-    // APP CONFIGURATION & FAILSAFE LOGIC
+    // CONFIG
     // ==========================================
-    const SUPABASE_TABLE = 'app_state'; 
+    const SUPABASE_TABLE = 'app_state';
     const APP_STATE_ID = 'main';
     const STORAGE_BUCKET = 'project_files';
-    const LOCAL_FALLBACK_KEY = 'projectApprovalsTracker.v22.localFallback';
-    const LIBRARY_FALLBACK_KEY = 'projectApprovalsTracker.v22.library';
-    
-    const BUSINESS_PROFILE = { name: 'Project Approvals', abn: 'ABN 16 696 716 980', email: 'info@projectapprovals.com.au', phone: '0414633507', address: 'Quakershill NSW 2763', bankDetails: 'PayID: info@projectapprovals.com.au\nBank: NAB\nAccount Name: Project Approvals\nBSB: 082-356\nAccount No: 308014097' };
+    const LOCAL_FALLBACK_KEY = 'projectApprovalsTracker.v23.localFallback';
+    const LIBRARY_FALLBACK_KEY = 'projectApprovalsTracker.v23.library';
+    const SIGNED_URL_TTL = 3600; // 1 hour
 
+    const BUSINESS_PROFILE = {
+      name: 'Project Approvals',
+      abn: 'ABN 16 696 716 980',
+      email: 'info@projectapprovals.com.au',
+      phone: '0414633507',
+      address: 'Quakershill NSW 2763',
+      bankDetails: 'PayID: info@projectapprovals.com.au\nBank: NAB\nAccount Name: Project Approvals\nBSB: 082-356\nAccount No: 308014097'
+    };
+
+    // ==========================================
+    // GLOBAL STATE
+    // ==========================================
     let projects = [];
     let currentProjectId = null;
     let activeTab = 'overview';
@@ -435,6 +424,8 @@
     let isClientViewMode = false;
     let currentClientToken = null;
     let saveDebounceTimer = null;
+    let saveInFlight = false;
+    let clientProject = null; // held by client portal only
 
     let calMonth = new Date().getMonth();
     let calYear = new Date().getFullYear();
@@ -450,107 +441,171 @@
       Other: ['Client instructions','Site photos','Consultant advice']
     };
 
-    function getPortalPassword() {
-      if (typeof PORTAL_PASSWORD !== 'undefined' && PORTAL_PASSWORD) return PORTAL_PASSWORD;
-      return null;
-    }
-
-    function unlockPortal(event) {
-      event.preventDefault();
-      try {
-        const pwd = getPortalPassword();
-        const enteredPassword = document.getElementById('portalPassword').value;
-        if (pwd && enteredPassword === pwd) {
-          sessionStorage.setItem('paPortalUnlocked', 'yes');
-          document.body.classList.remove('locked');
-          document.getElementById('authScreen').style.display = 'none';
-          document.querySelector('.app-wrapper').style.display = 'flex';
-        } else {
-          document.getElementById('authError').classList.add('show');
-        }
-      } catch (err) { console.error(err); }
-    }
-
-    function checkPortalAuth() {
-      if (sessionStorage.getItem('paPortalUnlocked') === 'yes') {
-        document.body.classList.remove('locked');
-        document.getElementById('authScreen').style.display = 'none';
-        document.querySelector('.app-wrapper').style.display = 'flex';
-      }
-    }
-
-    function setSyncStatus(message, tone='warning') {
-      const dot = document.getElementById('syncDot');
-      if (dot) { dot.className = `sync-dot ${tone === 'warning' ? 'yellow' : tone === 'error' ? 'red' : 'green'}`; dot.title = message; }
-    }
-
+    // ==========================================
+    // UTILITIES
+    // ==========================================
     function uid() { return 'id-' + Date.now() + '-' + Math.random().toString(16).slice(2); }
-    
     function generateToken() {
       const arr = new Uint8Array(16);
       crypto.getRandomValues(arr);
       return Array.from(arr, b => b.toString(16).padStart(2, '0')).join('');
     }
-
     function todayISO() {
       const d = new Date();
       const off = d.getTimezoneOffset();
       return new Date(d.getTime() - (off * 60000)).toISOString().slice(0, 10);
     }
-
     function esc(value='') { return String(value).replace(/[&<>"']/g, m => ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[m])); }
     function formatCurrency(amount) { return new Intl.NumberFormat('en-AU', { style: 'currency', currency: 'AUD', maximumFractionDigits:2 }).format(Number(amount || 0)); }
-    
     function addDays(dateString, days) {
       const d = dateString ? new Date(dateString + 'T00:00:00') : new Date();
       d.setDate(d.getDate() + days);
       const off = d.getTimezoneOffset();
       return new Date(d.getTime() - (off * 60000)).toISOString().slice(0, 10);
     }
-
     function generateUniqueInvoiceNumber() {
       const d = new Date();
       return `INV-${d.getFullYear()}${String(d.getMonth() + 1).padStart(2, '0')}${String(d.getDate()).padStart(2, '0')}-${Math.random().toString(36).substring(2, 6).toUpperCase()}`;
     }
-
-    function defaultInvoice(project) { 
-      return { 
-        invoiceNumber: generateUniqueInvoiceNumber(), 
-        issueDate: todayISO(), 
-        dueDate: addDays(todayISO(), 7), 
-        hasGST: true, 
-        status: 'SENT',
-        lineItems: [{ id: uid(), serviceName: `${project?.approvalType || 'Approval'} consulting service`, price: '' }], 
-        notes: BUSINESS_PROFILE.bankDetails 
-      }; 
-    }
-
     function validateFileBeforeUpload(file) {
       const ALLOWED = ['pdf', 'jpg', 'jpeg', 'png', 'dwg', 'doc', 'docx'];
       const MAX_MB = 25;
-      const ext = file.name.split('.').pop().toLowerCase();
-      if (!ALLOWED.includes(ext)) {
-        alert(`File type .${ext} is not allowed. Allowed types: PDF, DWG, DOCX, Images.`);
-        return false;
-      }
-      if (file.size > MAX_MB * 1024 * 1024) {
-        alert(`File exceeds size limit of ${MAX_MB}MB.`);
-        return false;
-      }
+      const ext = (file.name.split('.').pop() || '').toLowerCase();
+      if (!ALLOWED.includes(ext)) { alert(`File type .${ext} is not allowed.`); return false; }
+      if (file.size > MAX_MB * 1024 * 1024) { alert(`File exceeds ${MAX_MB}MB.`); return false; }
       return true;
     }
-
+    function hasSupabaseConfig() {
+      return typeof SUPABASE_URL !== 'undefined' && typeof SUPABASE_ANON_KEY !== 'undefined' && SUPABASE_URL && SUPABASE_ANON_KEY;
+    }
+    function defaultInvoice(project) {
+      return {
+        invoiceNumber: generateUniqueInvoiceNumber(),
+        issueDate: todayISO(),
+        dueDate: addDays(todayISO(), 7),
+        hasGST: true,
+        status: 'SENT',
+        lineItems: [{ id: uid(), serviceName: `${project?.approvalType || 'Approval'} consulting service`, price: '' }],
+        notes: BUSINESS_PROFILE.bankDetails
+      };
+    }
     function determineNextAction(project) {
-       if (project.status === 'Hold') return 'On Hold';
-       if (project.status === 'Completed') return 'Archived';
-       const missing = project.documents?.filter(d => d.required !== 'No' && !['Received','Approved'].includes(d.status)) || [];
-       if (missing.length > 0) return `Chase ${missing[0].responsible} for ${missing[0].name}`;
-       return 'Ready for Review / Council';
+      if (project.status === 'Hold') return 'On Hold';
+      if (project.status === 'Completed') return 'Archived';
+      const missing = project.documents?.filter(d => d.required !== 'No' && !isDocDone(d)) || [];
+      if (missing.length > 0) return `Chase ${missing[0].responsible} for ${missing[0].name}`;
+      return 'Ready for Review / Council';
+    }
+    function isDocDone(doc) {
+      return ['Received', 'Approved', 'Uploaded to portal'].includes(doc.status);
     }
 
-    function loadLocalFallback() { try { const lib = localStorage.getItem(LIBRARY_FALLBACK_KEY); if (lib) checklistLibrary = JSON.parse(lib); return JSON.parse(localStorage.getItem(LOCAL_FALLBACK_KEY) || '[]'); } catch { return []; } }
-    function saveLocalFallback() { localStorage.setItem(LOCAL_FALLBACK_KEY, JSON.stringify(projects)); localStorage.setItem(LIBRARY_FALLBACK_KEY, JSON.stringify(checklistLibrary)); }
-    function hasSupabaseConfig() { return typeof SUPABASE_URL !== 'undefined' && typeof SUPABASE_ANON_KEY !== 'undefined' && SUPABASE_URL && SUPABASE_ANON_KEY; }
+    // Local fallback (admin only)
+    function loadLocalFallback() {
+      try {
+        const lib = localStorage.getItem(LIBRARY_FALLBACK_KEY);
+        if (lib) checklistLibrary = JSON.parse(lib);
+        return JSON.parse(localStorage.getItem(LOCAL_FALLBACK_KEY) || '[]');
+      } catch { return []; }
+    }
+    function saveLocalFallback() {
+      try {
+        localStorage.setItem(LOCAL_FALLBACK_KEY, JSON.stringify(projects));
+        localStorage.setItem(LIBRARY_FALLBACK_KEY, JSON.stringify(checklistLibrary));
+      } catch {}
+    }
+
+    // ==========================================
+    // SYNC STATUS
+    // ==========================================
+    function setSyncStatus(message, tone='warning') {
+      const dot = document.getElementById('syncDot');
+      if (dot) { dot.className = `sync-dot ${tone === 'warning' ? 'yellow' : tone === 'error' ? 'red' : 'green'}`; dot.title = message; }
+    }
+
+    // ==========================================
+    // AUTH — Supabase Auth for admin
+    // ==========================================
+    async function initAuth() {
+      if (!hasSupabaseConfig()) {
+        document.getElementById('authError').textContent = 'Supabase config missing. Contact admin.';
+        document.getElementById('authError').classList.add('show');
+        return;
+      }
+      supabaseClient = window.supabase.createClient(SUPABASE_URL, SUPABASE_ANON_KEY);
+
+      // Listen for auth changes
+      supabaseClient.auth.onAuthStateChange((_event, session) => {
+        if (session) {
+          showAdminApp();
+        } else {
+          showLoginScreen();
+        }
+      });
+
+      // Check existing session
+      const { data: { session } } = await supabaseClient.auth.getSession();
+      if (session) showAdminApp();
+      else showLoginScreen();
+
+      // Wire up login form
+      document.getElementById('loginForm').addEventListener('submit', async (e) => {
+        e.preventDefault();
+        const email = document.getElementById('loginEmail').value.trim();
+        const password = document.getElementById('loginPassword').value;
+        const { error } = await supabaseClient.auth.signInWithPassword({ email, password });
+        if (error) {
+          const el = document.getElementById('authError');
+          el.textContent = error.message;
+          el.classList.add('show');
+        } else {
+          document.getElementById('authError').classList.remove('show');
+          document.getElementById('loginPassword').value = '';
+        }
+      });
+    }
+
+    function showAdminApp() {
+      document.getElementById('authScreen').style.display = 'none';
+      document.getElementById('clientApp').style.display = 'none';
+      document.getElementById('clientErrorShell').style.display = 'none';
+      document.getElementById('adminApp').style.display = 'flex';
+      bootstrapAdmin();
+    }
+
+    function showLoginScreen() {
+      document.getElementById('authScreen').style.display = 'flex';
+      document.getElementById('adminApp').style.display = 'none';
+      document.getElementById('clientApp').style.display = 'none';
+      document.getElementById('clientErrorShell').style.display = 'none';
+    }
+
+    async function logout() {
+      if (!confirm('Sign out?')) return;
+      await supabaseClient.auth.signOut();
+    }
+
+    // ==========================================
+    // ADMIN BOOTSTRAP
+    // ==========================================
+    let adminBootstrapped = false;
+    async function bootstrapAdmin() {
+      if (adminBootstrapped) { showDashboard(); return; }
+      adminBootstrapped = true;
+      populateCouncils();
+      setSyncStatus('Connecting...', 'warning');
+      try {
+        isCloudReady = true;
+        await loadProjectsFromCloud();
+        setSyncStatus('Cloud Synced', 'success');
+      } catch (e) {
+        projects = loadLocalFallback();
+        isCloudReady = false;
+        setSyncStatus('Cloud unavailable — using local cache', 'error');
+      }
+      upgradeOldInvoices();
+      showDashboard();
+    }
 
     function upgradeOldInvoices() {
       let changed = false;
@@ -559,44 +614,44 @@
         if (!p.agendas) { p.agendas = []; changed = true; }
         if (!p.invoice) { p.invoice = defaultInvoice(p); changed = true; }
         if (!p.cloudFiles) { p.cloudFiles = []; changed = true; }
+        // Migrate any legacy fileUrl -> path
+        p.documents?.forEach(d => {
+          if (d.fileUrl && !d.filePath) {
+            delete d.fileUrl;
+            changed = true;
+          }
+        });
+        p.cloudFiles?.forEach(f => { if (f.url) { delete f.url; changed = true; } });
       });
-      if (changed) saveLocalFallback();
-      return changed;
+      if (changed) queueSave();
     }
 
+    // ==========================================
+    // CLOUD READ / WRITE
+    // ==========================================
     async function loadProjectsFromCloud() {
-      if (!supabaseClient) return;
-      try {
-        const { data, error } = await supabaseClient.rpc('admin_get_app_state');
-        if (!error && data) {
-          projects = Array.isArray(data.projects) ? data.projects : [];
-          if (data.checklistLibrary) checklistLibrary = data.checklistLibrary;
-        } else {
-          setSyncStatus('Admin RPC restricted', 'error');
-          projects = loadLocalFallback();
-        }
-      } catch (e) {
-        console.warn('Cloud read failed, fallback to local', e);
-        projects = loadLocalFallback();
+      const { data, error } = await supabaseClient.rpc('admin_get_app_state');
+      if (error) throw new Error(error.message);
+      projects = Array.isArray(data?.projects) ? data.projects : [];
+      if (data?.checklistLibrary && Object.keys(data.checklistLibrary).length) {
+        checklistLibrary = data.checklistLibrary;
       }
-      const didUpgrade = upgradeOldInvoices();
-      if (didUpgrade) queueSave();
     }
 
     async function saveAll() {
       saveLocalFallback();
       if (!isCloudReady || !supabaseClient || isClientViewMode) return;
+      if (saveInFlight) return;
+      saveInFlight = true;
       setSyncStatus('Saving...', 'warning');
-      
-      const payload = { projects: projects, checklistLibrary: checklistLibrary };
-      const { error } = await supabaseClient.rpc('admin_save_app_state', { p_payload: payload });
-      
-      if (error) {
-        setSyncStatus('Save failed', 'error');
-        console.error("Save error:", error.message);
-        return;
+      try {
+        const payload = { projects, checklistLibrary };
+        const { error } = await supabaseClient.rpc('admin_save_app_state', { p_payload: payload });
+        if (error) { setSyncStatus('Save failed: ' + error.message, 'error'); return; }
+        setSyncStatus('Cloud Synced', 'success');
+      } finally {
+        saveInFlight = false;
       }
-      setSyncStatus('Cloud Synced', 'success');
     }
 
     function queueSave() {
@@ -606,77 +661,105 @@
       }, 400);
     }
 
-    async function initSupabase() {
-      if (!hasSupabaseConfig()) { projects = loadLocalFallback(); upgradeOldInvoices(); setSyncStatus('Local Storage Only', 'warning'); return; }
-      try {
-        setSyncStatus('Connecting...', 'warning');
-        supabaseClient = window.supabase.createClient(SUPABASE_URL, SUPABASE_ANON_KEY);
-        isCloudReady = true; 
-        await loadProjectsFromCloud();
-        setSyncStatus('Cloud Synced', 'success');
-      } catch (error) { projects = loadLocalFallback(); isCloudReady = false; setSyncStatus('Sync Failed', 'error'); }
-    }
-
+    // ==========================================
+    // COUNSEL / ADDRESS
+    // ==========================================
     const nswCouncils = ['Albury City Council','Blacktown City Council','Camden Council','Campbelltown City Council','Fairfield City Council','Liverpool City Council','Parramatta City Council','Penrith City Council','Sydney City Council','The Hills Shire Council','Other'];
-    function populateCouncils() { document.getElementById('council').innerHTML = '<option value="">Select council</option>' + nswCouncils.map(c => `<option>${esc(c)}</option>`).join(''); }
-
+    function populateCouncils() {
+      const el = document.getElementById('council');
+      if (!el) return;
+      el.innerHTML = '<option value="">Select council</option>' + nswCouncils.map(c => `<option>${esc(c)}</option>`).join('');
+    }
     function showAddressSuggestions(value) {
       const box = document.getElementById('addressSuggestions');
       if (!value.trim()) { box.classList.remove('show'); return; }
       box.innerHTML = `<button type="button" class="suggestion" data-address="${esc(value)}">Use typed: ${esc(value)}</button>`;
       box.classList.add('show');
     }
-    function selectAddress(address) { document.getElementById('siteAddress').value = address; document.getElementById('addressSuggestions').classList.remove('show'); }
-    document.addEventListener('click', e => { const option = e.target.closest('[data-address]'); if (option) selectAddress(option.dataset.address); else if (!e.target.closest('#addressSuggestions') && e.target.id !== 'siteAddress') document.getElementById('addressSuggestions').classList.remove('show'); });
+    function selectAddress(address) {
+      document.getElementById('siteAddress').value = address;
+      document.getElementById('addressSuggestions').classList.remove('show');
+    }
+    document.addEventListener('click', e => {
+      const option = e.target.closest('[data-address]');
+      if (option) selectAddress(option.dataset.address);
+      else if (!e.target.closest('#addressSuggestions') && e.target.id !== 'siteAddress') {
+        const box = document.getElementById('addressSuggestions');
+        if (box) box.classList.remove('show');
+      }
+    });
 
-    function showOnly(sectionId) { 
-       ['dashboardView','projectView','financeView','clientPortalView'].forEach(id => {
-         const el = document.getElementById(id);
-         if (el) el.classList.add('hidden');
-       }); 
-       document.getElementById(sectionId).classList.remove('hidden'); 
-       document.querySelectorAll('.nav-btn').forEach(btn => btn.classList.remove('active')); 
+    // ==========================================
+    // VIEW ROUTING
+    // ==========================================
+    function showOnly(sectionId) {
+      ['dashboardView','projectView','financeView'].forEach(id => {
+        const el = document.getElementById(id);
+        if (el) el.classList.add('hidden');
+      });
+      const el = document.getElementById(sectionId);
+      if (el) el.classList.remove('hidden');
+      document.querySelectorAll('.nav-btn').forEach(btn => btn.classList.remove('active'));
     }
 
-    function showDashboard() { currentProjectId = null; showOnly('dashboardView'); document.getElementById('navDashboard').classList.add('active'); renderDashboard(); }
-    function setDashboardView(viewType) { currentView = viewType; document.getElementById('btnViewGrid').classList.toggle('active', viewType === 'grid'); document.getElementById('btnViewBoard').classList.toggle('active', viewType === 'board'); renderDashboard(); }
+    function showDashboard() {
+      currentProjectId = null;
+      showOnly('dashboardView');
+      document.getElementById('navDashboard').classList.add('active');
+      renderDashboard();
+    }
+    function setDashboardView(viewType) {
+      currentView = viewType;
+      document.getElementById('btnViewGrid').classList.toggle('active', viewType === 'grid');
+      document.getElementById('btnViewBoard').classList.toggle('active', viewType === 'board');
+      renderDashboard();
+    }
 
+    // ==========================================
+    // DASHBOARD
+    // ==========================================
     function renderDashboard() {
       const sortedProjects = [...projects].sort((a, b) => new Date(b.createdAt || 0) - new Date(a.createdAt || 0));
+      const q = document.getElementById('searchInput')?.value?.toLowerCase() || '';
+      const type = document.getElementById('typeFilter')?.value || '';
+      const rows = sortedProjects.filter(p => {
+        const hay = [p.clientName,p.siteAddress,p.council,p.status].join(' ').toLowerCase();
+        return (!q || hay.includes(q)) && (!type || p.approvalType === type);
+      });
 
-      const q = document.getElementById('searchInput')?.value?.toLowerCase() || ''; const type = document.getElementById('typeFilter')?.value || '';
-      const rows = sortedProjects.filter(p => { const hay = [p.clientName,p.siteAddress,p.council,p.status].join(' ').toLowerCase(); return (!q || hay.includes(q)) && (!type || p.approvalType === type); });
-
-      document.getElementById('statTotal').textContent = projects.length; 
+      document.getElementById('statTotal').textContent = projects.length;
       document.getElementById('statActive').textContent = projects.filter(p=>p.status==='Active').length;
-      document.getElementById('statMissing').textContent = projects.reduce((sum, p) => sum + (p.documents?.filter(d=>d.required!=='No'&&!['Received','Approved'].includes(d.status)).length || 0), 0);
-      
-      document.getElementById('statUnpaid').textContent = formatCurrency(projects.reduce((sum, p) => { 
-        if(p.invoice?.lineItems && !['RECEIVED PAYMENT', 'CANCELLED', 'DRAFT'].includes(p.invoice.status)) { 
-          const sub = p.invoice.lineItems.reduce((s, i) => s + Number(i.price || 0), 0); 
-          return sum + sub + (p.invoice.hasGST !== false ? sub * 0.1 : 0); 
-        } 
-        return sum; 
+      document.getElementById('statMissing').textContent = projects.reduce((sum, p) => sum + (p.documents?.filter(d=>d.required!=='No'&&!isDocDone(d)).length || 0), 0);
+      document.getElementById('statUnpaid').textContent = formatCurrency(projects.reduce((sum, p) => {
+        if (p.invoice?.lineItems && !['RECEIVED PAYMENT', 'CANCELLED', 'DRAFT'].includes(p.invoice.status)) {
+          const sub = p.invoice.lineItems.reduce((s, i) => s + Number(i.price || 0), 0);
+          return sum + sub + (p.invoice.hasGST !== false ? sub * 0.1 : 0);
+        }
+        return sum;
       }, 0));
 
       const wrap = document.getElementById('projectTableWrap');
-      if (!rows.length) { wrap.innerHTML = `<div class="empty">No projects found.</div>`; }
+      if (!rows.length) { wrap.innerHTML = `<div class="empty">No projects found.</div>`; return; }
+
+      const generateCard = (p) => {
+        const readyDocs = p.documents?.filter(d=>isDocDone(d)).length || 0;
+        const totalDocs = p.documents?.filter(d=>d.required!=='No').length || 0;
+        return `<div class="project-card" onclick="openProject('${esc(p.id)}')">
+           <div class="project-card-header"><span class="pill" style="background:#eee;">${esc(p.status)}</span><span class="pill" style="background:#e0e7ff; color:#4338ca;">${esc(p.approvalType)}</span></div>
+           <div><h4>${esc(p.siteAddress)}</h4><p>${esc(p.clientName)} &middot; ${esc(p.council)}</p></div>
+           <div class="next-action-text">${esc(determineNextAction(p))}</div>
+           <div class="project-card-footer"><span style="font-size:12px; font-weight:600;">${readyDocs} / ${totalDocs} Docs Ready</span></div>
+        </div>`;
+      };
+
+      if (currentView === 'grid') wrap.innerHTML = `<div class="project-grid">${rows.map(generateCard).join('')}</div>`;
       else {
-        const generateCard = (p) => {
-          const readyDocs = p.documents?.filter(d=>['Approved','Received'].includes(d.status)).length || 0; 
-          const totalDocs = p.documents?.filter(d=>d.required!=='No').length || 0;
-          return `<div class="project-card" onclick="openProject('${p.id}')">
-             <div class="project-card-header"><span class="pill" style="background:#eee;">${esc(p.status)}</span><span class="pill" style="background:#e0e7ff; color:#4338ca;">${esc(p.approvalType)}</span></div>
-             <div><h4>${esc(p.siteAddress)}</h4><p>${esc(p.clientName)} &middot; ${esc(p.council)}</p></div>
-             <div class="next-action-text">${esc(determineNextAction(p))}</div>
-             <div class="project-card-footer"><span style="font-size:12px; font-weight:600;">${readyDocs} / ${totalDocs} Docs Ready</span></div>
-          </div>`;
-        };
-
-        if(currentView === 'grid') wrap.innerHTML = `<div class="project-grid">${rows.map(generateCard).join('')}</div>`;
-        else wrap.innerHTML = `<div class="pipeline-board"><div class="pipeline-col"><h3>Active <span>${rows.filter(p=>p.status==='Active').length}</span></h3><div class="pipeline-cards">${rows.filter(p=>p.status==='Active').map(generateCard).join('')}</div></div><div class="pipeline-col" style="background:#fffbeb;"><h3>Hold <span>${rows.filter(p=>p.status==='Hold').length}</span></h3><div class="pipeline-cards">${rows.filter(p=>p.status==='Hold').map(generateCard).join('')}</div></div><div class="pipeline-col" style="background:#f0fdf4;"><h3>Completed <span>${rows.filter(p=>p.status==='Completed').length}</span></h3><div class="pipeline-cards">${rows.filter(p=>p.status==='Completed').map(generateCard).join('')}</div></div></div>`;
+        wrap.innerHTML = `<div class="pipeline-board">
+          <div class="pipeline-col"><h3>Active <span>${rows.filter(p=>p.status==='Active').length}</span></h3><div class="pipeline-cards">${rows.filter(p=>p.status==='Active').map(generateCard).join('')}</div></div>
+          <div class="pipeline-col" style="background:#fffbeb;"><h3>Hold <span>${rows.filter(p=>p.status==='Hold').length}</span></h3><div class="pipeline-cards">${rows.filter(p=>p.status==='Hold').map(generateCard).join('')}</div></div>
+          <div class="pipeline-col" style="background:#f0fdf4;"><h3>Completed <span>${rows.filter(p=>p.status==='Completed').length}</span></h3><div class="pipeline-cards">${rows.filter(p=>p.status==='Completed').map(generateCard).join('')}</div></div>
+        </div>`;
       }
-
       renderDashboardReminders();
     }
 
@@ -687,13 +770,11 @@
           allAgendas.push({ ...a, projectAddress: p.siteAddress, projectId: p.id });
         });
       });
-
       allAgendas.sort((a,b) => new Date(a.date) - new Date(b.date));
       const remEl = document.getElementById('dashboardRemindersList');
-      if(!allAgendas.length) { remEl.innerHTML = `<p style="font-size:13px; color:var(--muted);">No upcoming agendas.</p>`; return; }
-
+      if (!allAgendas.length) { remEl.innerHTML = `<p style="font-size:13px; color:var(--muted);">No upcoming agendas.</p>`; return; }
       remEl.innerHTML = allAgendas.map(a => `
-        <div class="agenda-item ${a.status==='Done'?'done':''}" onclick="openProject('${a.projectId}')" style="cursor:pointer;">
+        <div class="agenda-item ${a.status==='Done'?'done':''}" onclick="openProject('${esc(a.projectId)}')" style="cursor:pointer;">
           <div>
             <strong>${esc(a.text)}</strong><br>
             <span style="font-size:11px; color:var(--muted);">${esc(a.date)} &middot; ${esc(a.projectAddress)}</span>
@@ -703,76 +784,100 @@
       `).join('');
     }
 
+    // ==========================================
+    // PROJECT FILE
+    // ==========================================
     function openProject(projectId) {
-      currentProjectId = projectId; activeTab = 'overview'; const p = getCurrentProject(); showOnly('projectView');
+      currentProjectId = projectId;
+      activeTab = 'overview';
+      const p = getCurrentProject();
+      if (!p) return;
+      showOnly('projectView');
       document.getElementById('projectHeading').textContent = 'File Hub';
       document.getElementById('projectMeta').innerHTML = `<span class="pill" style="background:#e0e7ff; color:#4338ca;">${esc(p.approvalType)}</span> - ${esc(p.siteAddress)}`;
       document.querySelectorAll('.tab-btn').forEach(btn => btn.classList.toggle('active', btn.dataset.tab === activeTab));
       renderProjectTab();
       renderCalendar();
     }
-    
+
     function getCurrentProject() { return projects.find(p => p.id === currentProjectId); }
-    function switchTab(tab) { activeTab = tab; document.querySelectorAll('.tab-btn').forEach(btn => btn.classList.toggle('active', btn.dataset.tab === tab)); renderProjectTab(); }
+    function switchTab(tab) {
+      activeTab = tab;
+      document.querySelectorAll('.tab-btn').forEach(btn => btn.classList.toggle('active', btn.dataset.tab === tab));
+      renderProjectTab();
+    }
 
     async function getSignedDocumentUrl(path) {
       if (!supabaseClient || !path) return null;
       try {
-        const { data } = await supabaseClient.storage.from(STORAGE_BUCKET).createSignedUrl(path, 3600);
-        return data ? data.signedUrl : null;
+        const { data, error } = await supabaseClient.storage.from(STORAGE_BUCKET).createSignedUrl(path, SIGNED_URL_TTL);
+        if (error) return null;
+        return data?.signedUrl || null;
       } catch { return null; }
     }
 
     async function renderProjectTab() {
-      const p = getCurrentProject(); if (!p) return;
-      p.documents ||= []; p.notesList ||= []; p.projectNotesList ||= []; p.invoice ||= defaultInvoice(p); p.agendas ||= []; p.cloudFiles ||= [];
+      const p = getCurrentProject();
+      if (!p) return;
+      p.documents ||= []; p.notesList ||= []; p.projectNotesList ||= [];
+      p.invoice ||= defaultInvoice(p); p.agendas ||= []; p.cloudFiles ||= [];
       const el = document.getElementById('projectTabContent');
 
-      if (activeTab === 'overview') el.innerHTML = `<div class="card"><h3>Project Details</h3><table><tbody><tr><th>Client</th><td>${esc(p.clientName)}<br><span style="color:var(--muted);">${esc(p.clientEmail)}</span></td></tr><tr><th>Address</th><td>${esc(p.siteAddress)}</td></tr><tr><th>Council</th><td>${esc(p.council)}</td></tr><tr><th>Type</th><td>${esc(p.approvalType)}</td></tr><tr><th>Status</th><td>${esc(p.status)}</td></tr></tbody></table></div>`;
-      
+      if (activeTab === 'overview') {
+        el.innerHTML = `<div class="card"><h3>Project Details</h3><table><tbody>
+          <tr><th>Client</th><td>${esc(p.clientName)}<br><span style="color:var(--muted);">${esc(p.clientEmail)}</span></td></tr>
+          <tr><th>Address</th><td>${esc(p.siteAddress)}</td></tr>
+          <tr><th>Council</th><td>${esc(p.council)}</td></tr>
+          <tr><th>Type</th><td>${esc(p.approvalType)}</td></tr>
+          <tr><th>Status</th><td>${esc(p.status)}</td></tr>
+        </tbody></table></div>`;
+      }
+
       if (activeTab === 'documents') {
-        let rowsHtml = '';
-        for (const d of p.documents) {
+        const rowsHtml = (await Promise.all(p.documents.map(async d => {
           const cloudMatch = (p.cloudFiles || []).find(f => f.path && f.path.includes(d.id));
-          let fileUrl = d.fileUrl || (cloudMatch ? cloudMatch.url : null);
-          
-          if (!fileUrl && cloudMatch && cloudMatch.path) {
-            fileUrl = await getSignedDocumentUrl(cloudMatch.path);
-          }
+          let fileUrl = null;
+          if (cloudMatch?.path) fileUrl = await getSignedDocumentUrl(cloudMatch.path);
 
-          const fileAction = fileUrl 
+          const fileAction = fileUrl
             ? `<div style="display:flex; gap:4px; align-items:center;">
-                 <a class="btn small primary" href="${esc(fileUrl)}" target="_blank">📄 View Doc</a>
-                 <button class="btn small danger" title="Delete File" onclick="deleteAdminDocFile('${p.id}', '${d.id}')">🗑</button>
-               </div>` 
-            : `<div style="display:flex; gap:4px;"><input type="file" id="admin_doc_file_${d.id}" style="font-size:11px;" /><button class="btn primary small" onclick="uploadAdminDocFile('${p.id}', '${d.id}')">Upload</button></div>`;
+                 <a class="btn small primary" href="${esc(fileUrl)}" target="_blank" rel="noopener noreferrer">📄 View Doc</a>
+                 <button class="btn small danger" title="Delete File" onclick="deleteAdminDocFile('${esc(p.id)}', '${esc(d.id)}')">🗑</button>
+               </div>`
+            : `<div style="display:flex; gap:4px;">
+                 <input type="file" id="admin_doc_file_${esc(d.id)}" style="font-size:11px;" />
+                 <button class="btn primary small" onclick="uploadAdminDocFile('${esc(p.id)}', '${esc(d.id)}', this)">Upload</button>
+               </div>`;
 
-          rowsHtml += `<tr>
-            <td><input value="${esc(d.name)}" onchange="updateDoc('${d.id}','name',this.value)"></td>
-            <td><select onchange="updateDoc('${d.id}','required',this.value)"><option ${d.required==='Yes'?'selected':''}>Yes</option><option ${d.required==='No'?'selected':''}>No</option></select></td>
-            <td><select onchange="updateDoc('${d.id}','status',this.value)">${['Not required','Required','Requested','Received','Reviewed','Needs revision','Uploaded to portal','Approved'].map(s => `<option ${d.status===s?'selected':''}>${s}</option>`).join('')}</select></td>
-            <td><input value="${esc(d.responsible)}" onchange="updateDoc('${d.id}','responsible',this.value)"></td>
+          return `<tr>
+            <td><input value="${esc(d.name)}" onchange="updateDoc('${esc(d.id)}','name',this.value)"></td>
+            <td><select onchange="updateDoc('${esc(d.id)}','required',this.value)"><option ${d.required==='Yes'?'selected':''}>Yes</option><option ${d.required==='No'?'selected':''}>No</option></select></td>
+            <td><select onchange="updateDoc('${esc(d.id)}','status',this.value)">${['Not required','Required','Requested','Received','Reviewed','Needs revision','Uploaded to portal','Approved'].map(s => `<option ${d.status===s?'selected':''}>${s}</option>`).join('')}</select></td>
+            <td><input value="${esc(d.responsible)}" onchange="updateDoc('${esc(d.id)}','responsible',this.value)"></td>
             <td>${fileAction}</td>
-            <td><button class="btn small danger" onclick="removeDoc('${d.id}')">Del</button></td>
+            <td><button class="btn small danger" onclick="removeDoc('${esc(d.id)}')">Del</button></td>
           </tr>`;
-        }
+        }))).join('');
 
         el.innerHTML = `<div class="card"><div class="section-title"><h3>Document Checklist & Direct Uploads</h3><button class="btn primary small" onclick="addDocumentPrompt()">+ Add Section</button></div><div style="overflow-x:auto;"><table><thead><tr><th>Document Section</th><th>Required</th><th>Status</th><th>Responsible</th><th>Attached File / Action</th><th></th></tr></thead><tbody>${rowsHtml}</tbody></table></div></div>`;
       }
 
-      if (activeTab === 'councilNotes') el.innerHTML = `<div class="card"><h3>Notes</h3><button class="btn primary small" onclick="addCouncilNote()">+ Add Note</button><br><br><table><tbody>${p.notesList.map(n => `<tr><td><input type="date" value="${esc(n.date)}" onchange="updateCouncilNote('${n.id}','date',this.value)"></td><td><textarea onchange="updateCouncilNote('${n.id}','note',this.value)">${esc(n.note)}</textarea></td><td><button class="btn small danger" onclick="removeCouncilNote('${n.id}')">Del</button></td></tr>`).join('')}</tbody></table></div>`;
-      if (activeTab === 'projectNotes') el.innerHTML = `<div class="card"><h3>Internal Notes</h3><button class="btn primary small" onclick="addProjectNote()">+ Add Note</button><br><br><div class="note-list">${p.projectNotesList.map(n => `<div class="note-card"><div style="flex:1;"><input value="${esc(n.title)}" placeholder="Title" onchange="updateProjectNote('${n.id}','title',this.value)" style="margin-bottom:8px;"><textarea onchange="updateProjectNote('${n.id}','body',this.value)">${esc(n.body)}</textarea></div><button class="btn danger small" onclick="removeProjectNote('${n.id}')" style="margin-left:12px;">Del</button></div>`).join('')}</div></div>`;
+      if (activeTab === 'councilNotes') {
+        el.innerHTML = `<div class="card"><h3>Notes</h3><button class="btn primary small" onclick="addCouncilNote()">+ Add Note</button><br><br><table><tbody>${p.notesList.map(n => `<tr><td><input type="date" value="${esc(n.date)}" onchange="updateCouncilNote('${esc(n.id)}','date',this.value)"></td><td><textarea onchange="updateCouncilNote('${esc(n.id)}','note',this.value)">${esc(n.note)}</textarea></td><td><button class="btn small danger" onclick="removeCouncilNote('${esc(n.id)}')">Del</button></td></tr>`).join('')}</tbody></table></div>`;
+      }
+      if (activeTab === 'projectNotes') {
+        el.innerHTML = `<div class="card"><h3>Internal Notes</h3><button class="btn primary small" onclick="addProjectNote()">+ Add Note</button><br><br><div class="note-list">${p.projectNotesList.map(n => `<div class="note-card"><div style="flex:1;"><input value="${esc(n.title)}" placeholder="Title" onchange="updateProjectNote('${esc(n.id)}','title',this.value)" style="margin-bottom:8px;"><textarea onchange="updateProjectNote('${esc(n.id)}','body',this.value)">${esc(n.body)}</textarea></div><button class="btn danger small" onclick="removeProjectNote('${esc(n.id)}')" style="margin-left:12px;">Del</button></div>`).join('')}</div></div>`;
+      }
       if (activeTab === 'invoice') renderInvoiceTab(p, el);
     }
 
     function renderInvoiceTab(p, el) {
       const inv = p.invoice;
-      const subtotal = inv.lineItems.reduce((sum, item) => sum + Number(item.price || 0), 0); 
-      const applyGST = inv.hasGST !== false; 
-      const gst = applyGST ? subtotal * 0.1 : 0; 
+      const subtotal = inv.lineItems.reduce((sum, item) => sum + Number(item.price || 0), 0);
+      const applyGST = inv.hasGST !== false;
+      const gst = applyGST ? subtotal * 0.1 : 0;
       const total = subtotal + gst;
-
-      let gstHtmlRow = applyGST ? `<div class="summary-row"><span>GST (10%):</span> <strong>${formatCurrency(gst)}</strong></div>` : '';
+      const gstHtmlRow = applyGST ? `<div class="summary-row"><span>GST (10%):</span> <strong>${formatCurrency(gst)}</strong></div>` : '';
 
       el.innerHTML = `
         <div class="invoice-shell">
@@ -785,8 +890,7 @@
               <div class="field"><label>Invoice No.</label><input value="${esc(inv.invoiceNumber)}" onchange="updateInvoiceField('invoiceNumber',this.value)" /></div>
               <div class="field"><label>Issue Date</label><input type="date" value="${esc(inv.issueDate)}" onchange="updateInvoiceField('issueDate',this.value)" /></div>
               <div class="field"><label>Due Date</label><input type="date" value="${esc(inv.dueDate)}" onchange="updateInvoiceField('dueDate',this.value)" /></div>
-              <div class="field">
-                <label>Status</label>
+              <div class="field"><label>Status</label>
                 <select onchange="updateInvoiceField('status', this.value)">
                   <option value="DRAFT" ${inv.status==='DRAFT'?'selected':''}>DRAFT</option>
                   <option value="SENT" ${inv.status==='SENT'?'selected':''}>SENT</option>
@@ -795,8 +899,7 @@
                   <option value="CANCELLED" ${inv.status==='CANCELLED'?'selected':''}>CANCELLED</option>
                 </select>
               </div>
-              <div class="field">
-                <label>Include GST (10%)</label>
+              <div class="field"><label>Include GST (10%)</label>
                 <select onchange="updateInvoiceField('hasGST', this.value === 'true')">
                   <option value="true" ${applyGST ? 'selected' : ''}>Yes, include GST</option>
                   <option value="false" ${!applyGST ? 'selected' : ''}>No GST</option>
@@ -807,13 +910,21 @@
             <div class="section-title"><h3>Services</h3><button class="btn small" onclick="addInvoiceLine()">+ Add Service</button></div>
             <table>
               <thead><tr><th>Service</th><th>Price</th><th></th></tr></thead>
-              <tbody>${inv.lineItems.map(item => `<tr><td><input value="${esc(item.serviceName)}" onchange="updateInvoiceLine('${item.id}','serviceName',this.value)" placeholder="Service Name"></td><td><input type="number" step="0.01" value="${esc(item.price)}" onchange="updateInvoiceLine('${item.id}','price',this.value)" /></td><td><button class="btn danger small" onclick="removeInvoiceLine('${item.id}')">Del</button></td></tr>`).join('')}</tbody>
+              <tbody>${inv.lineItems.map(item => `<tr><td><input value="${esc(item.serviceName)}" onchange="updateInvoiceLine('${esc(item.id)}','serviceName',this.value)" placeholder="Service Name"></td><td><input type="number" step="0.01" value="${esc(item.price)}" onchange="updateInvoiceLine('${esc(item.id)}','price',this.value)" /></td><td><button class="btn danger small" onclick="removeInvoiceLine('${esc(item.id)}')">Del</button></td></tr>`).join('')}</tbody>
             </table>
           </div>
-          
+
           <div class="invoice-preview">
             <div class="invoice-header"><div><h2>${esc(BUSINESS_PROFILE.name)}</h2><p>${esc(BUSINESS_PROFILE.address)}<br>${esc(BUSINESS_PROFILE.abn)}</p></div></div>
-            <div class="invoice-meta"><div><h4>Bill To</h4><p>${esc(p.clientName)}<br>${esc(p.clientEmail)}</p></div><div><h4>Project</h4><p>${esc(p.siteAddress)}<br>${esc(p.council)}</p></div><div><h4>Details</h4><div class="invoice-meta-row"><span>Invoice No:</span> <strong>${esc(inv.invoiceNumber)}</strong></div><div class="invoice-meta-row"><span>Issue Date:</span> <strong>${esc(inv.issueDate)}</strong></div><div class="invoice-meta-row"><span>Due Date:</span> <strong>${esc(inv.dueDate)}</strong></div></div></div>
+            <div class="invoice-meta">
+              <div><h4>Bill To</h4><p>${esc(p.clientName)}<br>${esc(p.clientEmail)}</p></div>
+              <div><h4>Project</h4><p>${esc(p.siteAddress)}<br>${esc(p.council)}</p></div>
+              <div><h4>Details</h4>
+                <div class="invoice-meta-row"><span>Invoice No:</span> <strong>${esc(inv.invoiceNumber)}</strong></div>
+                <div class="invoice-meta-row"><span>Issue Date:</span> <strong>${esc(inv.issueDate)}</strong></div>
+                <div class="invoice-meta-row"><span>Due Date:</span> <strong>${esc(inv.dueDate)}</strong></div>
+              </div>
+            </div>
             <table class="invoice-table-rendered"><thead><tr><th>Description</th><th>Amount</th></tr></thead><tbody>${inv.lineItems.map(item => `<tr><td><strong>${esc(item.serviceName)}</strong></td><td>${formatCurrency(item.price)}</td></tr>`).join('')}</tbody></table>
             <div class="invoice-footer">
               <div class="invoice-notes">${esc(inv.notes)}</div>
@@ -827,56 +938,51 @@
         </div>`;
     }
 
-    // CALENDAR FUNCTIONS
+    // ==========================================
+    // CALENDAR
+    // ==========================================
     function renderCalendar() {
-      const p = getCurrentProject(); if(!p) return;
-      const monthNames = ["January", "February", "March", "April", "May", "June", "July", "August", "September", "October", "November", "December"];
+      const p = getCurrentProject();
+      if (!p) return;
+      const monthNames = ["January","February","March","April","May","June","July","August","September","October","November","December"];
       document.getElementById('calendarMonthYear').textContent = `${monthNames[calMonth]} ${calYear}`;
-
       const firstDay = new Date(calYear, calMonth, 1).getDay();
       const daysInMonth = new Date(calYear, calMonth + 1, 0).getDate();
-      
       const grid = document.getElementById('calendarDaysGrid');
-      grid.innerHTML = ['S','M','T','W','T','F','S'].map(d => `<div class="calendar-day-head">${d}</div>`).join('');
-
-      for(let i=0; i<firstDay; i++) grid.innerHTML += `<div></div>`;
-
-      for(let day=1; day<=daysInMonth; day++) {
+      let html = ['S','M','T','W','T','F','S'].map(d => `<div class="calendar-day-head">${d}</div>`).join('');
+      for (let i=0; i<firstDay; i++) html += `<div></div>`;
+      for (let day=1; day<=daysInMonth; day++) {
         const dateStr = `${calYear}-${String(calMonth+1).padStart(2,'0')}-${String(day).padStart(2,'0')}`;
         const hasAgenda = p.agendas?.some(a => a.date === dateStr);
         const isActive = selectedCalDate === dateStr;
-        grid.innerHTML += `<div class="calendar-day ${isActive?'active':''} ${hasAgenda?'has-agenda':''}" onclick="selectCalendarDate('${dateStr}')">${day}</div>`;
+        html += `<div class="calendar-day ${isActive?'active':''} ${hasAgenda?'has-agenda':''}" onclick="selectCalendarDate('${dateStr}')">${day}</div>`;
       }
+      grid.innerHTML = html;
       renderAgendasForSelectedDate();
     }
 
     function changeMonth(delta) {
       calMonth += delta;
-      if(calMonth < 0) { calMonth = 11; calYear--; }
-      if(calMonth > 11) { calMonth = 0; calYear++; }
+      if (calMonth < 0) { calMonth = 11; calYear--; }
+      if (calMonth > 11) { calMonth = 0; calYear++; }
       selectedCalDate = `${calYear}-${String(calMonth+1).padStart(2,'0')}-01`;
       renderCalendar();
     }
-
-    function selectCalendarDate(dateStr) {
-      selectedCalDate = dateStr;
-      renderCalendar();
-    }
+    function selectCalendarDate(dateStr) { selectedCalDate = dateStr; renderCalendar(); }
 
     function renderAgendasForSelectedDate() {
-      const p = getCurrentProject(); if(!p) return;
+      const p = getCurrentProject();
+      if (!p) return;
       document.getElementById('selectedDateTitle').textContent = `Agendas for ${selectedCalDate}`;
       const list = p.agendas?.filter(a => a.date === selectedCalDate) || [];
       const container = document.getElementById('agendasForSelectedDate');
-      
-      if(!list.length) { container.innerHTML = `<span style="font-size:12px; color:var(--muted)">No items for this date.</span>`; return; }
-
+      if (!list.length) { container.innerHTML = `<span style="font-size:12px; color:var(--muted)">No items for this date.</span>`; return; }
       container.innerHTML = list.map(a => `
         <div class="agenda-item ${a.status==='Done'?'done':''}">
           <span>${esc(a.text)}</span>
           <div style="display:flex; gap:4px;">
-            <button class="btn small" onclick="toggleAgendaStatus('${a.id}')">${a.status==='Done'?'Undo':'Done'}</button>
-            <button class="btn small danger" onclick="removeAgenda('${a.id}')">✕</button>
+            <button class="btn small" onclick="toggleAgendaStatus('${esc(a.id)}')">${a.status==='Done'?'Undo':'Done'}</button>
+            <button class="btn small danger" onclick="removeAgenda('${esc(a.id)}')">✕</button>
           </div>
         </div>
       `).join('');
@@ -884,98 +990,87 @@
 
     function addAgendaPrompt() {
       const text = prompt(`Enter agenda/reminder for ${selectedCalDate}:`);
-      if(!text) return;
+      if (!text) return;
       const p = getCurrentProject();
       p.agendas ||= [];
       p.agendas.push({ id: uid(), date: selectedCalDate, text, status: 'Pending' });
       queueSave();
       renderCalendar();
     }
-
     function toggleAgendaStatus(id) {
       const p = getCurrentProject();
       const a = p.agendas?.find(x => x.id === id);
-      if(a) { a.status = a.status === 'Done' ? 'Pending' : 'Done'; queueSave(); renderCalendar(); }
+      if (a) { a.status = a.status === 'Done' ? 'Pending' : 'Done'; queueSave(); renderCalendar(); }
     }
-
     function removeAgenda(id) {
       const p = getCurrentProject();
-      if (p) {
-        p.agendas = p.agendas.filter(x => x.id !== id);
-        queueSave();
-        renderCalendar();
-      }
+      if (p) { p.agendas = p.agendas.filter(x => x.id !== id); queueSave(); renderCalendar(); }
     }
 
-    async function uploadAdminDocFile(projectId, docId) {
+    // ==========================================
+    // UPLOADS (ADMIN)
+    // ==========================================
+    async function uploadAdminDocFile(projectId, docId, btn) {
       if (!supabaseClient) return alert('Cloud storage client not connected.');
       const fileInput = document.getElementById(`admin_doc_file_${docId}`);
       if (!fileInput || !fileInput.files.length) return alert("Select a file first.");
-
       const file = fileInput.files[0];
       if (!validateFileBeforeUpload(file)) return;
 
       const p = getCurrentProject();
+      if (!p) return;
       p.cloudFiles ||= [];
 
+      if (btn) btn.disabled = true;
       setSyncStatus('Uploading document...', 'warning');
-      const fileExt = file.name.split('.').pop();
-      const uniquePath = `${projectId}/${docId}_${uid()}.${fileExt}`;
+      try {
+        const fileExt = (file.name.split('.').pop() || 'bin').toLowerCase();
+        const uniquePath = `${projectId}/${docId}_${uid()}.${fileExt}`;
+        const { error } = await supabaseClient.storage.from(STORAGE_BUCKET).upload(uniquePath, file);
+        if (error) { alert("Upload failed: " + error.message); return; }
 
-      const { data, error } = await supabaseClient.storage.from(STORAGE_BUCKET).upload(uniquePath, file);
-      if (error) { alert("Upload failed: " + error.message); return; }
+        p.cloudFiles.push({ id: uid(), name: file.name, path: uniquePath });
+        const targetDoc = p.documents.find(d => d.id === docId);
+        if (targetDoc) { targetDoc.status = 'Received'; targetDoc.filePath = uniquePath; }
 
-      const { data: signedData } = await supabaseClient.storage.from(STORAGE_BUCKET).createSignedUrl(uniquePath, 3600);
-      const urlToUse = signedData ? signedData.signedUrl : '';
-
-      p.cloudFiles.push({ id: uid(), name: file.name, path: uniquePath, url: urlToUse });
-
-      const targetDoc = p.documents.find(d => d.id === docId);
-      if (targetDoc) {
-        targetDoc.status = 'Received';
-        targetDoc.fileUrl = urlToUse;
+        queueSave();
+        await renderProjectTab();
+      } finally {
+        if (btn) btn.disabled = false;
       }
-
-      await saveAll();
-      renderProjectTab();
     }
 
     async function deleteAdminDocFile(projectId, docId) {
-      if (!confirm("Are you sure you want to delete this uploaded document?")) return;
-
-      const p = projects.find(x => x.id === projectId) || getCurrentProject();
+      if (!confirm("Delete this uploaded document?")) return;
+      const p = projects.find(x => x.id === projectId);
       if (!p) return;
-
       const targetDoc = p.documents?.find(d => d.id === docId);
       if (!targetDoc) return;
 
       p.cloudFiles ||= [];
       const cloudMatchIndex = p.cloudFiles.findIndex(f => f.path && f.path.includes(docId));
-
       setSyncStatus('Deleting document...', 'warning');
 
       if (cloudMatchIndex !== -1 && supabaseClient) {
         const filePath = p.cloudFiles[cloudMatchIndex].path;
         const { error } = await supabaseClient.storage.from(STORAGE_BUCKET).remove([filePath]);
-        if (error) {
-          alert('Failed to delete file from cloud storage: ' + error.message);
-          return;
-        }
+        if (error) { alert('Failed to delete file: ' + error.message); return; }
         p.cloudFiles.splice(cloudMatchIndex, 1);
       }
 
-      delete targetDoc.fileUrl;
+      delete targetDoc.filePath;
       targetDoc.status = 'Required';
-
-      await saveAll();
-      renderProjectTab();
+      queueSave();
+      await renderProjectTab();
     }
 
-    // SECURE CLIENT PORTAL ISOLATION
+    // ==========================================
+    // CLIENT PORTAL
+    // ==========================================
     function checkClientViewRoute() {
       const params = new URLSearchParams(window.location.search);
       const token = params.get('token');
-      if (token && token.trim().length > 0) {
+      if (token && token.trim().length >= 8) {
         isClientViewMode = true;
         currentClientToken = token.trim();
         return true;
@@ -983,111 +1078,110 @@
       return false;
     }
 
-    async function initClientPortalOnly() {
-      document.body.classList.remove('locked');
+    async function initClientPortal() {
+      // Completely separate shell — admin DOM is not shown at all.
       document.getElementById('authScreen').style.display = 'none';
-      document.getElementById('mainHeader').style.display = 'none';
-      document.querySelector('.app-wrapper').style.display = 'flex';
+      document.getElementById('adminApp').style.display = 'none';
+      document.getElementById('clientApp').style.display = 'none';
+      document.getElementById('clientErrorShell').style.display = 'none';
 
-      if (!hasSupabaseConfig()) return renderClientPortalError("Cloud configuration missing.");
+      if (!hasSupabaseConfig()) {
+        return showClientError("Cloud configuration missing.");
+      }
+
       supabaseClient = window.supabase.createClient(SUPABASE_URL, SUPABASE_ANON_KEY);
 
       try {
-        const { data: rpcData, error: rpcErr } = await supabaseClient.rpc('get_client_project', { p_token: currentClientToken });
-        if (!rpcErr && rpcData) {
-          projects = [rpcData];
-          renderClientPortalView();
-          return;
+        const { data, error } = await supabaseClient.rpc('get_client_project', { p_token: currentClientToken });
+        if (error || !data) {
+          return showClientError("Link expired or invalid.");
         }
-      } catch(e) {
-        console.warn('RPC unavailable', e);
+        clientProject = data;
+        document.getElementById('clientApp').style.display = 'block';
+        renderClientPortalView();
+      } catch (e) {
+        console.warn(e);
+        showClientError("Service unavailable. Please try again later.");
       }
-
-      // Safe Fail-Closed: Refuse to fetch full app_state table
-      renderClientPortalError("Link expired or service unavailable.");
     }
 
-    function renderClientPortalError(msg) {
-      showOnly('clientPortalView');
-      document.getElementById('clientPortalView').innerHTML = `
-        <div class="client-portal-wrapper">
-          <div class="client-card" style="text-align:center;">
-            <h2 style="color:var(--danger)">Access Restricted</h2>
-            <p style="color:var(--muted);">${esc(msg)}</p>
-          </div>
-        </div>`;
+    function showClientError(msg) {
+      document.getElementById('clientApp').style.display = 'none';
+      document.getElementById('adminApp').style.display = 'none';
+      document.getElementById('authScreen').style.display = 'none';
+      document.getElementById('clientErrorShell').style.display = 'block';
+      document.getElementById('clientErrorMessage').textContent = msg;
     }
 
-    function renderClientPortalView() {
-      showOnly('clientPortalView');
-      const p = projects.find(x => x.clientToken === currentClientToken);
-      if (!p) return renderClientPortalError("Link expired or invalid.");
+    async function renderClientPortalView() {
+      const p = clientProject;
+      if (!p) return showClientError("Link expired or invalid.");
 
-      document.getElementById('clientPortalAddress').textContent = p.siteAddress;
-      document.getElementById('clientPortalSub').textContent = `${p.clientName} · ${p.approvalType} Application (${p.council})`;
+      document.getElementById('clientPortalAddress').textContent = p.siteAddress || '';
+      document.getElementById('clientPortalSub').textContent = `${p.clientName || ''} · ${p.approvalType || ''} Application (${p.council || ''})`;
 
-      const listEl = document.getElementById('clientDocList');
-      const docs = p.documents?.filter(d => d.required !== 'No') || [];
-      
-      listEl.innerHTML = docs.map(d => {
-        const cloudMatch = (p.cloudFiles || []).find(f => f.path && f.path.includes(d.id));
-        const fileUrl = d.fileUrl || (cloudMatch ? cloudMatch.url : null);
-        const isUploaded = fileUrl || ['Received','Approved'].includes(d.status);
+      const docs = (p.documents || []).filter(d => d.required !== 'No');
+      const rows = await Promise.all(docs.map(async d => {
+        let fileUrl = null;
+        if (d.filePath) fileUrl = await getSignedDocumentUrl(d.filePath);
 
-        const actionCell = fileUrl 
-          ? `<a class="btn small primary" href="${esc(fileUrl)}" target="_blank">📄 View File</a>` 
-          : `<div style="display:flex; gap:4px;"><input type="file" id="client_doc_file_${d.id}" style="font-size:12px;" /><button class="btn primary small" onclick="uploadClientDocFile('${p.id}', '${d.id}', this)">Upload</button></div>`;
+        const isUploaded = !!d.filePath || isDocDone(d);
+        const actionCell = fileUrl
+          ? `<a class="btn small primary" href="${esc(fileUrl)}" target="_blank" rel="noopener noreferrer">📄 View File</a>`
+          : `<div style="display:flex; gap:4px;">
+               <input type="file" id="client_doc_file_${esc(d.id)}" style="font-size:12px;" />
+               <button class="btn primary small" onclick="uploadClientDocFile('${esc(d.id)}', this)">Upload</button>
+             </div>`;
 
         return `<tr>
           <td><strong>${esc(d.name)}</strong></td>
           <td><span class="pill ${isUploaded?'status-completed':'status-hold'}">${isUploaded?'Received':'Pending'}</span></td>
           <td>${actionCell}</td>
         </tr>`;
-      }).join('');
+      }));
+      document.getElementById('clientDocList').innerHTML = rows.join('');
     }
 
-    async function uploadClientDocFile(projectId, docId, btnBtn) {
-      if (!supabaseClient) return alert('Storage unavailable.');
+    async function uploadClientDocFile(docId, btn) {
+      if (!supabaseClient || !clientProject) return alert('Storage unavailable.');
       const fileInput = document.getElementById(`client_doc_file_${docId}`);
       if (!fileInput || !fileInput.files.length) return alert("Select a file first.");
-      
       const file = fileInput.files[0];
       if (!validateFileBeforeUpload(file)) return;
 
-      if (btnBtn) btnBtn.disabled = true;
+      if (btn) btn.disabled = true;
       const statusEl = document.getElementById('clientUploadStatus');
       statusEl.textContent = "Uploading document securely...";
 
-      const fileExt = file.name.split('.').pop();
-      const uniquePath = `${projectId}/${docId}_${uid()}.${fileExt}`;
+      try {
+        const fileExt = (file.name.split('.').pop() || 'bin').toLowerCase();
+        const uniquePath = `${clientProject.id}/${docId}_${uid()}.${fileExt}`;
 
-      const { data, error } = await supabaseClient.storage.from(STORAGE_BUCKET).upload(uniquePath, file);
-      if (error) { 
-        statusEl.textContent = "Upload failed: " + error.message; 
-        if (btnBtn) btnBtn.disabled = false;
-        return; 
+        const { error: upErr } = await supabaseClient.storage.from(STORAGE_BUCKET).upload(uniquePath, file);
+        if (upErr) { statusEl.textContent = "Upload failed: " + upErr.message; return; }
+
+        const { error: rpcErr } = await supabaseClient.rpc('attach_client_file', {
+          p_token: currentClientToken,
+          p_doc_id: docId,
+          p_file_path: uniquePath,
+          p_file_name: file.name
+        });
+
+        if (rpcErr) {
+          statusEl.textContent = "Error saving upload state: " + rpcErr.message;
+          // Best effort — remove the orphaned file
+          await supabaseClient.storage.from(STORAGE_BUCKET).remove([uniquePath]);
+          return;
+        }
+
+        statusEl.textContent = "Document uploaded successfully!";
+        // Refresh from server
+        const { data } = await supabaseClient.rpc('get_client_project', { p_token: currentClientToken });
+        if (data) clientProject = data;
+        await renderClientPortalView();
+      } finally {
+        if (btn) btn.disabled = false;
       }
-
-      const { data: signedData } = await supabaseClient.storage.from(STORAGE_BUCKET).createSignedUrl(uniquePath, 3600);
-      const urlToUse = signedData ? signedData.signedUrl : '';
-
-      // Secure RPC Atomic Attachment Call
-      const { error: rpcError } = await supabaseClient.rpc('attach_client_file', {
-        p_token: currentClientToken,
-        p_doc_id: docId,
-        p_file_path: uniquePath,
-        p_file_url: urlToUse,
-        p_file_name: file.name
-      });
-
-      if (rpcError) {
-        statusEl.textContent = "Error saving upload state to cloud.";
-        if (btnBtn) btnBtn.disabled = false;
-        return;
-      }
-
-      statusEl.textContent = "Document uploaded successfully!";
-      await initClientPortalOnly();
     }
 
     function copyClientUploadLink() {
@@ -1095,150 +1189,181 @@
       if (!p) return;
       if (!p.clientToken) { p.clientToken = generateToken(); queueSave(); }
       const clientUrl = `${window.location.origin}${window.location.pathname}?token=${p.clientToken}`;
-      
       if (navigator.clipboard && navigator.clipboard.writeText) {
-        navigator.clipboard.writeText(clientUrl).then(() => {
-          alert(`Client Upload Link Copied:\n\n${clientUrl}`);
-        }).catch(() => prompt("Copy client portal link:", clientUrl));
+        navigator.clipboard.writeText(clientUrl)
+          .then(() => alert(`Client Upload Link Copied:\n\n${clientUrl}`))
+          .catch(() => prompt("Copy client portal link:", clientUrl));
       } else {
         prompt("Copy client portal link:", clientUrl);
       }
     }
 
-    function updateDoc(id, field, value) { const d = getCurrentProject()?.documents?.find(x=>x.id===id); if(d){ d[field]=value; queueSave(); } }
-    
-    async function removeDoc(id) { 
-      const p = getCurrentProject(); 
-      if (p && confirm('Remove this document section completely?')) { 
-        if (p.cloudFiles) {
-          p.cloudFiles = p.cloudFiles.filter(f => !f.path || !f.path.includes(id));
-        }
-        p.documents = p.documents.filter(d => d.id !== id); 
-        await saveAll(); 
-        renderProjectTab(); 
-      } 
-    }
-    
-    function addDocumentPrompt() { 
-      const name = prompt('Doc name'); 
-      if(!name) return; 
-      getCurrentProject()?.documents?.push({ id: uid(), name: name.trim(), required:'Yes', status:'Required', responsible:'Client' }); 
-      queueSave(); 
-      renderProjectTab(); 
-    }
+    // ==========================================
+    // DOC / NOTE / INVOICE CRUD
+    // ==========================================
+    function updateDoc(id, field, value) { const d = getCurrentProject()?.documents?.find(x=>x.id===id); if (d) { d[field]=value; queueSave(); } }
+    function removeDoc(id) { const p=getCurrentProject(); if (p && confirm('Remove this document section?')) { p.documents=p.documents.filter(d=>d.id!==id); queueSave(); renderProjectTab(); } }
+    function addDocumentPrompt() { const name=prompt('Doc name'); if(!name) return; getCurrentProject()?.documents?.push({ id: uid(), name, required:'Yes', status:'Required', responsible:'Client' }); queueSave(); renderProjectTab(); }
 
     function addCouncilNote() { getCurrentProject()?.notesList?.push({ id: uid(), date: todayISO(), note:'' }); queueSave(); renderProjectTab(); }
-    function updateCouncilNote(id, f, v) { const n = getCurrentProject()?.notesList?.find(x=>x.id===id); if(n){ n[f]=v; queueSave(); } }
-    function removeCouncilNote(id) { const p=getCurrentProject(); if(p){ p.notesList=p.notesList.filter(n=>n.id!==id); queueSave(); renderProjectTab(); } }
-    
-    function addProjectNote() { getCurrentProject()?.projectNotesList?.push({ id: uid(), title:'', body:'' }); queueSave(); renderProjectTab(); }
-    function updateProjectNote(id, f, v) { const n = getCurrentProject()?.projectNotesList?.find(x=>x.id===id); if(n){ n[f]=v; queueSave(); } }
-    function removeProjectNote(id) { const p=getCurrentProject(); if(p){ p.projectNotesList=p.projectNotesList.filter(n=>n.id!==id); queueSave(); renderProjectTab(); } }
-    
-    function updateInvoiceField(field, value) { const p=getCurrentProject(); if(p?.invoice){ p.invoice[field]=value; queueSave(); } }
-    function updateInvoiceLine(id, field, value) { const item = getCurrentProject()?.invoice?.lineItems?.find(x=>x.id===id); if(item){ item[field]=value; queueSave(); } }
-    function addInvoiceLine() { getCurrentProject()?.invoice?.lineItems?.push({ id: uid(), serviceName:'', price:'' }); queueSave(); renderProjectTab(); }
-    function removeInvoiceLine(id) { const inv = getCurrentProject()?.invoice; if(inv){ inv.lineItems = inv.lineItems.filter(i => i.id !== id); queueSave(); renderProjectTab(); } }
+    function updateCouncilNote(id, f, v) { const n = getCurrentProject()?.notesList?.find(x=>x.id===id); if (n) { n[f]=v; queueSave(); } }
+    function removeCouncilNote(id) { const p=getCurrentProject(); if (p) { p.notesList=p.notesList.filter(n=>n.id!==id); queueSave(); renderProjectTab(); } }
 
+    function addProjectNote() { getCurrentProject()?.projectNotesList?.push({ id: uid(), title:'', body:'' }); queueSave(); renderProjectTab(); }
+    function updateProjectNote(id, f, v) { const n = getCurrentProject()?.projectNotesList?.find(x=>x.id===id); if (n) { n[f]=v; queueSave(); } }
+    function removeProjectNote(id) { const p=getCurrentProject(); if (p) { p.projectNotesList=p.projectNotesList.filter(n=>n.id!==id); queueSave(); renderProjectTab(); } }
+
+    function updateInvoiceField(field, value) { const p=getCurrentProject(); if (p?.invoice) { p.invoice[field]=value; queueSave(); } }
+    function updateInvoiceLine(id, field, value) { const item = getCurrentProject()?.invoice?.lineItems?.find(x=>x.id===id); if (item) { item[field]=value; queueSave(); } }
+    function addInvoiceLine() { getCurrentProject()?.invoice?.lineItems?.push({ id: uid(), serviceName:'', price:'' }); queueSave(); renderProjectTab(); }
+    function removeInvoiceLine(id) { const inv = getCurrentProject()?.invoice; if (inv) { inv.lineItems = inv.lineItems.filter(i => i.id !== id); queueSave(); renderProjectTab(); } }
+
+    // ==========================================
+    // FINANCES
+    // ==========================================
     function showFinances() {
       showOnly('financeView');
       document.getElementById('navFinances').classList.add('active');
       let allInvoices = [], unpaidTotal = 0, paidTotal = 0;
       projects.forEach(p => {
-         if (p.invoice && p.invoice.lineItems) {
-            const sub = p.invoice.lineItems.reduce((s, i) => s + Number(i.price || 0), 0);
-            const total = sub + (p.invoice.hasGST !== false ? sub * 0.1 : 0);
-            if (!['CANCELLED', 'DRAFT'].includes(p.invoice.status)) {
-               if (p.invoice.status === 'RECEIVED PAYMENT') paidTotal += total;
-               else unpaidTotal += total;
-            }
-            allInvoices.push({ projectId: p.id, projectName: p.siteAddress, client: p.clientName, invoiceNo: p.invoice.invoiceNumber, issueDate: p.invoice.issueDate, status: p.invoice.status || 'SENT', total });
-         }
+        if (p.invoice && p.invoice.lineItems) {
+          const sub = p.invoice.lineItems.reduce((s, i) => s + Number(i.price || 0), 0);
+          const total = sub + (p.invoice.hasGST !== false ? sub * 0.1 : 0);
+          if (!['CANCELLED', 'DRAFT'].includes(p.invoice.status)) {
+            if (p.invoice.status === 'RECEIVED PAYMENT') paidTotal += total;
+            else unpaidTotal += total;
+          }
+          allInvoices.push({
+            projectId: p.id, projectName: p.siteAddress, client: p.clientName,
+            invoiceNo: p.invoice.invoiceNumber, issueDate: p.invoice.issueDate,
+            status: p.invoice.status || 'SENT', total
+          });
+        }
       });
       document.getElementById('financeUnpaid').textContent = formatCurrency(unpaidTotal);
       document.getElementById('financePaid').textContent = formatCurrency(paidTotal);
       const wrap = document.getElementById('financeTableWrap');
       if (!allInvoices.length) { wrap.innerHTML = `<div class="empty">No invoices generated yet.</div>`; return; }
-      wrap.innerHTML = `<div style="overflow-x:auto;"><table><thead><tr><th>Invoice No</th><th>Date</th><th>Project</th><th>Client</th><th>Status</th><th style="text-align:right;">Amount</th></tr></thead><tbody>${allInvoices.map(inv => `<tr style="cursor:pointer;" onclick="openProject('${inv.projectId}'); switchTab('invoice');"><td><strong>${esc(inv.invoiceNo)}</strong></td><td>${esc(inv.issueDate)}</td><td>${esc(inv.projectName)}</td><td>${esc(inv.client)}</td><td><span class="pill">${esc(inv.status)}</span></td><td style="text-align:right;">${formatCurrency(inv.total)}</td></tr>`).join('')}</tbody></table></div>`;
+      wrap.innerHTML = `<div style="overflow-x:auto;"><table><thead><tr><th>Invoice No</th><th>Date</th><th>Project</th><th>Client</th><th>Status</th><th style="text-align:right;">Amount</th></tr></thead><tbody>${allInvoices.map(inv => `<tr style="cursor:pointer;" onclick="openProject('${esc(inv.projectId)}'); switchTab('invoice');"><td><strong>${esc(inv.invoiceNo)}</strong></td><td>${esc(inv.issueDate)}</td><td>${esc(inv.projectName)}</td><td>${esc(inv.client)}</td><td><span class="pill">${esc(inv.status)}</span></td><td style="text-align:right;">${formatCurrency(inv.total)}</td></tr>`).join('')}</tbody></table></div>`;
     }
 
-    function openProjectModal(id='') { 
-      document.getElementById('projectForm').reset(); 
-      populateCouncils(); 
-      document.getElementById('projectId').value = id || ''; 
-      document.getElementById('modalTitle').textContent = id ? 'Edit Project' : 'Add Project'; 
-      if (id) { 
-        const p = projects.find(x => x.id === id); 
-        ['clientName','clientPhone','clientEmail','siteAddress','council','lotDp','projectType','approvalType','jobStatus'].forEach(key => { 
-          const el = document.getElementById(key); 
-          if (el) el.value = p[key==='jobStatus'?'status':key] || ''; 
-        }); 
-      } 
-      document.getElementById('projectModal').classList.add('show'); 
+    // ==========================================
+    // PROJECT MODAL
+    // ==========================================
+    function openProjectModal(id='') {
+      document.getElementById('projectForm').reset();
+      populateCouncils();
+      document.getElementById('projectId').value = id || '';
+      document.getElementById('modalTitle').textContent = id ? 'Edit Project' : 'Add Project';
+      if (id) {
+        const p = projects.find(x => x.id === id);
+        if (p) {
+          ['clientName','clientPhone','clientEmail','siteAddress','council','lotDp','projectType','approvalType','jobStatus'].forEach(key => {
+            const el = document.getElementById(key);
+            if (el) el.value = p[key==='jobStatus'?'status':key] || '';
+          });
+        }
+      }
+      document.getElementById('projectModal').classList.add('show');
     }
-
     function closeProjectModal() { document.getElementById('projectModal').classList.remove('show'); }
 
-    function saveProject(event) { 
-      event.preventDefault(); 
-      const id = document.getElementById('projectId').value; 
-      const data = { clientName: document.getElementById('clientName').value, clientPhone: document.getElementById('clientPhone').value, clientEmail: document.getElementById('clientEmail').value, siteAddress: document.getElementById('siteAddress').value, council: document.getElementById('council').value, lotDp: document.getElementById('lotDp').value, projectType: document.getElementById('projectType').value, approvalType: document.getElementById('approvalType').value, status: document.getElementById('jobStatus').value }; 
-
-      if (id) { Object.assign(projects.find(x => x.id === id), data); } 
-      else { 
-        const newProject = { id: uid(), clientToken: generateToken(), createdAt: todayISO(), ...data, documents: (checklistLibrary[data.approvalType] || checklistLibrary.Other).map(name => ({ id: uid(), name, required: 'Yes', status: 'Required', responsible: 'Client/Consultant' })), notesList: [], projectNotesList: [], agendas: [], cloudFiles: [] }; 
-        newProject.invoice = defaultInvoice(newProject); 
-        projects.unshift(newProject); 
-      } 
-      queueSave(); 
-      closeProjectModal(); 
-      id ? openProject(id) : showDashboard(); 
+    function saveProject(event) {
+      event.preventDefault();
+      const id = document.getElementById('projectId').value;
+      const data = {
+        clientName: document.getElementById('clientName').value,
+        clientPhone: document.getElementById('clientPhone').value,
+        clientEmail: document.getElementById('clientEmail').value,
+        siteAddress: document.getElementById('siteAddress').value,
+        council: document.getElementById('council').value,
+        lotDp: document.getElementById('lotDp').value,
+        projectType: document.getElementById('projectType').value,
+        approvalType: document.getElementById('approvalType').value,
+        status: document.getElementById('jobStatus').value
+      };
+      if (id) {
+        Object.assign(projects.find(x => x.id === id), data);
+      } else {
+        const newProject = {
+          id: uid(), clientToken: generateToken(), createdAt: todayISO(), ...data,
+          documents: (checklistLibrary[data.approvalType] || checklistLibrary.Other).map(name => ({ id: uid(), name, required: 'Yes', status: 'Required', responsible: 'Client/Consultant' })),
+          notesList: [], projectNotesList: [], agendas: [], cloudFiles: []
+        };
+        newProject.invoice = defaultInvoice(newProject);
+        projects.unshift(newProject);
+      }
+      queueSave();
+      closeProjectModal();
+      id ? openProject(id) : showDashboard();
     }
 
-    async function deleteCurrentProject() { 
-      if (!confirm('Are you sure you want to delete this project and all its uploaded files?')) return;
+    async function deleteCurrentProject() {
+      if (!confirm('Delete this project and all its uploaded files?')) return;
       const p = getCurrentProject();
-      if(!p) return;
+      if (!p) return;
 
-      const pathsToDelete = [];
-      if (p.cloudFiles && p.cloudFiles.length > 0) {
-        p.cloudFiles.forEach(f => { if (f.path) pathsToDelete.push(f.path); });
-      }
-
+      const pathsToDelete = (p.cloudFiles || []).filter(f => f.path).map(f => f.path);
       if (pathsToDelete.length > 0 && supabaseClient) {
         setSyncStatus('Deleting cloud files...', 'warning');
-        await supabaseClient.storage.from(STORAGE_BUCKET).remove(pathsToDelete);
+        const { error } = await supabaseClient.storage.from(STORAGE_BUCKET).remove(pathsToDelete);
+        if (error) { alert('Failed to delete files: ' + error.message); return; }
       }
-
-      projects = projects.filter(x => x.id !== currentProjectId); 
+      projects = projects.filter(x => x.id !== p.id);
       await saveAll();
-      showDashboard(); 
+      showDashboard();
     }
 
-    function exportData() { const a = document.createElement('a'); a.href = URL.createObjectURL(new Blob([JSON.stringify(projects, null, 2)], { type: 'application/json' })); a.download = 'project-tracker-backup.json'; a.click(); }
-    
-    function importData(e) { 
-      const r = new FileReader(); 
-      r.onload = ev => { 
-        try { 
+    // ==========================================
+    // IMPORT / EXPORT
+    // ==========================================
+    function exportData() {
+      const a = document.createElement('a');
+      a.href = URL.createObjectURL(new Blob([JSON.stringify(projects, null, 2)], { type: 'application/json' }));
+      a.download = 'project-tracker-backup.json';
+      a.click();
+    }
+
+    function importData(e) {
+      const r = new FileReader();
+      r.onload = ev => {
+        try {
           const parsed = JSON.parse(ev.target.result);
-          if (Array.isArray(parsed) && parsed.every(x => x.id && x.siteAddress)) {
+          const idOk = /^[a-zA-Z0-9_-]+$/;
+          if (Array.isArray(parsed) && parsed.every(x => x.id && idOk.test(String(x.id)) && x.siteAddress)) {
             projects = parsed;
-            queueSave(); 
-            showDashboard(); 
-            alert('Backup restored successfully.'); 
+            queueSave();
+            showDashboard();
+            alert('Backup restored.');
           } else {
             alert('Invalid backup file format.');
           }
-        } catch { alert('Error reading JSON backup file.'); } 
-      }; 
-      r.readAsText(e.target.files[0]); 
+        } catch { alert('Error reading JSON.'); }
+      };
+      r.readAsText(e.target.files[0]);
     }
 
-    function exportToCSV() { const csv = projects.map(p => [p.id, `"${p.clientName}"`, `"${p.siteAddress}"`, p.approvalType, p.status].join(',')).join('\n'); const a = document.createElement('a'); a.href = URL.createObjectURL(new Blob([csv], { type: 'text/csv' })); a.download = 'projects.csv'; a.click(); }
-    function generateEmailChase() { const p = getCurrentProject(); if(!p?.clientEmail) return alert('No client email address saved.'); window.location.href = `mailto:${p.clientEmail}?subject=Missing Docs for ${p.siteAddress}`; }
+    function exportToCSV() {
+      const csv = projects.map(p => [p.id, `"${p.clientName}"`, `"${p.siteAddress}"`, p.approvalType, p.status].join(',')).join('\n');
+      const a = document.createElement('a');
+      a.href = URL.createObjectURL(new Blob([csv], { type: 'text/csv' }));
+      a.download = 'projects.csv';
+      a.click();
+    }
 
-    function printProjectReport() { 
+    function generateEmailChase() {
+      const p = getCurrentProject();
+      if (!p?.clientEmail) return alert('No client email address saved.');
+      const missing = p.documents?.filter(d => d.required !== 'No' && !isDocDone(d)).map(d => `- ${d.name}`).join('\n') || '';
+      const subject = encodeURIComponent(`Missing Documents for ${p.siteAddress}`);
+      const body = encodeURIComponent(`Hi ${p.clientName},\n\nWe still need the following documents for your project at ${p.siteAddress}:\n\n${missing}\n\nPlease upload them via your secure link.\n\nThanks,\nProject Approvals`);
+      window.location.href = `mailto:${p.clientEmail}?subject=${subject}&body=${body}`;
+    }
+
+    // ==========================================
+    // PRINT
+    // ==========================================
+    function printProjectReport() {
       const p = getCurrentProject();
       if (!p) return;
       const target = document.getElementById('printReport');
@@ -1250,16 +1375,13 @@
           <h3>Document Checklist Status</h3>
           <table style="width:100%; border-collapse:collapse;">
             <thead><tr><th style="text-align:left;">Document</th><th style="text-align:left;">Status</th><th style="text-align:left;">Responsible</th></tr></thead>
-            <tbody>
-              ${(p.documents || []).map(d => `<tr><td>${esc(d.name)}</td><td>${esc(d.status)}</td><td>${esc(d.responsible)}</td></tr>`).join('')}
-            </tbody>
+            <tbody>${(p.documents || []).map(d => `<tr><td>${esc(d.name)}</td><td>${esc(d.status)}</td><td>${esc(d.responsible)}</td></tr>`).join('')}</tbody>
           </table>
-        </div>
-      `;
-      window.print(); 
+        </div>`;
+      window.print();
     }
 
-    function printInvoice() { 
+    function printInvoice() {
       const p = getCurrentProject();
       if (!p) return;
       const inv = p.invoice || defaultInvoice(p);
@@ -1267,22 +1389,18 @@
       const applyGST = inv.hasGST !== false;
       const gst = applyGST ? subtotal * 0.1 : 0;
       const total = subtotal + gst;
-
-      const target = document.getElementById('printReport');
-      target.innerHTML = `
-        <div class="invoice-preview" style="padding:20px;">
+      document.getElementById('printReport').innerHTML = `
+        <div style="padding:20px;">
           <h2>${esc(BUSINESS_PROFILE.name)}</h2>
           <p>${esc(BUSINESS_PROFILE.address)}<br>${esc(BUSINESS_PROFILE.abn)}</p>
           <hr />
           <p><strong>Bill To:</strong> ${esc(p.clientName)} (${esc(p.clientEmail)})</p>
           <p><strong>Site:</strong> ${esc(p.siteAddress)} (${esc(p.council)})</p>
-          <p><strong>Invoice No:</strong> ${esc(inv.invoiceNumber)} | <strong>Issue Date:</strong> ${esc(inv.issueDate)} | <strong>Due Date:</strong> ${esc(inv.dueDate)}</p>
+          <p><strong>Invoice No:</strong> ${esc(inv.invoiceNumber)} | <strong>Issue:</strong> ${esc(inv.issueDate)} | <strong>Due:</strong> ${esc(inv.dueDate)}</p>
           <hr />
           <table style="width:100%; border-collapse:collapse; margin-top:20px;">
             <thead><tr><th style="text-align:left; border-bottom:1px solid #ccc; padding:8px;">Description</th><th style="text-align:right; border-bottom:1px solid #ccc; padding:8px;">Amount</th></tr></thead>
-            <tbody>
-              ${inv.lineItems.map(item => `<tr><td style="padding:8px; border-bottom:1px solid #eee;">${esc(item.serviceName)}</td><td style="text-align:right; padding:8px; border-bottom:1px solid #eee;">${formatCurrency(item.price)}</td></tr>`).join('')}
-            </tbody>
+            <tbody>${inv.lineItems.map(item => `<tr><td style="padding:8px; border-bottom:1px solid #eee;">${esc(item.serviceName)}</td><td style="text-align:right; padding:8px; border-bottom:1px solid #eee;">${formatCurrency(item.price)}</td></tr>`).join('')}</tbody>
           </table>
           <div style="margin-top:20px; text-align:right;">
             <p>Subtotal: ${formatCurrency(subtotal)}</p>
@@ -1290,22 +1408,21 @@
             <h3>Total Due: ${formatCurrency(total)}</h3>
           </div>
           <div style="margin-top:30px; font-size:12px; white-space:pre-wrap; color:#64748b;">
-            <strong>Payment Details:</strong>\n${esc(inv.notes)}
+            <strong>Payment Details:</strong>
+${esc(inv.notes)}
           </div>
-        </div>
-      `;
-      window.print(); 
+        </div>`;
+      window.print();
     }
 
-    async function bootstrap() { 
-      populateCouncils(); 
-      const isClient = checkClientViewRoute();
-      if (isClient) {
-        await initClientPortalOnly();
+    // ==========================================
+    // BOOTSTRAP
+    // ==========================================
+    async function bootstrap() {
+      if (checkClientViewRoute()) {
+        await initClientPortal();
       } else {
-        await initSupabase();
-        checkPortalAuth();
-        showDashboard(); 
+        await initAuth();
       }
     }
     bootstrap();

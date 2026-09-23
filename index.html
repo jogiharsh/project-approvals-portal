@@ -186,7 +186,7 @@
 
     @media print {
       body { background: #fff; color: #000; }
-      .top-nav, .tabs, .no-print, .modal-backdrop, #dashboardView, #projectView, #libraryView, #financeView, #clientPortalView, .actions { display: none !important; }
+      .top-nav, .tabs, .no-print, .modal-backdrop, #dashboardView, #projectView, #financeView, #clientPortalView, .actions { display: none !important; }
       .app-wrapper { display: block; }
       main.content-container { padding: 0; max-width: none; }
       .print-report { display: block; padding: 24px; }
@@ -224,7 +224,6 @@
           <button class="nav-btn active" id="navDashboard" onclick="showDashboard()">Dashboard</button>
           <button class="nav-btn" id="navFinances" onclick="showFinances()">Finances</button>
           <button class="nav-btn" onclick="openProjectModal()">Add Project</button>
-          <button class="nav-btn" id="navLibrary" onclick="showChecklistLibrary()">Library</button>
           <button class="nav-btn" onclick="exportData()">Backup</button>
           <input id="importFile" type="file" accept="application/json" class="hidden" onchange="importData(event)" />
           <button class="nav-btn" onclick="document.getElementById('importFile').click()">Restore</button>
@@ -375,9 +374,6 @@
         </div>
       </section>
 
-      <!-- CHECKLIST LIBRARY VIEW -->
-      <section id="libraryView" class="hidden"></section>
-      
       <!-- NATIVE PRINT CONTAINER -->
       <section id="printReport" class="print-report"></section>
     </main>
@@ -527,6 +523,7 @@
         if (!p.clientToken) { p.clientToken = generateToken(); changed = true; }
         if (!p.agendas) { p.agendas = []; changed = true; }
         if (!p.invoice) { p.invoice = defaultInvoice(p); changed = true; }
+        if (!p.cloudFiles) { p.cloudFiles = []; changed = true; }
       });
       if (changed) saveLocalFallback();
       return changed;
@@ -580,7 +577,10 @@
     document.addEventListener('click', e => { const option = e.target.closest('[data-address]'); if (option) selectAddress(option.dataset.address); else if (!e.target.closest('#addressSuggestions') && e.target.id !== 'siteAddress') document.getElementById('addressSuggestions').classList.remove('show'); });
 
     function showOnly(sectionId) { 
-       ['dashboardView','projectView','libraryView','financeView','clientPortalView'].forEach(id => document.getElementById(id).classList.add('hidden')); 
+       ['dashboardView','projectView','financeView','clientPortalView'].forEach(id => {
+         const el = document.getElementById(id);
+         if (el) el.classList.add('hidden');
+       }); 
        document.getElementById(sectionId).classList.remove('hidden'); 
        document.querySelectorAll('.nav-btn').forEach(btn => btn.classList.remove('active')); 
     }
@@ -671,8 +671,8 @@
       
       if (activeTab === 'documents') {
         el.innerHTML = `<div class="card"><div class="section-title"><h3>Document Checklist & Direct Uploads</h3><button class="btn primary small" onclick="addDocumentPrompt()">+ Add Section</button></div><div style="overflow-x:auto;"><table><thead><tr><th>Document Section</th><th>Required</th><th>Status</th><th>Responsible</th><th>Attached File / Action</th><th></th></tr></thead><tbody>${p.documents.map(d => {
-          // Check both direct URL or cloudFiles array
-          const cloudMatch = p.cloudFiles.find(f => f.path.includes(d.id));
+          // Check both direct URL or cloudFiles array match for this document section ID
+          const cloudMatch = (p.cloudFiles || []).find(f => f.path && f.path.includes(d.id));
           const fileUrl = d.fileUrl || (cloudMatch ? cloudMatch.url : null);
           
           const fileAction = fileUrl 
@@ -893,7 +893,7 @@
       const docs = p.documents?.filter(d => d.required !== 'No') || [];
       
       listEl.innerHTML = docs.map(d => {
-        const cloudMatch = (p.cloudFiles || []).find(f => f.path.includes(d.id));
+        const cloudMatch = (p.cloudFiles || []).find(f => f.path && f.path.includes(d.id));
         const fileUrl = d.fileUrl || (cloudMatch ? cloudMatch.url : null);
         const isUploaded = fileUrl || ['Received','Approved'].includes(d.status);
 
@@ -987,11 +987,6 @@
       if (!allInvoices.length) { wrap.innerHTML = `<div class="empty">No invoices generated yet.</div>`; return; }
       wrap.innerHTML = `<div style="overflow-x:auto;"><table><thead><tr><th>Invoice No</th><th>Date</th><th>Project</th><th>Client</th><th>Status</th><th style="text-align:right;">Amount</th></tr></thead><tbody>${allInvoices.map(inv => `<tr style="cursor:pointer;" onclick="openProject('${inv.projectId}'); switchTab('invoice');"><td><strong>${esc(inv.invoiceNo)}</strong></td><td>${esc(inv.issueDate)}</td><td>${esc(inv.projectName)}</td><td>${esc(inv.client)}</td><td><span class="pill">${esc(inv.status)}</span></td><td style="text-align:right;">${formatCurrency(inv.total)}</td></tr>`).join('')}</tbody></table></div>`;
     }
-
-    function showChecklistLibrary() { showOnly('libraryView'); document.getElementById('navLibrary').classList.add('active'); renderLibraryUI(); }
-    function renderLibraryUI() { const container = document.getElementById('libraryView'); let html = `<div class="topbar"><h2>Checklist Library Editor</h2></div><div class="grid two">`; for (const [type, items] of Object.entries(checklistLibrary)) { html += `<div class="card"><h3>${type}</h3><div>${items.map((item, index) => `<div style="display:flex; justify-content:space-between; margin-bottom:4px;"><span>${esc(item)}</span><button class="btn danger small" onclick="removeLibraryItem('${type}',${index})">✕</button></div>`).join('')}</div><div style="display:flex;gap:8px;margin-top:12px;"><input type="text" id="addInput_${type}" placeholder="New document name..." /><button class="btn primary small" onclick="addLibraryItem('${type}')">Add</button></div></div>`; } html += `</div>`; container.innerHTML = html; }
-    function addLibraryItem(type) { const val = document.getElementById(`addInput_${type}`).value.trim(); if(val) { checklistLibrary[type].push(val); saveLocalFallback(); renderLibraryUI(); } }
-    function removeLibraryItem(type, index) { if(confirm('Remove item?')) { checklistLibrary[type].splice(index, 1); saveLocalFallback(); renderLibraryUI(); } }
 
     function openProjectModal(id='') { 
       document.getElementById('projectForm').reset(); 

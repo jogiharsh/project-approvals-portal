@@ -940,7 +940,7 @@
         targetDoc.fileUrl = urlToUse;
       }
 
-      queueSave();
+      await saveAll();
       renderProjectTab();
     }
 
@@ -971,7 +971,7 @@
       delete targetDoc.fileUrl;
       targetDoc.status = 'Required';
 
-      queueSave();
+      await saveAll();
       renderProjectTab();
     }
 
@@ -1109,8 +1109,30 @@
     }
 
     function updateDoc(id, field, value) { const d = getCurrentProject()?.documents?.find(x=>x.id===id); if(d){ d[field]=value; queueSave(); } }
-    function removeDoc(id) { const p=getCurrentProject(); if(p && confirm('Remove this document section?')) { p.documents=p.documents.filter(d=>d.id!==id); queueSave(); renderProjectTab(); } }
-    function addDocumentPrompt() { const name=prompt('Doc name'); if(!name) return; getCurrentProject()?.documents?.push({ id: uid(), name, required:'Yes', status:'Required', responsible:'Client' }); queueSave(); renderProjectTab(); }
+    
+    async function removeDoc(id) { 
+      const p = getCurrentProject(); 
+      if (p && confirm('Remove this document section completely?')) { 
+        // 1. Purge matching file records from cloudFiles memory
+        if (p.cloudFiles) {
+          p.cloudFiles = p.cloudFiles.filter(f => !f.path || !f.path.includes(id));
+        }
+        // 2. Remove document entry
+        p.documents = p.documents.filter(d => d.id !== id); 
+        
+        // 3. Force immediate hard save to overwrite remote state
+        await saveAll(); 
+        renderProjectTab(); 
+      } 
+    }
+    
+    function addDocumentPrompt() { 
+      const name = prompt('Doc name'); 
+      if(!name) return; 
+      getCurrentProject()?.documents?.push({ id: uid(), name: name.trim(), required:'Yes', status:'Required', responsible:'Client' }); 
+      queueSave(); 
+      renderProjectTab(); 
+    }
 
     function addCouncilNote() { getCurrentProject()?.notesList?.push({ id: uid(), date: todayISO(), note:'' }); queueSave(); renderProjectTab(); }
     function updateCouncilNote(id, f, v) { const n = getCurrentProject()?.notesList?.find(x=>x.id===id); if(n){ n[f]=v; queueSave(); } }

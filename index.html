@@ -567,15 +567,22 @@
     async function loadProjectsFromCloud() {
       if (!supabaseClient) return;
       try {
+        // 1. Try RPC first
         const { data, error } = await supabaseClient.rpc('admin_get_app_state');
         if (!error && data) {
           projects = Array.isArray(data.projects) ? data.projects : [];
           if (data.checklistLibrary) checklistLibrary = data.checklistLibrary;
-          console.log("Successfully loaded projects via admin RPC");
+          console.log("Successfully loaded state via RPC");
         } else {
-          console.error("Admin RPC read failed:", error ? error.message : "No data returned");
-          setSyncStatus('Read Error', 'error');
-          projects = loadLocalFallback();
+          // 2. Direct table fallback if RPC fails
+          const { data: directData, error: directErr } = await supabaseClient.from(SUPABASE_TABLE).select('*').eq('id', APP_STATE_ID);
+          if (!directErr && directData && directData.length > 0) {
+            projects = Array.isArray(directData[0].projects) ? directData[0].projects : [];
+            console.log("Successfully loaded state via Direct Table query");
+          } else {
+            console.error("Direct table read failed:", directErr ? directErr.message : "No data");
+            projects = loadLocalFallback();
+          }
         }
       } catch (e) {
         console.error('Cloud read failed:', e);
@@ -591,12 +598,19 @@
       setSyncStatus('Saving...', 'warning');
       
       const payload = { projects: projects, checklistLibrary: checklistLibrary };
+      
+      // 1. Try RPC save
       const { error } = await supabaseClient.rpc('admin_save_app_state', { p_payload: payload });
       
       if (error) {
-        setSyncStatus('Save failed', 'error');
-        console.error("Save RPC error:", error.message);
-        return;
+        console.warn("RPC save failed, falling back to direct upsert:", error.message);
+        // 2. Direct table upsert fallback
+        const { error: directErr } = await supabaseClient.from(SUPABASE_TABLE).upsert([{ id: APP_STATE_ID, ...payload, updated_at: new Date().toISOString() }]);
+        if (directErr) {
+          console.error("Direct upsert error:", directErr.message);
+          setSyncStatus('Save failed', 'error');
+          return;
+        }
       }
       setSyncStatus('Cloud Synced', 'success');
     }
@@ -720,8 +734,11 @@
     async function getSignedDocumentUrl(path) {
       if (!supabaseClient || !path) return null;
       try {
-        const { data } = await supabaseClient.storage.from(STORAGE_BUCKET).createSignedUrl(path, 3600);
-        return data ? data.signedUrl : null;
+        const { data, error } = await supabaseClient.storage.from(STORAGE_BUCKET).createSignedUrl(path, 3600);
+        if (data && data.signedUrl) return data.signedUrl;
+        // Fallback to publicUrl if signed URL fails
+        const { data: pubData } = supabaseClient.storage.from(STORAGE_BUCKET).getPublicUrl(path);
+        return pubData ? pubData.publicUrl : null;
       } catch { return null; }
     }
 
@@ -738,8 +755,9 @@
           const cloudMatch = (p.cloudFiles || []).find(f => f.path && f.path.includes(d.id));
           let fileUrl = d.fileUrl || (cloudMatch ? cloudMatch.url : null);
           
-          if (!fileUrl && cloudMatch && cloudMatch.path) {
-            fileUrl = await getSignedDocumentUrl(cloudMatch.path);
+          if (cloudMatch && cloudMatch.path) {
+            const freshUrl = await getSignedDocumentUrl(cloudMatch.path);
+            if (freshUrl) fileUrl = freshUrl;
           }
 
           const fileAction = fileUrl 
@@ -1025,7 +1043,7 @@
         </div>`;
     }
 
-    function renderClientPortalView() {
+    async function renderClientPortalView() {
       showOnly('clientPortalView');
       const p = projects.find(x => x.clientToken === currentClientToken);
       if (!p) return renderClientPortalError("Link expired or invalid.");
@@ -1036,21 +1054,30 @@
       const listEl = document.getElementById('clientDocList');
       const docs = p.documents?.filter(d => d.required !== 'No') || [];
       
-      listEl.innerHTML = docs.map(d => {
+      let rowsHtml = '';
+      for (const d of docs) {
         const cloudMatch = (p.cloudFiles || []).find(f => f.path && f.path.includes(d.id));
-        const fileUrl = d.fileUrl || (cloudMatch ? cloudMatch.url : null);
+        let fileUrl = d.fileUrl || (cloudMatch ? cloudMatch.url : null);
+        
+        if (cloudMatch && cloudMatch.path) {
+          const freshUrl = await getSignedDocumentUrl(cloudMatch.path);
+          if (freshUrl) fileUrl = freshUrl;
+        }
+
         const isUploaded = fileUrl || ['Received','Approved'].includes(d.status);
 
         const actionCell = fileUrl 
           ? `<a class="btn small primary" href="${esc(fileUrl)}" target="_blank">📄 View File</a>` 
           : `<div style="display:flex; gap:4px;"><input type="file" id="client_doc_file_${d.id}" style="font-size:12px;" /><button class="btn primary small" onclick="uploadClientDocFile('${p.id}', '${d.id}', this)">Upload</button></div>`;
 
-        return `<tr>
+        rowsHtml += `<tr>
           <td><strong>${esc(d.name)}</strong></td>
           <td><span class="pill ${isUploaded?'status-completed':'status-hold'}">${isUploaded?'Received':'Pending'}</span></td>
           <td>${actionCell}</td>
         </tr>`;
-      }).join('');
+      }
+
+      listEl.innerHTML = rowsHtml;
     }
 
     async function uploadClientDocFile(projectId, docId, btnBtn) {
